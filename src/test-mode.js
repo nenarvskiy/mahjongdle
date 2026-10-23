@@ -1,13 +1,11 @@
 /**
- * Тестовый режим — ОТДЕЛЬНАЯ ВКЛАДКА (не модальное окно).
+ * Тестовый режим — отдельная вкладка.
  *
- * Отличия от игры: рука собирается вручную (палитра всех тайлов), ничего не
- * пишется в рейтинг. Всё остальное — как в руке дня: кан предлагается и
- * объявляется теми же функциями (findKans / withKanPons / renderClosedKan /
- * renderKanPrompt), сброс считается через withKanPons, кандоры и ура-доры
- * показываются так же.
+ * Поток: собираем руку из палитры (клик по тайлу в руке УБИРАЕТ его),
+ * затем «Просчитать руку» — анализ канов, и только после этого сброс.
  */
-import { drawHand, sortHand, allTileIds, canonicalTileId } from './tiles.js';
+import { drawHand, sortHand, allTileIds, tileDisplayName, canonicalTileId } from './tiles.js';
+import { tileToIndex } from './tile-index.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
 import { renderTiles, renderScore, renderGroupedHand } from './ui.js';
 import { createDailyContext, createDeadWall, doraFromIndicator } from './daily-context.js';
@@ -17,54 +15,72 @@ import { logHand, updateHandBlock, reportHandBlock, scorePayload } from './event
 
 const WIND_IDS = ['ew', 'sw', 'ww', 'nw'];
 const WIND_LABEL = { ew: 'Восток', sw: 'Юг', ww: 'Запад', nw: 'Север' };
-const WIND_INDEX = { ew: 27, sw: 28, ww: 29, nw: 30 };
 const HONORS = new Set(['ew', 'sw', 'ww', 'nw', 'wd', 'gd', 'rd']);
 const SUIT_RE = /^([1-9]|0)([mps])$/;
 
-/** Разобрать строку тайлов («1m 2m rd») в массив id. */
+/** Разобрать строку тайлов: {tiles} или {error}. */
 export function parseHandTokens(text) {
-  return String(text ?? '')
-    .split(/[\s,]+/)
-    .filter(Boolean)
-    .filter((t) => HONORS.has(t) || SUIT_RE.test(t))
-    .map((t) => canonicalTileId(t));
+  const tiles = [];
+  for (const raw of String(text ?? '').toLowerCase().split(/[\s,;]+/).filter(Boolean)) {
+    const m = SUIT_RE.exec(raw);
+    if (m) { tiles.push(m[1] === '0' ? `0${m[2]}` : `${m[1]}${m[2]}`); continue; }
+    if (HONORS.has(raw)) { tiles.push(raw); continue; }
+    return { error: `Не распознанный тайл «${raw}»` };
+  }
+  return { tiles };
 }
 
-/** Годятся только 13 или 14 тайлов. */
+/** Валидация ручной руки: 13/14 тайлов, ≤4 копий вида, ≤1 красная на масть. */
 export function validateHandTiles(tiles) {
-  return Array.isArray(tiles) && (tiles.length === 13 || tiles.length === 14);
+  if (tiles.length !== 13 && tiles.length !== 14) {
+    return `Рука — 13 или 14 тайлов, а здесь ${tiles.length}`;
+  }
+  const counts = new Map();
+  for (const t of tiles) {
+    const c = canonicalTileId(t);
+    counts.set(c, (counts.get(c) ?? 0) + 1);
+  }
+  for (const [id, n] of counts) if (n > 4) return `Тайл ${id} — ${n} копии, а в стене 4`;
+  const reds = new Map();
+  for (const t of tiles) if (t[0] === '0') reds.set(t[1], (reds.get(t[1]) ?? 0) + 1);
+  for (const [suit, n] of reds) if (n > 1) return `Красных пятёрок масти ${suit} — ${n}, а в стене одна`;
+  return null;
 }
 
-/** Контекст тестовой руки: ветра, индикаторы, мёртвая стена дня. */
-export function buildTestContext(roundWindId = 'ew', seatWindId = 'sw', doraIndicator = null, uraIndicator = null) {
-  const day = createDailyContext(new Date());
-  const deadWall = day.deadWall ?? createDeadWall(day.dayKey);
-  const doraIndicators = doraIndicator ? [canonicalTileId(doraIndicator)] : [];
-  const uraIndicators = uraIndicator ? [canonicalTileId(uraIndicator)] : [];
+/** Контекст оценки — та же форма, что у createDailyContext. */
+export function buildTestContext(roundWindId, seatWindId, doraIndicator, uraIndicator = null) {
+  const uraIndicators = uraIndicator ? [uraIndicator] : [];
   return {
-    dayKey: day.dayKey,
+    dayKey: 'test',
     roundWindId,
     seatWindId,
-    roundWind: WIND_INDEX[roundWindId] ?? 27,
-    seatWind: WIND_INDEX[seatWindId] ?? 28,
-    doraIndicators,
+    roundWind: tileToIndex(roundWindId),
+    seatWind: tileToIndex(seatWindId),
+    doraIndicators: [doraIndicator],
     uraIndicators,
-    doraTiles: doraIndicators.map((t) => doraFromIndicator(t)),
-    uraTiles: uraIndicators.map((t) => doraFromIndicator(t)),
-    deadWall,
-    deadTiles: day.deadTiles ?? [
-      ...(deadWall.kanDora ?? []),
-      ...(deadWall.kanUra ?? []),
-      ...(deadWall.tiles ?? []),
-    ],
+    doraTiles: [doraFromIndicator(doraIndicator)],
+    uraTiles: uraIndicators.map(doraFromIndicator),
+    deadTiles: [doraIndicator, ...uraIndicators],
   };
 }
 
+function randomOf(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+/** Случайные условия: ветра + индикаторы доры и ура. */
 export function randomTestContext() {
-  return buildTestContext('ew', 'sw', null, null);
+  const ids = allTileIds();
+  return buildTestContext(randomOf(WIND_IDS), randomOf(WIND_IDS), randomOf(ids), randomOf(ids));
 }
 
-/** Инициализация вкладки. Возвращает функцию очистки. */
+/** Палитра: три масти и отдельно хоноры. */
+const PALETTE_ROWS = [
+  ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m'],
+  ['1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'],
+  ['1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s'],
+  ['ew', 'sw', 'ww', 'nw', 'wd', 'gd', 'rd'],
+];
+
+/** Инициализация вкладки. Возвращает функцию возврата в игру. */
 export function initTestMode() {
   const view = document.getElementById('view-test');
   if (!view) return () => {};
@@ -82,8 +98,7 @@ export function initTestMode() {
     rand: q('#btn-tm-rand'),
     newHand: q('#btn-tm-new'),
     reset: q('#btn-tm-reset'),
-    customForm: q('#tm-custom-form'),
-    custom: q('#tm-custom'),
+    scoreBtn: q('#btn-tm-score'),
     error: q('#tm-error'),
     palette: q('#tm-palette'),
     hand: q('#tm-hand'),
@@ -110,7 +125,6 @@ export function initTestMode() {
     bugCancel: q('#tm-bug-cancel'),
   };
 
-  // ---- вкладки ----
   function showTest() {
     if (game) game.hidden = true;
     view.hidden = false;
@@ -125,7 +139,6 @@ export function initTestMode() {
     tabTest?.classList.remove('is-active');
     tabGame?.classList.add('is-active');
   }
-  // Совместимость: если кто-то зовёт showModal()/close() — ведём себя как вкладка.
   if (typeof view.showModal !== 'function') view.showModal = showTest;
   if (typeof view.close !== 'function') view.close = showGame;
 
@@ -137,7 +150,8 @@ export function initTestMode() {
 
   // ---- состояние ----
   let ctx = null;
-  let phase = 'idle'; // idle | choose | result | complete
+  let phase = 'edit'; // edit | choose | result | complete
+  let scored = false; // нажата «Просчитать руку»
   let hand = [];
   let declaredKans = [];
   let pendingKans = [];
@@ -147,9 +161,23 @@ export function initTestMode() {
   let score = null;
   let blockId = null;
 
+  function dayWall() {
+    try {
+      return createDeadWall(createDailyContext(new Date()).dayKey);
+    } catch {
+      return { kanDora: [], kanUra: [], tiles: [] };
+    }
+  }
+
+  function deadForDraw() {
+    const wall = dayWall();
+    return [...(ctx?.deadTiles ?? []), ...(wall.kanDora ?? []), ...(wall.kanUra ?? []), ...(wall.tiles ?? [])];
+  }
+
   function resetAll() {
-    ctx = buildTestContext('ew', 'sw', null, null);
-    phase = 'idle';
+    ctx = randomTestContext();
+    phase = 'edit';
+    scored = false;
     hand = [];
     declaredKans = [];
     pendingKans = [];
@@ -158,9 +186,8 @@ export function initTestMode() {
     remaining = [];
     score = null;
     blockId = null;
-    if (els.dora) els.dora.value = '';
-    if (els.ura) els.ura.value = '';
     showError(null);
+    syncIndicatorInputs();
   }
 
   function showError(message) {
@@ -169,14 +196,30 @@ export function initTestMode() {
     els.error.hidden = !message;
   }
 
-  // ---- кан-логика (та же, что в руке дня) ----
+  function syncIndicatorInputs() {
+    if (els.dora) els.dora.value = ctx?.doraIndicators?.[0] ?? '';
+    if (els.ura) els.ura.value = ctx?.uraIndicators?.[0] ?? '';
+  }
+
+  function setContext(roundWindId, seatWindId, dora, ura) {
+    ctx = buildTestContext(roundWindId, seatWindId, dora, ura);
+    syncIndicatorInputs();
+    renderWinds();
+    reevaluate();
+    render();
+    void syncHandBlock();
+  }
+
+  // ---- каны: те же функции, что в руке дня ----
   function refreshKanPrompt() {
     if (!els.kanPrompt) return;
-    if (phase !== 'choose') {
+    if (!scored || phase !== 'choose') {
+      pendingKans = [];
+      pendingKan = null;
       els.kanPrompt.hidden = true;
       return;
     }
-    pendingKans = findKans(hand);
+    if (!pendingKan) pendingKans = findKans(hand);
     pendingKan = pendingKans[0] ?? null;
     if (!pendingKan) {
       els.kanPrompt.hidden = true;
@@ -190,12 +233,12 @@ export function initTestMode() {
     if (!pendingKan || phase !== 'choose') return;
     const skip = new Set(pendingKan.indices ?? []);
     const rest = hand.filter((_, i) => !skip.has(i));
-    const drawn = drawHand(1, { deadTiles: ctx.deadTiles });
+    const drawn = drawHand(1, { deadTiles: deadForDraw() });
     declaredKans = [...declaredKans, { tile: pendingKan.tile, tiles: pendingKan.tiles }];
     pendingKan = null;
     pendingKans = [];
-    if (els.kanPrompt) els.kanPrompt.hidden = true;
     hand = sortHand([...rest, ...drawn]);
+    if (els.kanPrompt) els.kanPrompt.hidden = true;
     reevaluate();
     render();
     void syncHandBlock();
@@ -212,22 +255,27 @@ export function initTestMode() {
     pendingKan = null;
     pendingKans = [];
     if (els.kanPrompt) els.kanPrompt.hidden = true;
+    render();
   }
 
   // ---- оценка ----
-  function fullTiles() {
-    return withKanPons(hand, declaredKans);
-  }
+  function fullTiles() { return withKanPons(hand, declaredKans); }
 
   function reevaluate() {
-    if (hand.length === 0) {
-      phase = 'idle';
+    if (!hand.length || !scored) {
+      phase = 'edit';
       score = null;
       remaining = [];
       return;
     }
+    if (hand.length === 13 && declaredKans.length === 0) {
+      phase = 'result';
+      remaining = hand;
+      score = evaluateHand(hand, ctx);
+      return;
+    }
     const full = fullTiles();
-    if (full.length === 14) {
+    if (full.length >= 14) {
       const complete = evaluateCompleteHand(full, ctx);
       if (complete) {
         phase = 'complete';
@@ -240,37 +288,43 @@ export function initTestMode() {
       remaining = [];
       return;
     }
-    phase = 'choose';
+    phase = 'edit';
     score = null;
     remaining = [];
   }
 
   function deal(tiles) {
-    const sorted = sortHand(tiles);
+    hand = sortHand(tiles);
     declaredKans = [];
     pendingKan = null;
     pendingKans = [];
-    if (els.kanPrompt) els.kanPrompt.hidden = true;
     discarded = null;
+    remaining = [];
+    score = null;
     blockId = null;
-    if (sorted.length === 13) {
-      hand = sorted;
-      phase = 'result';
-      remaining = sorted;
-      score = evaluateHand(sorted, ctx);
-    } else {
-      hand = sorted;
-      reevaluate();
-    }
+    scored = false;
+    if (els.kanPrompt) els.kanPrompt.hidden = true;
+    reevaluate();
     render();
     void syncHandBlock();
   }
 
+  /** Клик по тайлу ДО просчёта — убрать его из руки. */
+  function removeAt(index) {
+    if (scored) return;
+    hand = hand.filter((_, i) => i !== index);
+    showError(null);
+    reevaluate();
+    render();
+    void syncHandBlock();
+  }
+
+  /** Клик по тайлу ПОСЛЕ просчёта и разбора канов — сброс. */
   function discardAt(index) {
-    if (phase !== 'choose') return;
+    if (!scored || phase !== 'choose' || pendingKan) return;
     discarded = hand[index];
     remaining = hand.filter((_, i) => i !== index);
-    // объявленные каны входят в оценку как фиксированные поны
+    hand = remaining;
     score = evaluateHand(withKanPons(remaining, declaredKans), ctx);
     phase = 'result';
     render();
@@ -278,15 +332,15 @@ export function initTestMode() {
   }
 
   function resetChoice() {
-    if (phase !== 'result') return;
-    phase = 'choose';
+    scored = false;
+    phase = 'edit';
     discarded = null;
     remaining = [];
     score = null;
     render();
   }
 
-  // ---- палитра: добавить тайл в руку ----
+  // ---- палитра ----
   function usedOf(tile) {
     const canon = canonicalTileId(tile);
     const inHand = hand.filter((t) => canonicalTileId(t) === canon).length;
@@ -295,21 +349,22 @@ export function initTestMode() {
   }
 
   function addTile(tile) {
-    if (phase === 'result' || phase === 'complete') {
-      // начинаем новую руку из палитры
+    if (!ctx) ctx = randomTestContext();
+    if (!tile) return;
+    if (scored) {
+      // меняем руку — просчёт сбрасывается
       hand = [];
       declaredKans = [];
       discarded = null;
       remaining = [];
       score = null;
-      phase = 'choose';
+      pendingKan = null;
+      pendingKans = [];
+      scored = false;
       blockId = null;
     }
-    if (hand.length >= 14) return;
-    if (usedOf(tile) >= 4) {
-      showError(`Тайлов ${tile} уже 4 — больше нельзя.`);
-      return;
-    }
+    if (hand.length >= 14) { showError('В руке уже 14 тайлов.'); return; }
+    if (usedOf(tile) >= 4) { showError(`Тайлов ${tile} уже 4 — больше нельзя.`); return; }
     showError(null);
     hand = sortHand([...hand, canonicalTileId(tile)]);
     reevaluate();
@@ -319,6 +374,7 @@ export function initTestMode() {
 
   // ---- рендер ----
   function renderWinds() {
+    if (!ctx) return;
     for (const [container, key] of [[els.roundWinds, 'roundWindId'], [els.seatWinds, 'seatWindId']]) {
       if (!container) continue;
       container.innerHTML = '';
@@ -326,26 +382,19 @@ export function initTestMode() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = WIND_LABEL[id];
-        btn.className = 'tm-wind' + (ctx[key] === id ? ' is-active' : '');
+        btn.className = 'tm-wind' + (ctx[key] === id ? ' active' : '');
         btn.addEventListener('click', () => {
-          ctx = { ...ctx, [key]: id, roundWind: WIND_INDEX[ctx.roundWindId] ?? 27, seatWind: WIND_INDEX[ctx.seatWindId] ?? 28 };
-          ctx.roundWind = WIND_INDEX[ctx.roundWindId];
-          ctx.seatWind = WIND_INDEX[ctx.seatWindId];
-          reevaluate();
-          render();
+          setContext(
+            key === 'roundWindId' ? id : ctx.roundWindId,
+            key === 'seatWindId' ? id : ctx.seatWindId,
+            ctx.doraIndicators[0],
+            ctx.uraIndicators[0] ?? null,
+          );
         });
         container.appendChild(btn);
       }
     }
   }
-
-  // Палитра по строкам: три масти и хоноры — так искать тайл глазами проще.
-  const PALETTE_ROWS = [
-    ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m'],
-    ['1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'],
-    ['1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s'],
-    ['ew', 'sw', 'ww', 'nw', 'wd', 'gd', 'rd'],
-  ];
 
   function renderPalette() {
     if (!els.palette) return;
@@ -361,51 +410,40 @@ export function initTestMode() {
     }
     PALETTE_ROWS.forEach((row, i) => {
       const line = document.getElementById(`tm-palette-row-${i}`);
-      if (line) renderTiles(line, row, { onTileClick: (index) => addTile(row[index]) });
+      // renderTiles зовёт (index, id) — берём id, индекс запасной.
+      if (line) renderTiles(line, row, { onTileClick: (index, id) => addTile(id ?? row[index]) });
     });
   }
 
   function render() {
     if (!ctx) return;
-    const uraOpen = phase !== 'choose';
-    const uraTiles = uraOpen ? ctx.uraTiles : [];
-
     renderWinds();
     renderPalette();
 
-    if (phase === 'idle') {
-      if (els.hand) els.hand.innerHTML = '';
-      if (els.discardedPanel) els.discardedPanel.hidden = true;
-      if (els.resultPanel) els.resultPanel.hidden = true;
-      if (els.kanPrompt) els.kanPrompt.hidden = true;
-      if (els.kanList) els.kanList.innerHTML = '';
-      if (els.hint) els.hint.textContent = 'Тыкайте тайлы в палитре или нажмите «Случайная рука».';
-      return;
-    }
-
-    const visible = phase === 'choose' ? hand : remaining;
-    renderTiles(els.hand, visible, {
-      disabled: phase !== 'choose',
-      onTileClick: discardAt,
+    const canEdit = !scored;
+    const canDiscard = scored && phase === 'choose' && !pendingKan;
+    renderTiles(els.hand, hand, {
+      disabled: !(canEdit || canDiscard),
+      onTileClick: (index) => (canEdit ? removeAt(index) : discardAt(index)),
       doraTiles: ctx.doraTiles,
-      uraTiles,
+      uraTiles: scored ? ctx.uraTiles : [],
     });
 
     if (discarded) {
       els.discardedPanel.hidden = false;
-      renderTiles(els.discarded, [discarded], { disabled: true, doraTiles: ctx.doraTiles, uraTiles });
+      renderTiles(els.discarded, [discarded], { disabled: true, doraTiles: ctx.doraTiles, uraTiles: ctx.uraTiles });
     } else {
       els.discardedPanel.hidden = true;
     }
 
-    if (phase !== 'choose' && score) {
+    if (scored && phase !== 'edit' && score) {
       els.resultPanel.hidden = false;
-      renderGroupedHand(els.groupedHand, score.display, { doraTiles: ctx.doraTiles, uraTiles });
+      renderGroupedHand(els.groupedHand, score.display, { doraTiles: ctx.doraTiles, uraTiles: ctx.uraTiles });
       renderScore(els.result, score);
       if (score.potentialDisplay) {
         els.potentialPreview.hidden = false;
         els.potentialTitle.textContent = score.potentialSummary;
-        renderGroupedHand(els.potentialHand, score.potentialDisplay);
+        renderGroupedHand(els.potentialHand, score.potentialDisplay, { doraTiles: ctx.doraTiles, uraTiles: ctx.uraTiles });
       } else {
         els.potentialPreview.hidden = true;
       }
@@ -414,44 +452,39 @@ export function initTestMode() {
       els.potentialPreview.hidden = true;
     }
 
-    // каны: объявленные — справа, предложение — над рукой
     if (els.kanList) {
       els.kanList.innerHTML = '';
       for (const kan of declaredKans) renderClosedKan(els.kanList, kan);
     }
-    if (els.kanDoras && ctx.deadWall) {
-      renderKanDoras(els.kanDoras, ctx.deadWall, openKanDoraCount(declaredKans.length));
-    }
+    if (els.kanDoras) renderKanDoras(els.kanDoras, dayWall(), openKanDoraCount(declaredKans.length));
     refreshKanPrompt();
 
     if (els.hint) {
-      els.hint.textContent = phase === 'choose'
-        ? `Выберите тайл для сброса (${hand.length} в руке${declaredKans.length ? `, канов: ${declaredKans.length}` : ''}).`
-        : phase === 'complete'
-          ? 'Готовая рука — можно менять условия.'
-          : 'Сброс сделан — можно менять условия или «Вернуть тайл».';
+      if (!hand.length) els.hint.textContent = 'Тыкайте тайлы в палитре, чтобы собрать руку.';
+      else if (!scored) els.hint.textContent = `В руке ${hand.length}. Клик по тайлу убирает его. Затем «Просчитать руку».`;
+      else if (phase === 'choose') els.hint.textContent = pendingKan ? 'Объявите кан или пропустите.' : 'Выберите тайл для сброса.';
+      else if (phase === 'complete') els.hint.textContent = 'Готовая рука.';
+      else els.hint.textContent = `Сброшен ${tileDisplayName(discarded)}.`;
     }
+    if (els.reset) els.reset.hidden = !scored;
   }
 
-  // ---- лог (не критично: ошибки не ломают вкладку) ----
   async function syncHandBlock() {
     try {
-      if (!score) return;
+      if (!score) return null;
       const payload = scorePayload(ctx, { hand, discarded, remaining, score });
-      if (blockId) await updateHandBlock(blockId, payload);
-      else {
-        const res = await logHand({ mode: 'test', payload });
-        blockId = res?.id ?? null;
-      }
+      if (blockId) return await updateHandBlock(blockId, payload);
+      const res = await logHand({ mode: 'test', payload });
+      if (res?.id) blockId = res.id;
+      return res;
     } catch {
-      /* тестовый режим не должен падать из-за лога */
+      return null;
     }
   }
 
-  // ---- обработчики ----
   function randomHand() {
-    if (!ctx) ctx = buildTestContext();
-    deal(drawHand(14, { deadTiles: ctx.deadTiles }));
+    if (!ctx) ctx = randomTestContext();
+    deal(drawHand(14, { deadTiles: deadForDraw() }));
   }
 
   els.rand?.addEventListener('click', randomHand);
@@ -460,39 +493,43 @@ export function initTestMode() {
   els.btnKan?.addEventListener('click', declareKan);
   els.btnKanSkip?.addEventListener('click', skipKan);
 
-  els.customForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!ctx) ctx = buildTestContext();
-    const tiles = parseHandTokens(els.custom?.value ?? '');
-    if (!validateHandTiles(tiles)) {
-      showError('Нужно 13 или 14 тайлов: 1m 2m rd …');
+  els.scoreBtn?.addEventListener('click', () => {
+    if (!ctx) ctx = randomTestContext();
+    if (!hand.length) { showError('Сначала наберите тайлы в палитре.'); return; }
+    if (hand.length !== 13 && hand.length !== 14) {
+      showError(`В руке ${hand.length} тайлов, нужно 13 или 14.`);
       return;
     }
     showError(null);
-    deal(tiles);
+    scored = true;
+    pendingKan = null;
+    pendingKans = [];
+    reevaluate();
+    render();
+    void syncHandBlock();
   });
 
-  const onIndicator = (input, key, tilesKey) => {
-    input?.addEventListener('input', () => {
+  const onIndicator = (input, isUra) => {
+    input?.addEventListener('change', () => {
       if (!ctx) return;
-      const raw = input.value.trim();
-      if (raw && !(HONORS.has(raw) || SUIT_RE.test(raw))) {
-        showError('Индикатор — один тайл, например 5m или rd.');
+      const value = input.value.trim().toLowerCase();
+      if (value && !HONORS.has(value) && !SUIT_RE.test(value)) {
+        showError(`Не распознанный тайл «${value}»`);
         return;
       }
       showError(null);
-      const list = raw ? [canonicalTileId(raw)] : [];
-      ctx = { ...ctx, [key]: list, [tilesKey]: list.map((t) => doraFromIndicator(t)) };
-      reevaluate();
-      render();
+      const dora = isUra ? (ctx.doraIndicators[0] ?? null) : (value || null);
+      const ura = isUra ? (value || null) : (ctx.uraIndicators[0] ?? null);
+      setContext(ctx.roundWindId, ctx.seatWindId, dora, ura);
     });
   };
-  onIndicator(els.dora, 'doraIndicators', 'doraTiles');
-  onIndicator(els.ura, 'uraIndicators', 'uraTiles');
+  onIndicator(els.dora, false);
+  onIndicator(els.ura, true);
 
   els.bugButton?.addEventListener('click', () => {
     if (!els.bugForm) return;
     els.bugForm.hidden = !els.bugForm.hidden;
+    if (!els.bugForm.hidden) els.bugText?.focus();
   });
   els.bugCancel?.addEventListener('click', () => {
     if (els.bugForm) els.bugForm.hidden = true;
@@ -502,14 +539,15 @@ export function initTestMode() {
     e.preventDefault();
     const text = els.bugText?.value?.trim();
     if (!text) return;
+    if (score) await syncHandBlock();
     if (!blockId) {
       if (els.bugStatus) els.bugStatus.textContent = 'Сначала посчитайте руку.';
       return;
     }
     try {
-      await reportHandBlock(blockId, text);
-      if (els.bugStatus) els.bugStatus.textContent = 'Спасибо, отмечено.';
-      els.bugText.value = '';
+      const res = await reportHandBlock(blockId, text);
+      if (els.bugStatus) els.bugStatus.textContent = res ? 'Спасибо, отмечено.' : 'Не удалось отправить.';
+      if (res) els.bugText.value = '';
     } catch {
       if (els.bugStatus) els.bugStatus.textContent = 'Не удалось отправить.';
     }
