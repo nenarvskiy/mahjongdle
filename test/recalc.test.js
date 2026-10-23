@@ -9,7 +9,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { recalcScore, recalcDay } from '../server/recalc.js';
 import { createDeadWall } from '../src/daily-context.js';
-import { KAN_DORA_SLOTS } from '../src/kans.js';
+import { KAN_DORA_SLOTS, withKanPons } from '../src/kans.js';
+import { evaluateCompleteHand } from '../src/scoring.js';
 
 const DAY = '2026-10-22';
 // Готовая рука: 123m 456m 789m 123p 55s
@@ -91,4 +92,41 @@ test('recalcDay: пакетный пересчёт возвращает userId �
   assert.deepEqual(out.map((r) => r.userId), ['u1', 'u2']);
   assert.equal(out[1].openKanDoras, 2);
   for (const r of out) assert.equal(typeof r.newScore, 'number');
+});
+
+// --- Готовая рука после кана + ветра из day_ctx ---
+
+test('recalcScore: готовая рука после кана (11 + пон) пересчитывается как готовая', () => {
+  const hand11 = ['2m', '3m', '4m', '4p', '5p', '6p', '7s', '8s', '9s', 'ew', 'ew'];
+  const full14 = withKanPons(hand11, ['1m']);
+  const r = recalcScore({
+    hand: full14, kans: ['1m'], oldScore: 0, complete: true, ctx: emptyCtx(), dayKey: DAY,
+  });
+  // Прямая оценка тем же контекстом, что строит пересчёт (кандоры + все кан-ура)
+  const wall = createDeadWall(DAY);
+  const ctx2 = {
+    ...emptyCtx(),
+    doraIndicators: wall.kanDora.slice(0, 2),
+    uraIndicators: wall.kanUra,
+  };
+  const direct = evaluateCompleteHand(full14, ctx2, ['1m']);
+  assert.ok(direct, 'рука распознана как готовая');
+  assert.equal(r.newScore, direct.total);
+  assert.equal(r.openKanDoras, 2);
+});
+
+test('recalcScore: ветра из day_ctx (id) восстанавливаются для скоринга', () => {
+  // пара = ветер раунда: без восстановления индекса ветра-яку теряется
+  const ready = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p', '2p', '3p', 'ew', 'ew'];
+  const withIds = recalcScore({
+    hand: ready, oldScore: 0, complete: true,
+    ctx: { dayKey: DAY, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'sw' },
+    dayKey: DAY,
+  });
+  const without = recalcScore({
+    hand: ready, oldScore: 0, complete: true,
+    ctx: { dayKey: DAY, doraIndicators: [], uraIndicators: [] },
+    dayKey: DAY,
+  });
+  assert.ok(withIds.newScore > without.newScore, 'вент-яку не теряется в пересчёте');
 });

@@ -5,6 +5,7 @@ import { handToCounts } from '../src/tile-index.js';
 import { allDecompositions } from '../src/decompose.js';
 import { evaluateComplete } from '../src/evaluate.js';
 import { evaluateCompleteHand, evaluateHand, valueTier } from '../src/scoring.js';
+import { withKanPons } from '../src/kans.js';
 import { detectV4Yaku, detectV4YakuCounts, detectV4YakuIds } from '../src/yaku-v4.js';
 import { PATTERNS, addCustomPattern } from '../src/patterns.js';
 import { bestPartition, clearPartitionCache } from '../src/partition.js';
@@ -365,4 +366,19 @@ test('deterministic random hands preserve scoring invariants', () => {
     for (const tile of shuffled.slice(0, 13)) copies.set(tile, (copies.get(tile) ?? 0) + 1);
     assert.ok([...copies.values()].every((count) => count <= 4));
   }
+});
+// --- Кан как кан: 4-й тайл кан-дора в готовой руке ---
+
+test('complete hand with kan: четвёртый тайл кана считается дорой', () => {
+  const ctx = { roundWind: 27, seatWind: 27, doraIndicators: ['9m'], uraIndicators: [] };
+  // кан 1m + 345p + 567s + пара 1p + 8m 9m 2s (11 тайлов)
+  const hand11 = ['2m', '3m', '4m', '4p', '5p', '6p', '7s', '8s', '9s', 'ew', 'ew'];
+  const full14 = withKanPons(hand11, ['1m']);
+  const withKan = evaluateCompleteHand(full14, ctx, ['1m']);
+  const withoutKan = evaluateCompleteHand(full14, ctx);
+  assert.ok(withKan, 'рука готова с каном');
+  assert.ok(withoutKan, 'та же рука готова и без аргумента кана (пон = 4-й сет)');
+  // дора = 1m (индикатор 9m): «пон» кана несёт 3 тайла, кан добавляет четвёртый —
+  // 4 доры (800) вместо 3 (400)
+  assert.equal(withKan.total - withoutKan.total, 400);
 });

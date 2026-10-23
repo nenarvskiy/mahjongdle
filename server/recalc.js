@@ -14,6 +14,7 @@
 import { evaluateHand, evaluateCompleteHand } from '../src/scoring.js';
 import { createDeadWall } from '../src/daily-context.js';
 import { openKanDoraCount, withKanPons, KAN_DORA_SLOTS } from '../src/kans.js';
+import { tileToIndex } from '../src/tile-index.js';
 
 /**
  * Пересчитать одну руку.
@@ -38,16 +39,23 @@ export function recalcScore({ hand, tiles, kans = [], oldScore, complete = false
   // В конце дня открыты все ура-доры мёртвой стены + все открытые кандоры.
   const uraIndicators = [...(ctx.uraIndicators ?? []), ...wall.kanUra];
   const doraIndicators = [...(ctx.doraIndicators ?? []), ...kanDoras];
+  // day_ctx на сервере хранит ветра как id (roundWindId/seatWindId), а скоринг
+  // ждёт индексы — восстанавливаем, если индекса нет (иначе ветра-яку
+  // тихо теряются в пересчёте).
   const scoringCtx = {
     ...ctx,
     dayKey: dayKey ?? ctx.dayKey,
     doraIndicators,
     uraIndicators,
+    ...(ctx.roundWind == null && ctx.roundWindId ? { roundWind: tileToIndex(ctx.roundWindId) } : {}),
+    ...(ctx.seatWind == null && ctx.seatWindId ? { seatWind: tileToIndex(ctx.seatWindId) } : {}),
   };
 
   let next = old;
   if (complete && Array.isArray(hand) && hand.length === 14) {
-    const rescored = evaluateCompleteHand(hand, scoringCtx);
+    // Готовая рука может включать «поны» объявленных канов (рука после
+    // кана — 11 тайлов + 3×кан): каны передаются для оценки (доры ×4).
+    const rescored = evaluateCompleteHand(hand, scoringCtx, kans);
     if (rescored?.total != null) next = rescored.total;
   } else if (Array.isArray(tiles) && tiles.length === 13) {
     next = evaluateHand(withKanPons(tiles, kans), scoringCtx, kans).total;

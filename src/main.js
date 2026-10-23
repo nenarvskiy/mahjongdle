@@ -5,7 +5,7 @@ import { renderTiles, renderScore, renderGroupedHand, createTileElement } from '
 import { evaluateCompleteHand, evaluateHand } from './scoring.js';
 import { createDailyContext } from './daily-context.js';
 import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
-import { findKans, withKanPons, openKanDoraCount, countKans } from './kans.js';
+import { findKans, withKanPons, openKanDoraCount, countKans, KAN_DORA_SLOTS } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initStructureEditor } from './structure-editor.js';
 import { initAuthButton, onAuthChange, getAuth, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand } from './auth.js';
@@ -23,13 +23,25 @@ const dailyContext = createDailyContext();
 /**
  * Контекст СДАЧИ: ура-доры при сдаче не учитываются — они открываются
  * в полночь (00:00 МСК), и сервер пересчитывает вчерашние очки.
- * Кандоры при этом учитываются: 1 базовая открыта с начала дня.
+ * Кандоры при этом учитываются: 1 базовая открыта с начала дня, каждый
+ * объявленный кан открывает ещё одну (макс. 5) — та же формула, что в
+ * серверном пересчёте (server/recalc.js).
  */
-const scoreContext = {
+const baseScoreContext = {
   ...dailyContext,
   uraIndicators: [],
   uraTiles: [],
 };
+
+/** Контекст оценки с учётом объявленных канов (кандоры). */
+function scoreContextFor(kans = []) {
+  const open = openKanDoraCount(kans.length);
+  const kanDoras = dailyContext.deadWall.kanDora.slice(0, Math.min(open, KAN_DORA_SLOTS));
+  return {
+    ...baseScoreContext,
+    doraIndicators: [...baseScoreContext.doraIndicators, ...kanDoras],
+  };
+}
 
 const els = {
   hand: document.getElementById('hand'),
@@ -77,7 +89,7 @@ const els = {
 /** Состояние по руке дня: готовая — сразу со счётом, иначе фаза выбора сброса. */
 function stateFromHand(hand) {
   const sorted = sortHand(hand);
-  const completed = evaluateCompleteHand(sorted, scoreContext);
+  const completed = evaluateCompleteHand(sorted, scoreContextFor());
   return {
     phase: completed ? 'complete' : 'choose',
     hand: sorted,
@@ -118,10 +130,23 @@ void (async () => {
   } catch {
     /* сервер недоступен — не мешаем игре */
   }
+  // Сначала снимаем флаг: финальный setState вызывает рендер, и он обязан
+  // увидеть booting = false — иначе «Сгенерировать» остаётся заблокированной
+  // навсегда (раньше booting=false выставлялся ПОСЛЕ setState).
+  booting = false;
   if (next) store.setState(next);
   else store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
-  booting = false;
 })();
+
+// Если день сменился, пока страница открыта (полночь МСК), — перезагружаем:
+// иначе рука старого дня блокировала бы кнопку «Сгенерировать» до ручного
+// обновления вкладки.
+function maybeReloadOnNewDay() {
+  if (createDailyContext(new Date()).dayKey !== dailyContext.dayKey) location.reload();
+}
+setInterval(maybeReloadOnNewDay, 60_000);
+document.addEventListener('visibilitychange', maybeReloadOnNewDay);
+window.addEventListener('focus', maybeReloadOnNewDay);
 
 /** Таблица дня: обновлять после записи результата. */
 let refreshLeaderboard = () => {};
@@ -157,7 +182,8 @@ async function maybeSubmitScore(state) {
       tiles: state.phase === 'complete' ? state.hand : state.remaining,
       // Для ночного пересчёта: исходная рука, объявленные каны, готовность,
       // контекст дня (ветра и индикатор доры — без ура-дор).
-      hand: state.hand,
+      // Готовая рука после кана идёт полным 14-тайловым списком (пон кана).
+      hand: state.phase === 'complete' ? withKanPons(state.hand, declaredKans) : state.hand,
       kans: declaredKans.map((kan) => kan.tile),
       complete: state.phase === 'complete',
       dayCtx: {
@@ -269,12 +295,22 @@ function declareKan() {
   pendingKan = null;
   pendingKans = [];
   els.kanPrompt.hidden = true;
+  const hand = sortHand([...rest, ...drawn]);
+  // После добора кана рука может оказаться ГОТОВОЙ (кан + 3 сета + пара):
+  // сбрасывать тогда не нужно — сразу результат.
+  const full = withKanPons(hand, declaredKans);
+  const completed = evaluateCompleteHand(full, scoreContextFor(declaredKans), declaredKans);
+  if (completed) {
+    void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed }) }).then((res) => {
+      if (res?.id) dailyBlockId = res.id;
+    });
+  }
   store.setState({
-    phase: 'choose',
-    hand: sortHand([...rest, ...drawn]),
+    phase: completed ? 'complete' : 'choose',
+    hand,
     discarded: null,
-    remaining: [],
-    score: null,
+    remaining: completed ? hand : [],
+    score: completed,
   });
 }
 
@@ -313,7 +349,7 @@ async function generateHand() {
         seatWindId: dailyContext.seatWindId,
       }).catch(() => {});
     }
-    const completed = evaluateCompleteHand(hand, scoreContext);
+    const completed = evaluateCompleteHand(hand, scoreContextFor());
 
     // лог: блок создаётся только для ПОСЧИТАННОЙ руки (готовая с раздачи);
     // просто сгенерированная рука без счёта в логи не попадает
@@ -381,7 +417,7 @@ function discardAt(index) {
   const remaining = hand.filter((_, i) => i !== index);
   // кан, оставшийся в руке после сброса, всё равно считается объявленным;
   // объявленные каны входят в оценку как фиксированные поны
-  const score = evaluateHand(withKanPons(remaining, declaredKans), scoreContext, declaredKans);
+  const score = evaluateHand(withKanPons(remaining, declaredKans), scoreContextFor(declaredKans), declaredKans);
 
   store.setState({
     phase: 'result',
@@ -528,9 +564,9 @@ initStructureEditor({
   onChange: () => {
     const state = store.getState();
     if (state.phase === 'result') {
-      store.setState({ score: evaluateHand(withKanPons(state.remaining, declaredKans), scoreContext, declaredKans) });
+      store.setState({ score: evaluateHand(withKanPons(state.remaining, declaredKans), scoreContextFor(declaredKans), declaredKans) });
     } else if (state.phase === 'complete') {
-      store.setState({ score: evaluateCompleteHand(state.hand, scoreContext) });
+      store.setState({ score: evaluateCompleteHand(state.hand, scoreContextFor()) });
     }
   },
 });
