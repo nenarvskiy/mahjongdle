@@ -106,6 +106,20 @@ function authProfile(req, db, secret) {
   if (!m) return null;
   const payload = verifySession(m[1], secret);
   if (!payload) return null;
+  const user = getUser(db, payload.sub);
+  if (user) return user;
+  // Диск на Render эфемерный: после деплоя БД пустая, а сессия в браузере
+  // ещё валидна. Не выкидываем 401, а восстанавливаем строку из payload.
+  try {
+    upsertUser(db, {
+      id: payload.sub,
+      email: payload.email ?? '',
+      name: payload.name ?? '',
+      picture: null,
+    });
+  } catch {
+    return null;
+  }
   return getUser(db, payload.sub);
 }
 
@@ -383,7 +397,13 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       if (seg !== '' && !STATIC_TOP.has(seg)) return httpError(res, 404, 'не найдено');
       next();
     });
-    app.use(express.static(staticRoot, { index: 'index.html', fallthrough: true }));
+    // no-cache: после деплоя браузер сверяет файлы (304 дёшево), поэтому
+    // новая версия подхватывается без Ctrl+F5.
+    app.use(express.static(staticRoot, {
+      index: 'index.html',
+      fallthrough: true,
+      setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache'),
+    }));
   }
 
   // 404 и обёртка ошибок (express.json может кидать SyntaxError на кривом JSON)

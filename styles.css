@@ -850,13 +850,24 @@ button:active { transform: translateY(0); }
   margin-bottom: 12px;
 }
 .tile-palette {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
-  gap: 4px;
   margin: 10px 0 14px;
   padding: 8px;
   border: 1px dashed rgba(201, 167, 255, .35);
   border-radius: 10px;
+}
+/* Палитра по строкам: три масти и отдельно хоноры. */
+.tile-palette-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tile-palette-row + .tile-palette-row {
+  margin-top: 6px;
+}
+.tile-palette-row:last-child {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(201, 167, 255, .25);
 }
 .tile-palette .tile {
   cursor: pointer;

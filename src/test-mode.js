@@ -339,9 +339,30 @@ export function initTestMode() {
     }
   }
 
+  // Палитра по строкам: три масти и хоноры — так искать тайл глазами проще.
+  const PALETTE_ROWS = [
+    ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m'],
+    ['1p', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'],
+    ['1s', '2s', '3s', '4s', '5s', '6s', '7s', '8s', '9s'],
+    ['ew', 'sw', 'ww', 'nw', 'wd', 'gd', 'rd'],
+  ];
+
   function renderPalette() {
     if (!els.palette) return;
-    renderTiles(els.palette, allTileIds(), { onTileClick: addTile });
+    if (!els.palette.dataset.ready) {
+      els.palette.innerHTML = '';
+      PALETTE_ROWS.forEach((_, i) => {
+        const line = document.createElement('div');
+        line.className = 'tile-palette-row';
+        line.id = `tm-palette-row-${i}`;
+        els.palette.append(line);
+      });
+      els.palette.dataset.ready = '1';
+    }
+    PALETTE_ROWS.forEach((row, i) => {
+      const line = document.getElementById(`tm-palette-row-${i}`);
+      if (line) renderTiles(line, row, { onTileClick: addTile });
+    });
   }
 
   function render() {
