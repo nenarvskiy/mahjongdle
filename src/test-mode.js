@@ -361,7 +361,7 @@ export function initTestMode() {
     }
     PALETTE_ROWS.forEach((row, i) => {
       const line = document.getElementById(`tm-palette-row-${i}`);
-      if (line) renderTiles(line, row, { onTileClick: addTile });
+      if (line) renderTiles(line, row, { onTileClick: (index) => addTile(row[index]) });
     });
   }
 
