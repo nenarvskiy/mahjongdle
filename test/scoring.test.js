@@ -20,7 +20,7 @@ const hand = (notation) => notation.trim().split(/\s+/);
 const stateRow = (score) => score.breakdown.find((row) => row.label.startsWith('База:'));
 const structureRow = (score) => score.breakdown.find((row) => row.label === 'Структура');
 const yakuPoints = (score) => score.breakdown
-  .filter((row) => row.yaku).reduce((sum, row) => sum + row.points, 0);
+  .filter((row) => row.yaku || row.dora).reduce((sum, row) => sum + row.points, 0);
 
 test('structure prices come from the config and keep the design order', () => {
   assert.deepEqual(
@@ -153,18 +153,27 @@ test('total is exactly base + structures + flat yaku', () => {
   }
 });
 
-test('dora and red fives raise the tier instead of adding their own points', () => {
+test('dora raise the tier AND give their own points 2^(n-1)*100', () => {
   const tiles = hand('1m 2m 3m 1p 2p 3p 1s 2s 3s 7m rd rd rd');
   const plain = evaluateHand(tiles);
   const withDora = evaluateHand(tiles, { doraIndicators: ['6m'] });
+  // хан и тир — как раньше
   assert.equal(withDora.potential.han, plain.potential.han + 2);
-  assert.ok(!withDora.breakdown.some((row) => row.label.startsWith('Дора')));
   assert.ok(withDora.potential.yaku.some((item) => item.id === 'dora' && item.han === 2));
   assert.match(withDora.potentialSummary, /Дора ×2/);
+  // плюс отдельная строка очков за доры
+  const doraLine = withDora.breakdown.find((row) => row.dora);
+  assert.ok(doraLine, 'строка дор должна быть в разбивке');
+  const n = Number(/×\s*(\d+)/.exec(doraLine.label)[1]);
+  assert.ok(n >= 1);
+  assert.equal(doraLine.points, 2 ** (n - 1) * 100);
+  assert.ok(!plain.breakdown.some((row) => row.dora), 'без дор строки нет');
 
   const red = evaluateHand(hand('3m 4m 0m 1p 2p 3p 1s 2s 3s 7m rd rd rd'));
   assert.ok(red.potential.yaku.some((item) => item.id === 'aka_dora' && item.han === 1));
-  assert.ok(!red.breakdown.some((row) => row.label.startsWith('Красная дора')));
+  const redLine = red.breakdown.find((row) => row.dora);
+  assert.ok(redLine, 'красная пятёрка даёт строку дор');
+  assert.equal(redLine.points, 100);
   assert.equal(countDora(handToCounts(['5m', '5m', '1p']), ['4m']), 2);
 });
 

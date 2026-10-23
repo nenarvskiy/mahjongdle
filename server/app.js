@@ -13,7 +13,12 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { signSession, verifySession } from './auth.js';
-import { upsertUser, getUser, upsertScore, leaderboard, insertEvent, listEvents, updateEventPayload, addEventReport } from './db.js';
+import {
+  upsertUser, getUser, upsertScore, leaderboard, insertEvent, listEvents,
+  updateEventPayload, addEventReport,
+  upsertDayHand, getDayHand, listDayHands, markDayHandRecalculated, setScoreValue,
+} from './db.js';
+import { recalcScore } from './recalc.js';
 import { DEFAULT_ROLES_FILE, readRolesFile, roleFor, setRole } from './roles.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +30,13 @@ const DEFAULT_STATIC_ROOT = path.resolve(HERE, '..');
 const STATIC_TOP = new Set(['index.html', 'styles.css', 'src', 'config', 'assets']);
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** «Вчера» для dayKey: соседняя календарная дата (YYYY-MM-DD). */
+function dayBefore(dateKey) {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+}
 // Потолок на случай мусора в запросе. Реальный максимум счёта — джекпотные яку,
 // например «большие ветра» 23·10¹² + другие яку + база ≈ 2.5·10¹³, поэтому
 // запас на порядок: 10¹⁵.
@@ -259,6 +271,18 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       }
       discardedStr = discarded;
     }
+
+    // Рука дня для ночного пересчёта: 14 исходных тайлов, каны, контекст дня.
+    const { hand, kans, complete, dayCtx } = req.body ?? {};
+    const isTileArray = (arr, max) =>
+      Array.isArray(arr) && arr.length <= max && arr.every((t) => typeof t === 'string' && t.length <= 4);
+    if (hand !== undefined && !isTileArray(hand, 14)) {
+      return httpError(res, 400, 'hand — массив id тайлов (до 14)');
+    }
+    if (kans !== undefined && !isTileArray(kans, 4)) {
+      return httpError(res, 400, 'kans — массив id объявленных канов (до 4)');
+    }
+
     const result = upsertScore(db, {
       userId: user.id,
       date,
@@ -266,7 +290,76 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       discarded: discardedStr,
       tiles: tilesJson,
     });
+
+    upsertDayHand(db, {
+      userId: user.id,
+      date,
+      hand: hand ?? [],
+      tiles: tiles ?? null,
+      kans: kans ?? [],
+      discarded: discardedStr,
+      score,
+      complete: Boolean(complete),
+      dayCtx: dayCtx && typeof dayCtx === 'object' ? dayCtx : {},
+    });
+
     res.json(result);
+  });
+
+  /**
+   * GET /api/me/yesterday?date=YYYY-MM-DD → вчерашняя рука игрока.
+   *
+   * date — СЕГОДНЯШНИЙ день (клиентский dayKey); вчера вычисляется на сервере.
+   * При первом обращении за день вчерашние руки пересчитываются с учётом всех
+   * ура-дор и открытых кандор (один раз, флаг recalculated), таблица дня
+   * обновляется — поэтому рейтинг может измениться.
+   *
+   * Ответ: {date, hand, discarded, oldScore, newScore, changed, kanDoras,
+   *          kanDoraCount, recalculated}
+   */
+  app.get('/api/me/yesterday', (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    const today = req.query.date;
+    if (!isValidDate(today)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    const yesterday = dayBefore(today);
+
+    const mine = getDayHand(db, user.id, yesterday);
+    if (!mine) return res.json({ date: yesterday, hand: null });
+
+    // Ленивый ночной пересчёт: один раз на дату (и на игрока).
+    if (!mine.recalculated) {
+      for (const row of listDayHands(db, yesterday)) {
+        if (row.recalculated) continue;
+        const r = recalcScore({
+          hand: row.hand,
+          tiles: row.tiles,
+          kans: row.kans,
+          oldScore: row.score,
+          complete: row.complete,
+          ctx: row.day_ctx,
+          dayKey: yesterday,
+        });
+        markDayHandRecalculated(db, row.user_id, yesterday, r.newScore);
+        // Таблицу дня обновляем всегда: после ночного пересчёта очки могли
+        // измениться, а старый счёт остался бы с момента сдачи.
+        setScoreValue(db, row.user_id, yesterday, r.newScore);
+      }
+    }
+
+    const fresh = getDayHand(db, user.id, yesterday);
+    res.json({
+      date: yesterday,
+      hand: fresh.hand,
+      tiles: fresh.tiles,
+      discarded: fresh.discarded,
+      kans: fresh.kans,
+      complete: fresh.complete,
+      oldScore: mine.score,
+      newScore: fresh.score,
+      changed: fresh.score !== mine.score,
+      recalculated: fresh.recalculated,
+    });
   });
 
   /** GET /api/scores/:date?limit=N → {date, rows:[{name, picture, score, discarded}]} */

@@ -18,6 +18,8 @@ import { tileToIndex } from './tile-index.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
 import { renderTiles, renderScore, renderGroupedHand } from './ui.js';
 import { doraFromIndicator } from './daily-context.js';
+import { findKans, withKanPons } from './kans.js';
+import { renderClosedKan, renderKanPrompt } from './kans-ui.js';
 import { logHand, updateHandBlock, reportHandBlock, scorePayload } from './event-log.js';
 
 const WIND_IDS = ['ew', 'sw', 'ww', 'nw'];
@@ -116,6 +118,11 @@ export function initTestMode() {
     custom: dialog.querySelector('#tm-custom'),
     error: dialog.querySelector('#tm-error'),
     hand: dialog.querySelector('#tm-hand'),
+    kanPrompt: dialog.querySelector('#tm-kan-prompt'),
+    kanPromptTiles: dialog.querySelector('#tm-kan-prompt-tiles'),
+    btnKan: dialog.querySelector('#tm-btn-kan'),
+    btnKanSkip: dialog.querySelector('#tm-btn-kan-skip'),
+    kanList: dialog.querySelector('#tm-kan-list'),
     discardedPanel: dialog.querySelector('#tm-discarded-panel'),
     discarded: dialog.querySelector('#tm-discarded'),
     resultPanel: dialog.querySelector('#tm-result-panel'),
@@ -142,6 +149,66 @@ export function initTestMode() {
   let score = null;
   // id блока лога этой руки: одна рука = один блок (жалоба — в нём же)
   let blockId = null;
+
+  // --- Каны: та же логика, что в руке дня ---
+  let declaredKans = [];
+  let pendingKan = null;
+  let pendingKans = [];
+
+  /** Предложить кан (только в фазе выбора). */
+  function refreshKanPrompt() {
+    if (phase !== 'choose') {
+      els.kanPrompt.hidden = true;
+      return;
+    }
+    pendingKans = findKans(hand);
+    pendingKan = pendingKans[0] ?? null;
+    if (!pendingKan) {
+      els.kanPrompt.hidden = true;
+      return;
+    }
+    els.kanPrompt.hidden = false;
+    renderKanPrompt(els.kanPromptTiles, pendingKan);
+  }
+
+  /** Объявить кан: вынести 4 тайла, добрать тайл, проверить каны снова. */
+  function declareKan() {
+    if (!pendingKan || phase !== 'choose') return;
+    const skip = new Set(pendingKan.indices);
+    const rest = hand.filter((_, i) => !skip.has(i));
+    const drawn = drawHand(1, { deadTiles: ctx.deadTiles });
+    declaredKans = [...declaredKans, { tile: pendingKan.tile, tiles: pendingKan.tiles }];
+    pendingKan = null;
+    pendingKans = [];
+    els.kanPrompt.hidden = true;
+    hand = sortHand([...rest, ...drawn]);
+    const completed = evaluateCompleteHand(hand, ctx);
+    if (completed) {
+      phase = 'complete';
+      score = completed;
+      remaining = hand;
+    } else {
+      phase = 'choose';
+      score = null;
+      remaining = [];
+    }
+    render();
+    void syncHandBlock();
+  }
+
+  /** Пропустить: следующий кан, иначе обычный сброс. */
+  function skipKan() {
+    const rest = pendingKans.filter((kan) => kan !== pendingKan);
+    if (rest.length > 0) {
+      pendingKans = rest;
+      pendingKan = rest[0];
+      renderKanPrompt(els.kanPromptTiles, pendingKan);
+      return;
+    }
+    pendingKan = null;
+    pendingKans = [];
+    els.kanPrompt.hidden = true;
+  }
 
   /**
    * Синхронизировать блок лога с текущим счётом: первый счёт руки создаёт
@@ -213,6 +280,10 @@ export function initTestMode() {
   /** Раздать руку (13 → сразу оценка; 14 → complete или choose со сбросом). */
   function deal(tiles) {
     const sorted = sortHand(tiles);
+    declaredKans = [];
+    pendingKan = null;
+    pendingKans = [];
+    if (els.kanPrompt) els.kanPrompt.hidden = true;
     if (sorted.length === 13) {
       phase = 'result';
       hand = sorted;
@@ -244,7 +315,8 @@ export function initTestMode() {
     if (phase !== 'choose') return;
     discarded = hand[index];
     remaining = hand.filter((_, i) => i !== index);
-    score = evaluateHand(remaining, ctx);
+    // объявленные каны входят в оценку как фиксированные поны
+    score = evaluateHand(withKanPons(remaining, declaredKans), ctx);
     phase = 'result';
     render();
     void syncHandBlock();
@@ -320,6 +392,13 @@ export function initTestMode() {
     dialog.showModal();
   });
   els.close.addEventListener('click', () => dialog.close());
+
+  els.btnKan.addEventListener('click', () => {
+    declareKan();
+  });
+  els.btnKanSkip.addEventListener('click', () => {
+    skipKan();
+  });
 
   els.rand.addEventListener('click', () => {
     ctx = randomTestContext();

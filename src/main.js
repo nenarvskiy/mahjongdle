@@ -5,6 +5,8 @@ import { renderTiles, renderScore, renderGroupedHand, createTileElement } from '
 import { evaluateCompleteHand, evaluateHand } from './scoring.js';
 import { createDailyContext } from './daily-context.js';
 import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
+import { findKans, withKanPons, openKanDoraCount, countKans } from './kans.js';
+import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initStructureEditor } from './structure-editor.js';
 import { initAuthButton, onAuthChange, getAuth, logout, submitScore, canTestMode, refreshMe } from './auth.js';
 import { initTestMode } from './test-mode.js';
@@ -12,8 +14,21 @@ import { initRolesPanel } from './roles-panel.js';
 import { initBugViewer } from './bug-viewer.js';
 import { logHand, updateHandBlock, scorePayload } from './event-log.js';
 import { initLeaderboard } from './leaderboard.js';
+import { initYesterday } from './yesterday.js';
+import { APP_VERSION } from './version.js';
 
 const dailyContext = createDailyContext();
+
+/**
+ * Контекст СДАЧИ: ура-доры при сдаче не учитываются — они открываются
+ * в полночь (00:00 МСК), и сервер пересчитывает вчерашние очки.
+ * Кандоры при этом учитываются: 1 базовая открыта с начала дня.
+ */
+const scoreContext = {
+  ...dailyContext,
+  uraIndicators: [],
+  uraTiles: [],
+};
 
 const els = {
   hand: document.getElementById('hand'),
@@ -40,6 +55,13 @@ const els = {
   btnRoles: document.getElementById('btn-roles'),
   btnBugs: document.getElementById('btn-bugs'),
   scoreStatus: document.getElementById('score-status'),
+  nightNote: document.getElementById('night-note'),
+  kanPrompt: document.getElementById('kan-prompt'),
+  kanPromptTiles: document.getElementById('kan-prompt-tiles'),
+  btnKan: document.getElementById('btn-kan'),
+  btnKanSkip: document.getElementById('btn-kan-skip'),
+  kanList: document.getElementById('kan-list'),
+  kanDoraWall: document.getElementById('kan-dora-wall'),
   leaderboardPanel: document.getElementById('leaderboard-panel'),
   leaderboard: document.getElementById('leaderboard'),
   lbDate: document.getElementById('lb-date'),
@@ -56,7 +78,7 @@ function initialDailyState() {
   const stored = readStoredDailyHand();
   if (stored?.dayKey === dailyContext.dayKey) {
     const hand = sortHand(stored.hand);
-    const completed = evaluateCompleteHand(hand, dailyContext);
+    const completed = evaluateCompleteHand(hand, scoreContext);
     return {
       phase: completed ? 'complete' : 'choose',
       hand,
@@ -110,6 +132,18 @@ async function maybeSubmitScore(state) {
     const r = await submitScore(dailyContext.dayKey, state.score.total, {
       discarded: state.discarded ?? undefined,
       tiles: state.phase === 'complete' ? state.hand : state.remaining,
+      // Для ночного пересчёта: исходная рука, объявленные каны, готовность,
+      // контекст дня (ветра и индикатор доры — без ура-дор).
+      hand: state.hand,
+      kans: declaredKans.map((kan) => kan.tile),
+      complete: state.phase === 'complete',
+      dayCtx: {
+        dayKey: dailyContext.dayKey,
+        doraIndicators: dailyContext.doraIndicators,
+        uraIndicators: [],
+        roundWindId: dailyContext.roundWindId,
+        seatWindId: dailyContext.seatWindId,
+      },
     });
     els.scoreStatus.textContent =
       `Сохранено: ${r.score.toLocaleString('ru-RU')} очков — ` +
@@ -174,6 +208,61 @@ function renderAuthUser() {
  * обычная фаза choose/complete и кнопка блокируется до следующего дня.
  */
 let dealing = false;
+// --- Каны ---
+// Объявленные каны: [{tile, tiles}]; pendingKan — предложенный кан,
+// pendingKans — очередь (корректная работа нескольких канов).
+let declaredKans = [];
+let pendingKan = null;
+let pendingKans = [];
+
+/** Предложить кан, если он есть и фаза выбора. */
+function refreshKanPrompt(state) {
+  const hand = state.phase === 'choose' ? state.hand : state.remaining;
+  const candidates = findKans(hand);
+  pendingKans = candidates;
+  pendingKan = candidates[0] ?? null;
+  if (!pendingKan) {
+    els.kanPrompt.hidden = true;
+    return;
+  }
+  els.kanPrompt.hidden = false;
+  renderKanPrompt(els.kanPromptTiles, pendingKan);
+}
+
+/** Объявить кан: вынести 4 тайла, добрать тайл, проверить каны снова. */
+function declareKan() {
+  const state = store.getState();
+  if (!pendingKan || state.phase !== 'choose') return;
+  const skip = new Set(pendingKan.indices);
+  const rest = state.hand.filter((_, i) => !skip.has(i));
+  const drawn = drawHand(1, { deadTiles: dailyContext.deadTiles });
+  declaredKans = [...declaredKans, { tile: pendingKan.tile, tiles: pendingKan.tiles }];
+  pendingKan = null;
+  pendingKans = [];
+  els.kanPrompt.hidden = true;
+  store.setState({
+    phase: 'choose',
+    hand: sortHand([...rest, ...drawn]),
+    discarded: null,
+    remaining: [],
+    score: null,
+  });
+}
+
+/** Пропустить кан: следующий кан, иначе обычный сброс. */
+function skipKan() {
+  const rest = pendingKans.filter((kan) => kan !== pendingKan);
+  if (rest.length > 0) {
+    pendingKans = rest;
+    pendingKan = rest[0];
+    renderKanPrompt(els.kanPromptTiles, pendingKan);
+    return;
+  }
+  pendingKan = null;
+  pendingKans = [];
+  els.kanPrompt.hidden = true;
+}
+
 // id блока лога текущей руки дня (одна рука = один блок; null — ещё не создан)
 let dailyBlockId = null;
 async function generateHand() {
@@ -184,11 +273,14 @@ async function generateHand() {
   const raw = drawHand(CONFIG.handSize, { deadTiles: dailyContext.deadTiles });
   const hand = CONFIG.autoSortHand ? sortHand(raw) : raw;
   writeStoredDailyHand(dailyContext.dayKey, hand);
-  const completed = evaluateCompleteHand(hand, dailyContext);
+  const completed = evaluateCompleteHand(hand, scoreContext);
 
   // лог: блок создаётся только для ПОСЧИТАННОЙ руки (готовая с раздачи);
   // просто сгенерированная рука без счёта в логи не попадает
   dailyBlockId = null;
+  declaredKans = [];
+  pendingKan = null;
+  pendingKans = [];
   if (completed) {
     void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand, score: completed }) }).then((res) => {
       if (res?.id) dailyBlockId = res.id;
@@ -252,7 +344,9 @@ function discardAt(index) {
 
   const discarded = hand[index];
   const remaining = hand.filter((_, i) => i !== index);
-  const score = evaluateHand(remaining, dailyContext);
+  // кан, оставшийся в руке после сброса, всё равно считается объявленным;
+  // объявленные каны входят в оценку как фиксированные поны
+  const score = evaluateHand(withKanPons(remaining, declaredKans), scoreContext);
 
   store.setState({
     phase: 'result',
@@ -299,7 +393,16 @@ function render(state) {
       uraTiles,
     });
 
-    // Сброшенный тайл
+    // Объявленные каны — справа, закрытыми (крайние рубашкой)
+  els.kanList.innerHTML = '';
+  for (const kan of declaredKans) renderClosedKan(els.kanList, kan);
+
+  // Кандоры: 1 открыта + по одной за объявленный кан (макс. 5)
+  const handForKans = state.phase === 'result' ? state.remaining : state.hand;
+  const kanCount = countKans(declaredKans, state.phase === 'waiting' ? [] : handForKans);
+  renderKanDoras(els.kanDoraWall, dailyContext.deadWall.tiles, openKanDoraCount(kanCount));
+
+  // Сброшенный тайл
     if (state.discarded) {
       els.discardedPanel.hidden = false;
       renderTiles(els.discarded, [state.discarded], {
@@ -354,6 +457,21 @@ function render(state) {
     els.uraIndicator.innerHTML = '<div class="tile-back" title="Откроется после сброса"></div>';
   }
 
+  // Предложение кана — только когда есть кан и фаза выбора
+  if (state.phase === 'choose') refreshKanPrompt(state);
+  else els.kanPrompt.hidden = true;
+
+  // Заметка о полночном пересчёте (ура-доры и кандоры откроются в 00:00 МСК)
+  const hasScore = state.phase === 'result' || state.phase === 'complete';
+  if (hasScore) {
+    els.nightNote.hidden = false;
+    els.nightNote.textContent =
+      'В полночь (00:00 МСК) откроются ура-доры и кандоры — очки и место в таблице могут вырасти. ' +
+      'Загляните завтра: вчерашняя рука и новый счёт будут сверху.';
+  } else {
+    els.nightNote.hidden = true;
+  }
+
   // Результат дня → таблица (если игрок вошёл)
   maybeSubmitScore(state);
 }
@@ -369,14 +487,16 @@ els.btnGenerate.addEventListener('click', () => {
   void generateHand();
 });
 els.btnReset.addEventListener('click', resetChoice);
+els.btnKan.addEventListener('click', () => declareKan());
+els.btnKanSkip.addEventListener('click', () => skipKan());
 
 initStructureEditor({
   onChange: () => {
     const state = store.getState();
     if (state.phase === 'result') {
-      store.setState({ score: evaluateHand(state.remaining, dailyContext) });
+      store.setState({ score: evaluateHand(withKanPons(state.remaining, declaredKans), scoreContext) });
     } else if (state.phase === 'complete') {
-      store.setState({ score: evaluateCompleteHand(state.hand, dailyContext) });
+      store.setState({ score: evaluateCompleteHand(state.hand, scoreContext) });
     }
   },
 });
@@ -403,4 +523,18 @@ initLeaderboard({
   refreshLeaderboard = refresh;
 });
 
+// Окно «Вчерашняя рука»: сервер сам пересчитал вчерашние очки
+// (ура-доры + открытые кандоры). Показываем после входа.
+const yesterday = initYesterday({ dayKey: dailyContext.dayKey });
+if (yesterday) {
+  onAuthChange(() => {
+    if (getAuth()) void yesterday.refresh();
+  });
+  if (getAuth()) void yesterday.refresh();
+}
+
 render(store.getState()); // waiting (14 рубашек) либо уже сгенерированная рука дня
+
+/* отображение версии в шапке */
+const appVersionEl = document.getElementById('app-version');
+if (appVersionEl) appVersionEl.textContent = `v${APP_VERSION}`;

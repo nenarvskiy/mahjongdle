@@ -9,7 +9,12 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>RNGlDle Mahjong</h1>
+      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.7</span></h1>
+      <script type="module">
+        import { APP_VERSION } from './src/version.js';
+        const el = document.getElementById('app-version');
+        if (el) el.textContent = `v${APP_VERSION}`;
+      </script>
       <p class="subtitle" id="subtitle">Выберите тайл для сброса</p>
     </div>
     <div class="topbar-auth">
@@ -19,6 +24,22 @@
   </header>
 
   <main>
+    <section class="panel yesterday-panel" id="yesterday-panel" hidden>
+      <div class="daily-heading">
+        <h2 id="yesterday-title">Вчерашняя рука</h2>
+      </div>
+      <div class="yesterday-row">
+        <span class="yesterday-label">Рука</span>
+        <div id="yesterday-hand" class="hand"></div>
+        <div id="yesterday-discarded" class="hand" hidden></div>
+      </div>
+      <div class="yesterday-row">
+        <span class="yesterday-label">Кан-доры</span>
+        <div id="yesterday-kandoras" class="yesterday-kandoras"></div>
+      </div>
+      <p id="yesterday-score" class="yesterday-score" hidden></p>
+    </section>
+
     <section class="panel daily-panel">
       <div class="daily-heading">
         <h2>Условия дня</h2>
@@ -42,12 +63,27 @@
           <span>Индикатор урадор</span>
           <div id="ura-indicator" class="context-tile" title="Откроется после сброса"></div>
         </div>
+        <div class="daily-item kan-dora-item">
+          <span>Кан-доры</span>
+          <div id="kan-dora-wall" class="dora-wall kan-dora-wall"></div>
+        </div>
       </div>
     </section>
 
     <section class="panel">
       <h2>Рука</h2>
-      <div id="hand" class="hand" role="list"></div>
+      <div id="kan-prompt" class="kan-prompt" hidden>
+        <p class="kan-prompt-text">Можно объявить кан:</p>
+        <div id="kan-prompt-tiles" class="hand kan-prompt-tiles" role="list"></div>
+        <div class="kan-prompt-actions">
+          <button id="btn-kan" type="button">Кан</button>
+          <button id="btn-kan-skip" type="button">Пропустить</button>
+        </div>
+      </div>
+      <div class="hand-wrap">
+        <div id="hand" class="hand" role="list"></div>
+        <div id="kan-list" class="kan-list"></div>
+      </div>
     </section>
 
     <section class="panel" id="discarded-panel" hidden>
@@ -60,6 +96,7 @@
       <div id="grouped-hand"></div>
       <div id="result"></div>
       <div id="score-status" class="score-status" hidden></div>
+      <div id="night-note" class="night-note" hidden></div>
       <div id="potential-preview" class="potential-preview" hidden>
         <h3 id="potential-title">Потенциальная рука</h3>
         <div id="potential-hand"></div>
@@ -146,7 +183,18 @@
       <div id="tm-error" class="form-error" role="alert" hidden></div>
     </div>
 
-    <div id="tm-hand" class="hand" role="list"></div>
+    <div id="tm-kan-prompt" class="kan-prompt" hidden>
+      <p class="kan-prompt-text">Можно объявить кан:</p>
+      <div id="tm-kan-prompt-tiles" class="hand kan-prompt-tiles" role="list"></div>
+      <div class="kan-prompt-actions">
+        <button id="tm-btn-kan" type="button">Кан</button>
+        <button id="tm-btn-kan-skip" type="button">Пропустить</button>
+      </div>
+    </div>
+    <div class="hand-wrap">
+      <div id="tm-hand" class="hand" role="list"></div>
+      <div id="tm-kan-list" class="kan-list"></div>
+    </div>
     <div id="tm-discarded-panel" hidden>
       <h3>Сброшено</h3>
       <div id="tm-discarded" class="hand"></div>
@@ -239,3 +287,4 @@
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
+

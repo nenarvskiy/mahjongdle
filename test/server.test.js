@@ -174,7 +174,11 @@ test('статика: игра на том же origin, что и API; белы�
     const res = await fetch(`${base}${p}`);
     assert.equal(res.status, 200, `${p} должен отдаваться`);
   }
-  assert.equal((await (await fetch(`${base}/config/auth.json`)).json()).apiBaseUrl, '');
+  // auth.json отдаётся как есть: googleClientId + apiBaseUrl (строки; адрес
+  // бекенда может быть пустым = тот же origin или абсолютным URL Render)
+  const authCfg = await (await fetch(`${base}/config/auth.json`)).json();
+  assert.equal(typeof authCfg.googleClientId, 'string');
+  assert.equal(typeof authCfg.apiBaseUrl, 'string');
 
   // остальное репозитория — не раздаётся
   for (const p of ['/stats/scorestat.py', '/package.json', '/test/server.test.js', '/server/app.js']) {
@@ -371,5 +375,85 @@ test('events: блок руки со счётом, PATCH, жалоба, admin-п
   assert.equal(after.rows[0].payload.report.text, 'очки считаются неверно');
 
   await new Promise((resolve) => evServer.close(resolve));
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// --- Вчерашняя рука и ночной пересчёт (ура-доры + кандоры) ---
+
+test('вчерашняя рука: day_hands, пересчёт с ура-дорами, таблица дня меняется', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'mj-yday-'));
+  let srv;
+  const app = createApp({
+    db: openDb(':memory:'),
+    verifyIdToken: verifyStub,
+    sessionSecret: SECRET,
+    googleClientId: 'test-client',
+    rolesFile: path.join(dir, 'roles.json'),
+  });
+  await new Promise((resolve) => { srv = app.listen(0, '127.0.0.1', resolve); });
+  const b = `http://127.0.0.1:${srv.address().port}`;
+
+  const login = async (idToken) => {
+    const res = await fetch(`${b}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    return (await res.json()).token;
+  };
+  const token = await login('good-token-1-abcdefghijklmnopqrstuvwxyz');
+  const auth = { 'content-type': 'application/json', authorization: `Bearer ${token}` };
+
+  const TODAY = '2026-10-23';
+  const YDAY = '2026-10-22';
+
+  // без сессии — 401
+  assert.equal((await fetch(`${b}/api/me/yesterday?date=${TODAY}`)).status, 401);
+  // кривая дата — 400
+  assert.equal((await fetch(`${b}/api/me/yesterday?date=2026-13-99`, { headers: auth })).status, 400);
+  // до первой сдачи — руки нет
+  let r = await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).hand, null);
+
+  // сдача вчерашней готовой руки с каном
+  const hand = ['1m','2m','3m','4m','5m','6m','7m','8m','9m','1p','2p','3p','5s','5s'];
+  const post = await fetch(`${b}/api/scores`, {
+    method: 'POST',
+    headers: auth,
+    body: JSON.stringify({
+      date: YDAY,
+      score: 1234,
+      discarded: null,
+      tiles: hand,
+      hand,
+      kans: ['9s'],
+      complete: true,
+      dayCtx: { dayKey: YDAY, doraIndicators: [], uraIndicators: [] },
+    }),
+  });
+  assert.equal(post.status, 200);
+
+  // вчерашняя рука: возвращает руку и каны, пересчёт уже произошёл
+  r = await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth });
+  assert.equal(r.status, 200);
+  const y = await r.json();
+  assert.equal(y.date, YDAY);
+  assert.equal(y.hand.length, 14);
+  assert.deepEqual(y.kans, ['9s']);
+  assert.equal(y.recalculated, true);
+  assert.equal(typeof y.newScore, 'number');
+  assert.equal(typeof y.changed, 'boolean');
+
+  // повторный запрос — без нового пересчёта (флаг), счёт тот же
+  const again = await (await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth })).json();
+  assert.equal(again.newScore, y.newScore);
+
+  // таблица дня вчера: очки обновлены после пересчёта
+  const lb = await (await fetch(`${b}/api/scores/${YDAY}`)).json();
+  assert.equal(lb.rows.length, 1);
+  assert.equal(lb.rows[0].score, y.newScore);
+
+  await new Promise((resolve) => srv.close(resolve));
   rmSync(dir, { recursive: true, force: true });
 });

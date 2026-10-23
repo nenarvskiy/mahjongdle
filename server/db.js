@@ -46,6 +46,24 @@ export function openDb(file) {
 
     CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts DESC);
     CREATE INDEX IF NOT EXISTS idx_events_kind ON events(kind);
+
+    -- Рука дня на момент сдачи: нужна для ночного пересчёта (ура-доры, кандоры).
+    -- hand — исходные 14 тайлов, tiles — 13 после сброса, kans — объявленные
+    -- каны, day_ctx — контекст дня (ветра/дора/ура/мёртвая стена).
+    CREATE TABLE IF NOT EXISTS day_hands (
+      user_id      TEXT NOT NULL,
+      date         TEXT NOT NULL,
+      hand         TEXT NOT NULL DEFAULT '[]',
+      tiles        TEXT,
+      kans         TEXT NOT NULL DEFAULT '[]',
+      discarded    TEXT,
+      score        INTEGER NOT NULL DEFAULT 0,
+      complete     INTEGER NOT NULL DEFAULT 0,
+      day_ctx      TEXT NOT NULL DEFAULT '{}',
+      recalculated INTEGER NOT NULL DEFAULT 0,
+      created_at   TEXT NOT NULL,
+      PRIMARY KEY (user_id, date)
+    );
   `);
   return db;
 }
@@ -195,3 +213,84 @@ export function addEventReport(db, { id, userId, text }) {
   db.prepare('UPDATE events SET payload = ? WHERE id = ?').run(JSON.stringify(payload), id);
   return payload;
 }
+
+// --- Рука дня: хранение для ночного пересчёта ---
+
+function parseJson(text, fallback) {
+  try {
+    const value = JSON.parse(text);
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Сохранить руку дня на момент сдачи (лучший результат дня — в scores).
+ * Повторная запись в тот же день перезаписывает руку, но счёт/флаг пересчёта
+ * сбрасываются только если новый счёт больше прежнего.
+ */
+export function upsertDayHand(db, {
+  userId, date, hand = [], tiles = null, kans = [], discarded = null,
+  score, complete = false, dayCtx = {},
+}) {
+  db.prepare(`
+    INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+    ON CONFLICT(user_id, date) DO UPDATE SET
+      hand = excluded.hand,
+      tiles = excluded.tiles,
+      kans = excluded.kans,
+      discarded = excluded.discarded,
+      day_ctx = excluded.day_ctx,
+      score = CASE WHEN excluded.score > day_hands.score THEN excluded.score ELSE day_hands.score END,
+      complete = CASE WHEN excluded.score > day_hands.score THEN excluded.complete ELSE day_hands.complete END,
+      recalculated = CASE WHEN excluded.score > day_hands.score THEN 0 ELSE day_hands.recalculated END
+  `).run(
+    userId, date,
+    JSON.stringify(hand ?? []),
+    tiles ? JSON.stringify(tiles) : null,
+    JSON.stringify(kans ?? []),
+    discarded,
+    Number.isFinite(score) ? score : 0,
+    complete ? 1 : 0,
+    JSON.stringify(dayCtx ?? {}),
+    new Date().toISOString(),
+  );
+}
+
+function decodeDayHand(row) {
+  return {
+    ...row,
+    hand: parseJson(row.hand, []),
+    tiles: row.tiles ? parseJson(row.tiles, []) : null,
+    kans: parseJson(row.kans, []),
+    day_ctx: parseJson(row.day_ctx, {}),
+    complete: row.complete === 1,
+    recalculated: row.recalculated === 1,
+  };
+}
+
+/** Рука дня игрока за дату или null. */
+export function getDayHand(db, userId, date) {
+  const row = db.prepare('SELECT * FROM day_hands WHERE user_id = ? AND date = ?').get(userId, date);
+  return row ? decodeDayHand(row) : null;
+}
+
+/** Все руки за дату (для ночного пересчёта). */
+export function listDayHands(db, date) {
+  return db.prepare('SELECT * FROM day_hands WHERE date = ?').all(date).map(decodeDayHand);
+}
+
+/** Отметить руку пересчитанной и сохранить новый счёт. */
+export function markDayHandRecalculated(db, userId, date, newScore) {
+  db.prepare('UPDATE day_hands SET score = ?, recalculated = 1 WHERE user_id = ? AND date = ?')
+    .run(Number.isFinite(newScore) ? newScore : 0, userId, date);
+}
+
+/** Записать очки игрока за день (после ночного пересчёта). */
+export function setScoreValue(db, userId, date, score) {
+  db.prepare('UPDATE scores SET score = ? WHERE user_id = ? AND date = ?')
+    .run(Number.isFinite(score) ? score : 0, userId, date);
+}
+

@@ -63,15 +63,15 @@
           { "id": "pair",    "label": "Пара",       "notation": "44",    "deltas": [0, 0],          "sameSuit": false, "complete": true,  "edge": "any",      "points": 15 },
           { "id": "pon",     "label": "Пон",        "notation": "333",   "deltas": [0, 0, 0],       "sameSuit": false, "complete": true,  "edge": "any",      "points": 125 },
           { "id": "kan",     "label": "Кан",        "notation": "3333",  "deltas": [0, 0, 0, 0],    "sameSuit": false, "complete": true,  "edge": "any",      "points": 5500 },
-          { "id": "chi",     "label": "Чи",         "notation": "234",   "deltas": [0, 1, 2],       "sameSuit": true,  "complete": true,  "edge": "any",      "points": 40 },
+          { "id": "chi",     "label": "Чи",         "notation": "234",   "deltas": [0, 1, 2],       "sameSuit": true,  "complete": true,  "edge": "any",      "points": 50 },
           { "id": "ryanmen", "label": "Рянмен",     "notation": "34",    "deltas": [0, 1],          "sameSuit": true,  "complete": false, "edge": "notEdge",  "points": 20 },
           { "id": "kanchan", "label": "Канчан",     "notation": "13",    "deltas": [0, 2],          "sameSuit": true,  "complete": false, "edge": "any",      "points": 15 },
           { "id": "penchan", "label": "Пенчан",     "notation": "12",    "deltas": [0, 1],          "sameSuit": true,  "complete": false, "edge": "edgeOnly", "points": 10 },
           { "id": "nobetan", "label": "2345",       "notation": "2345",  "note": "4 подряд",       "deltas": [0, 1, 2, 3],    "sameSuit": true,  "complete": false, "edge": "any",      "points": 100 },
           { "id": "seq5",    "label": "23456",      "notation": "23456", "note": "5 подряд",       "deltas": [0, 1, 2, 3, 4], "sameSuit": true,  "complete": false, "edge": "any",      "points": 350 },
           { "id": "s1122",   "label": "1122",       "notation": "1122",  "note": "2 пары подряд",  "deltas": [0, 0, 1, 1],    "sameSuit": true,  "complete": false, "edge": "any",      "points": 275 },
-          { "id": "s334",    "label": "334",        "notation": "334",   "note": "пара+сосед",     "deltas": [0, 0, 1],       "sameSuit": true,  "complete": false, "edge": "any",      "points": 60 },
-          { "id": "s246",    "label": "246",        "notation": "246",   "note": "двойной канчан", "deltas": [0, 2, 4],       "sameSuit": true,  "complete": false, "edge": "any",      "points": 50 },
+          { "id": "s334",    "label": "334",        "notation": "334",   "note": "пара+сосед",     "deltas": [0, 0, 1],       "sameSuit": true,  "complete": false, "edge": "any",      "points": 40 },
+          { "id": "s246",    "label": "246",        "notation": "246",   "note": "двойной канчан", "deltas": [0, 2, 4],       "sameSuit": true,  "complete": false, "edge": "any",      "points": 40 },
           { "id": "s3334",   "label": "3334",       "notation": "3334",  "note": "пон+сосед",      "deltas": [0, 0, 0, 1],    "sameSuit": true,  "complete": false, "edge": "any",      "points": 580 }
         ]
       },

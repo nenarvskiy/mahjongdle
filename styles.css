@@ -206,6 +206,50 @@ main {
 
 .hand { display: flex; flex-wrap: wrap; gap: var(--tile-gap); }
 
+/* --- Каны: предложение, закрытые каны, кандоры --- */
+.hand-wrap { display: flex; align-items: flex-start; gap: 14px; }
+.kan-prompt {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 200, 96, .35);
+  border-radius: 12px;
+  background: rgba(255, 200, 96, .06);
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.kan-prompt[hidden] { display: none; }
+.kan-prompt-text { margin: 0; color: #ffcf70; font-size: 13px; font-weight: 650; }
+.kan-prompt-tiles { justify-content: center; gap: 4px; }
+.kan-prompt-tiles .tile { --tile-size: 34px; }
+.kan-prompt-actions { display: flex; gap: 10px; }
+#btn-kan { border-color: rgba(255, 200, 96, .45); background: rgba(255, 200, 96, .14); color: #ffcf70; }
+.kan-list { display: flex; flex-direction: column; gap: 6px; }
+.kan-closed { display: flex; gap: 2px; }
+.kan-closed .tile { --tile-size: 44px; }
+.kan-closed .tile-back { --context-tile-size: 44px; }
+.kan-dora-item { grid-column: span 2; }
+.kan-dora-wall { flex-wrap: wrap; gap: 4px; }
+.kan-dora-slot { display: flex; }
+.kan-dora-slot .tile { --tile-size: 38px; }
+.kan-dora-slot .tile-back { --context-tile-size: 38px; }
+.kan-dora-back {
+  border-color: #d4a54a;
+  box-shadow: 0 0 0 2px rgba(212, 165, 74, .6), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24);
+  cursor: help;
+}
+.night-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid rgba(142, 215, 255, .6);
+  border-radius: 6px;
+  background: rgba(142, 215, 255, .07);
+  color: #b9e2f7;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.night-note[hidden] { display: none; }
+
 /* Рубашка в основной руке — в полный размер тайла (обычно --context-tile-size
    используется в панелях контекста). */
 .hand .tile-back { --context-tile-size: var(--tile-size); }
@@ -742,4 +786,28 @@ button:active { transform: translateY(0); }
   .test-dialog .hand, .test-dialog h3, .tm-hint, .test-dialog #tm-result-panel { padding-inline: 14px; }
   .roles-lists { grid-template-columns: 1fr; padding-inline: 14px; }
   .roles-form { grid-template-columns: 1fr; margin-inline: 14px; }
+}
+
+/* --- Окно «Вчерашняя рука» --- */
+.yesterday-panel {
+  margin-bottom: 16px;
+  border-color: rgba(255, 200, 96, .3);
+  background: rgba(255, 200, 96, .04);
+}
+.yesterday-panel[hidden] { display: none; }
+.yesterday-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+.yesterday-label { color: var(--muted); font-size: 12px; align-self: center; }
+.yesterday-kandoras { display: flex; gap: 4px; flex-wrap: wrap; }
+.yesterday-kandora .tile { --tile-size: 34px; }
+.yesterday-score { font-size: 14px; font-weight: 650; }
+.yesterday-score.is-up { color: #9fe0b8; }
+.yesterday-score.is-down { color: #ff9aa1; }
+
+/* версия в шапке */
+.app-version {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #8fa3ad);
+  letter-spacing: .02em;
+  vertical-align: middle;
 }

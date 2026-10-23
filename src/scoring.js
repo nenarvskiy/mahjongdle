@@ -7,6 +7,7 @@ import { analyzePotential } from './potential.js';
 import { evaluateComplete } from './evaluate.js';
 import { basePoints, RULES, BASE_TABLE } from './config.js';
 import { tierOfHan, stateLabel } from './tiers.js';
+import { countHandDoras, doraRow } from './dora-points.js';
 
 export { evaluateComplete } from './evaluate.js';
 export { analyzePotential, valueTier } from './potential.js';
@@ -110,6 +111,9 @@ export function evaluateCompleteHand(tiles, ctx = {}) {
   }
   breakdown.push(structureRow(part));
   breakdown.push(...yakuRows(counts, { ...ctx, redFives }));
+  const completeDoras = countHandDoras(counts, ctx, redFives);
+  const completeDoraRow = doraRow(completeDoras);
+  if (completeDoraRow) breakdown.push(completeDoraRow);
   return {
     total: breakdown.reduce((sum, row) => sum + row.points, 0),
     breakdown, display, shanten: -1, potential: completed, complete: true,
@@ -137,6 +141,9 @@ export function evaluateHand(tiles, ctx = {}) {
   if (state <= 2) breakdown.push(baseRow(state, tier, base));
   breakdown.push(structureRow(part));
   breakdown.push(...yakuRows(counts, scoringCtx));
+  const handDoras = countHandDoras(counts, ctx, redFives);
+  const handDoraRow = doraRow(handDoras);
+  if (handDoraRow) breakdown.push(handDoraRow);
 
   const potentialDisplay = state <= 2 && potential.completedCounts
     ? keepRedFives(partitionDisplay(potential.completedCounts).display, tiles)

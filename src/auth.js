@@ -170,11 +170,19 @@ export async function loginWithToken(idToken) {
  * Записать результат дня на сервер (там хранится ЛУЧШИЙ по user+date).
  * @returns {{score:number, isBest:boolean, rank:number}}
  */
-export function submitScore(dayKey, score, { discarded, tiles } = {}) {
+export function submitScore(dayKey, score, { discarded, tiles, hand, kans, complete, dayCtx } = {}) {
   return api('/api/scores', {
     method: 'POST',
-    body: { date: dayKey, score, discarded, tiles },
+    body: { date: dayKey, score, discarded, tiles, hand, kans, complete, dayCtx },
   });
+}
+
+/**
+ * Вчерашняя рука игрока. Сервер сам пересчитывает вчерашние очки
+ * (ура-доры + открытые кандоры) один раз за день.
+ */
+export function fetchYesterday(dateKey) {
+  return api(`/api/me/yesterday?date=${encodeURIComponent(dateKey)}`);
 }
 
 /** Таблица дня (публичная): {date, rows:[{id?, name, picture, score, discarded}]}. */
