@@ -881,3 +881,61 @@ button:active { transform: translateY(0); }
   outline-offset: 6px;
   border-radius: 10px;
 }
+
+/* Профиль: аватар + имя кликабельны (история рук) */
+.auth-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 2px 4px 2px 2px;
+}
+.auth-profile:hover { background: var(--panel); }
+
+/* Строка таблицы дня кликабельна — показывает руку */
+.lb-row.lb-clickable { cursor: pointer; }
+.lb-row.lb-clickable:hover { border-color: var(--border); background: var(--panel-2); }
+.lb-row.lb-me.lb-clickable:hover { border-color: var(--accent); background: rgba(128, 214, 163, .14); }
+
+/* Диалог «Мои руки» */
+.hands-dialog { max-width: 560px; }
+.hands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+.hands-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+}
+.hands-row:hover:not(:disabled) { border-color: var(--accent); }
+.hands-row:disabled { opacity: .5; cursor: default; }
+.hands-date { font-variant-numeric: tabular-nums; }
+.hands-state { color: var(--muted); font-size: 13px; }
+.hands-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 18px 0; }
+#hands-view .hand { justify-content: flex-start; }
+.hands-kans {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 8px;
+  margin-top: 10px;
+}
+.hands-kans-label { color: var(--muted); font-size: 13px; margin-right: 2px; }
+.hands-meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.hands-actions { margin-top: 14px; }

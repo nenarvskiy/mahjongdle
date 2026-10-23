@@ -1,6 +1,6 @@
 import { handToCounts, indexToTile } from './tile-index.js';
 import { calcShanten, isWinningHand } from './shanten.js';
-import { bestPartition } from './partition.js';
+import { bestPartition, winningPartition } from './partition.js';
 import { patternLabel } from './patterns.js';
 import { detectV4Yaku } from './yaku-v4.js';
 import { analyzePotential } from './potential.js';
@@ -12,9 +12,8 @@ import { countHandDoras, doraRow } from './dora-points.js';
 export { evaluateComplete } from './evaluate.js';
 export { analyzePotential, valueTier } from './potential.js';
 
-function partitionDisplay(counts) {
-  const part = bestPartition(counts);
-  const display = [
+function displayFromPart(part) {
+  return [
     ...part.blocks.map((block) => ({
       tiles: block.pattern.deltas.map((delta) => indexToTile(block.base + delta)),
       label: patternLabel(block.pattern, block.base),
@@ -25,7 +24,21 @@ function partitionDisplay(counts) {
       tiles: [indexToTile(tile)], label: 'Одиночка', points: 0, isSingle: true,
     })),
   ];
-  return { part, display };
+}
+
+function partitionDisplay(counts) {
+  const part = bestPartition(counts);
+  return { part, display: displayFromPart(part) };
+}
+
+/**
+ * Отображение готовой руки: правилное разбиение по типу руки
+ * (4 сета + пара / 7 пар / кокуши), а не лучшее по очкам.
+ * Очки структуры при этом считаются по лучшему разбиению (part).
+ */
+function winningDisplay(counts) {
+  const win = winningPartition(counts);
+  return win ? displayFromPart(win) : null;
 }
 
 function structureRow(part) {
@@ -89,12 +102,14 @@ function potentialDescription(potential) {
 /** Оценка готовой стартовой руки: сбрасывать тайл не нужно.
  *  База берётся из строки «Готовая рука» (последняя строка таблицы базы)
  *  со своим тиром. Риичи считается по общему дефолту (как в potential.js). */
-export function evaluateCompleteHand(tiles, ctx = {}) {
+export function evaluateCompleteHand(tiles, ctx = {}, declaredKans = []) {
   const counts = handToCounts(tiles);
   if (tiles.length !== 14 || !isWinningHand(counts)) return null;
   const partition = partitionDisplay(counts);
   const { part } = partition;
-  const display = keepRedFives(partition.display, tiles);
+  // Готовую руку показываем правилами по типу руки (4 сета + пара / 7 пар /
+  // кокуши), а не как лучшее по очкам.
+  const display = keepRedFives(winningDisplay(counts) ?? partition.display, tiles);
   const redFives = tiles.filter((tile) => tile[0] === '0');
   const completed = evaluateComplete(counts, {
     ...ctx, redFives, closed: true, tsumo: true,
@@ -111,7 +126,7 @@ export function evaluateCompleteHand(tiles, ctx = {}) {
   }
   breakdown.push(structureRow(part));
   breakdown.push(...yakuRows(counts, { ...ctx, redFives }));
-  const completeDoras = countHandDoras(counts, ctx, redFives);
+  const completeDoras = countHandDoras(counts, ctx, redFives, declaredKans);
   const completeDoraRow = doraRow(completeDoras);
   if (completeDoraRow) breakdown.push(completeDoraRow);
   return {
@@ -123,16 +138,18 @@ export function evaluateCompleteHand(tiles, ctx = {}) {
 
 /** Главная оценка руки из 13 тайлов после сброса.
  *  Итог = база (состояние × тир) + структуры + яку, все числа из config/scoring.json. */
-export function evaluateHand(tiles, ctx = {}) {
+export function evaluateHand(tiles, ctx = {}, declaredKans = []) {
   const counts = handToCounts(tiles);
   const redFives = tiles.filter((tile) => tile[0] === '0');
   const scoringCtx = { ...ctx, redFives };
-  const shanten = calcShanten(counts);
+  // Объявленный кан — фиксированный мелд: его тайлы не участвуют в поиске
+  // шантена (их нельзя разломать или сбросить).
+  const shanten = calcShanten(counts, declaredKans);
   const partition = partitionDisplay(counts);
   const { part } = partition;
   const display = keepRedFives(partition.display, tiles);
 
-  const potential = analyzePotential(counts, shanten, scoringCtx);
+  const potential = analyzePotential(counts, shanten, scoringCtx, declaredKans);
   const tier = tierOfHan(potential.han);
   const state = shanten >= 0 && shanten <= 2 ? 2 - shanten : 3;
   const base = state <= 2 ? basePoints(state, tier.index) : 0;
@@ -141,12 +158,12 @@ export function evaluateHand(tiles, ctx = {}) {
   if (state <= 2) breakdown.push(baseRow(state, tier, base));
   breakdown.push(structureRow(part));
   breakdown.push(...yakuRows(counts, scoringCtx));
-  const handDoras = countHandDoras(counts, ctx, redFives);
+  const handDoras = countHandDoras(counts, ctx, redFives, declaredKans);
   const handDoraRow = doraRow(handDoras);
   if (handDoraRow) breakdown.push(handDoraRow);
 
   const potentialDisplay = state <= 2 && potential.completedCounts
-    ? keepRedFives(partitionDisplay(potential.completedCounts).display, tiles)
+    ? keepRedFives(winningDisplay(potential.completedCounts) ?? partitionDisplay(potential.completedCounts).display, tiles)
     : null;
 
   return {

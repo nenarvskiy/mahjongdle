@@ -293,7 +293,7 @@ export function initTestMode() {
     if (full.length === 13) {
       phase = 'result';
       remaining = hand;
-      score = evaluateHand(full, scoringContext());
+      score = evaluateHand(full, scoringContext(), declaredKans);
       return;
     }
     phase = 'edit';
@@ -333,7 +333,7 @@ export function initTestMode() {
     discarded = hand[index];
     remaining = hand.filter((_, i) => i !== index);
     hand = remaining;
-    score = evaluateHand(withKanPons(remaining, declaredKans), scoringContext());
+    score = evaluateHand(withKanPons(remaining, declaredKans), scoringContext(), declaredKans);
     phase = 'result';
     render();
     void syncHandBlock();

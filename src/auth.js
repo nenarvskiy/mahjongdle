@@ -189,3 +189,19 @@ export function fetchYesterday(dateKey) {
 export function fetchLeaderboard(dayKey, limit = 10) {
   return api(`/api/scores/${dayKey}?limit=${limit}`);
 }
+
+/** Зафиксировать исходную руку дня на сервере (при генерации, до сброса). */
+export function saveDailyHand(dayKey, hand, dayCtx) {
+  return api('/api/me/hand', { method: 'POST', body: { date: dayKey, hand, dayCtx } });
+}
+
+/** Рука игрока за дату с сервера: {date, hand: string[]|null, ...}. */
+export function fetchDailyHand(dayKey) {
+  return api(`/api/me/hand/${encodeURIComponent(dayKey)}`);
+}
+
+/** Прошлое игрока: ежедневные руки за последние дни (профиль).
+ *  {rows:[{date, hand, tiles, kans, discarded, score, complete, recalculated}]}. */
+export function fetchMyHands(limit = 30) {
+  return api(`/api/me/hands?limit=${limit}`);
+}

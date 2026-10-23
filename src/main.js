@@ -8,12 +8,13 @@ import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
 import { findKans, withKanPons, openKanDoraCount, countKans } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initStructureEditor } from './structure-editor.js';
-import { initAuthButton, onAuthChange, getAuth, logout, submitScore, canTestMode, refreshMe } from './auth.js';
+import { initAuthButton, onAuthChange, getAuth, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand } from './auth.js';
 import { initTestMode } from './test-mode.js';
 import { initRolesPanel } from './roles-panel.js';
 import { initBugViewer } from './bug-viewer.js';
 import { logHand, updateHandBlock, scorePayload } from './event-log.js';
 import { initLeaderboard } from './leaderboard.js';
+import { initHandHistory, openMyHands, openLeaderboardHand } from './hand-history.js';
 import { initYesterday } from './yesterday.js';
 import { APP_VERSION } from './version.js';
 
@@ -39,7 +40,6 @@ const els = {
   groupedHand: document.getElementById('grouped-hand'),
   subtitle: document.getElementById('subtitle'),
   btnGenerate: document.getElementById('btn-generate'),
-  btnReset: document.getElementById('btn-reset'),
   roundWind: document.getElementById('round-wind'),
   seatWind: document.getElementById('seat-wind'),
   doraIndicator: document.getElementById('dora-indicator'),
@@ -74,31 +74,54 @@ const els = {
  *  - иначе — фаза 'waiting': 14 тайлов рубашкой вверх, ждём нажатия
  *    «Сгенерировать руку» (кнопка активна один раз в день).
  */
-function initialDailyState() {
-  const stored = readStoredDailyHand();
-  if (stored?.dayKey === dailyContext.dayKey) {
-    const hand = sortHand(stored.hand);
-    const completed = evaluateCompleteHand(hand, scoreContext);
-    return {
-      phase: completed ? 'complete' : 'choose',
-      hand,
-      discarded: null,
-      remaining: completed ? hand : [],
-      score: completed,
-      daily: true,
-    };
-  }
+/** Состояние по руке дня: готовая — сразу со счётом, иначе фаза выбора сброса. */
+function stateFromHand(hand) {
+  const sorted = sortHand(hand);
+  const completed = evaluateCompleteHand(sorted, scoreContext);
   return {
-    phase: 'waiting',
-    hand: [],
+    phase: completed ? 'complete' : 'choose',
+    hand: sorted,
     discarded: null,
-    remaining: [],
-    score: null,
-    daily: false,
+    remaining: completed ? sorted : [],
+    score: completed,
+    daily: true,
   };
 }
 
-const store = createStore(initialDailyState());
+const store = createStore({
+  phase: 'waiting',
+  hand: [],
+  discarded: null,
+  remaining: [],
+  score: null,
+  daily: false,
+});
+
+// Пока восстанавливается рука дня, кнопка «Сгенерировать» блокируется.
+let booting = true;
+void (async () => {
+  let next = null;
+  try {
+    // Сначала localStorage — та же рука, что игрок видел до перезагрузки.
+    const stored = readStoredDailyHand();
+    if (stored?.dayKey === dailyContext.dayKey) {
+      next = stateFromHand(stored.hand);
+    } else if (getAuth()) {
+      // Локальной руки дня нет (очистка кеша, другое устройство) —
+      // восстанавливаем с сервера: рука фиксируется там при генерации.
+      const data = await fetchDailyHand(dailyContext.dayKey);
+      if (data?.hand?.length) {
+        writeStoredDailyHand(dailyContext.dayKey, data.hand);
+        next = stateFromHand(data.hand);
+      }
+    }
+  } catch {
+    /* сервер недоступен — не мешаем игре */
+  }
+  if (next) store.setState(next);
+  else store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
+  booting = false;
+})();
 
 /** Таблица дня: обновлять после записи результата. */
 let refreshLeaderboard = () => {};
@@ -162,18 +185,24 @@ function renderAuthUser() {
     els.authUser.hidden = false;
     els.authSlot.hidden = true;
     els.authUser.innerHTML = '';
+    // Аватар + имя — кликабельно: история ежедневных рук (профиль)
+    const profile = document.createElement('span');
+    profile.className = 'auth-profile';
+    profile.title = 'Мои руки';
     if (a.user.picture) {
       const img = document.createElement('img');
       img.className = 'auth-pic';
       img.src = a.user.picture;
       img.alt = '';
       img.referrerPolicy = 'no-referrer';
-      els.authUser.append(img);
+      profile.append(img);
     }
     const name = document.createElement('span');
     name.className = 'auth-name';
     name.textContent = a.user.name;
-    els.authUser.append(name);
+    profile.append(name);
+    profile.addEventListener('click', () => openMyHands());
+    els.authUser.append(profile);
     if (a.user.role && a.user.role !== 'player') {
       const roleBadge = document.createElement('span');
       roleBadge.className = `auth-role role-${a.user.role}`;
@@ -266,38 +295,51 @@ function skipKan() {
 // id блока лога текущей руки дня (одна рука = один блок; null — ещё не создан)
 let dailyBlockId = null;
 async function generateHand() {
-  if (dealing || store.getState().phase !== 'waiting') return;
+  if (dealing || booting || store.getState().phase !== 'waiting') return;
   dealing = true;
   els.btnGenerate.disabled = true;
+  try {
+    const raw = drawHand(CONFIG.handSize, { deadTiles: dailyContext.deadTiles });
+    const hand = CONFIG.autoSortHand ? sortHand(raw) : raw;
+    writeStoredDailyHand(dailyContext.dayKey, hand);
+    // Фиксируем руку на сервере: она больше не пропадает вместе с
+    // localStorage (очистка кеша, другое устройство).
+    if (getAuth()) {
+      void saveDailyHand(dailyContext.dayKey, hand, {
+        dayKey: dailyContext.dayKey,
+        doraIndicators: dailyContext.doraIndicators,
+        uraIndicators: [],
+        roundWindId: dailyContext.roundWindId,
+        seatWindId: dailyContext.seatWindId,
+      }).catch(() => {});
+    }
+    const completed = evaluateCompleteHand(hand, scoreContext);
 
-  const raw = drawHand(CONFIG.handSize, { deadTiles: dailyContext.deadTiles });
-  const hand = CONFIG.autoSortHand ? sortHand(raw) : raw;
-  writeStoredDailyHand(dailyContext.dayKey, hand);
-  const completed = evaluateCompleteHand(hand, scoreContext);
+    // лог: блок создаётся только для ПОСЧИТАННОЙ руки (готовая с раздачи);
+    // просто сгенерированная рука без счёта в логи не попадает
+    dailyBlockId = null;
+    declaredKans = [];
+    pendingKan = null;
+    pendingKans = [];
+    if (completed) {
+      void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand, score: completed }) }).then((res) => {
+        if (res?.id) dailyBlockId = res.id;
+      });
+    }
 
-  // лог: блок создаётся только для ПОСЧИТАННОЙ руки (готовая с раздачи);
-  // просто сгенерированная рука без счёта в логи не попадает
-  dailyBlockId = null;
-  declaredKans = [];
-  pendingKan = null;
-  pendingKans = [];
-  if (completed) {
-    void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand, score: completed }) }).then((res) => {
-      if (res?.id) dailyBlockId = res.id;
+    await playDealAnimation(hand);
+
+    store.setState({
+      phase: completed ? 'complete' : 'choose',
+      hand,
+      discarded: null,
+      remaining: completed ? hand : [],
+      score: completed,
+      daily: true,
     });
+  } finally {
+    dealing = false;
   }
-
-  await playDealAnimation(hand);
-
-  store.setState({
-    phase: completed ? 'complete' : 'choose',
-    hand,
-    discarded: null,
-    remaining: completed ? hand : [],
-    score: completed,
-    daily: true,
-  });
-  dealing = false;
 }
 
 /** Анимация: 14 рубашек, потом по 4 тайла переворачиваются, последняя партия — 2. */
@@ -330,13 +372,6 @@ async function playDealAnimation(hand) {
   }
 }
 
-/** Вернуться к исходной раздаче, не генерируя новую. */
-function resetChoice() {
-  const { phase } = store.getState();
-  if (phase !== 'result') return;
-  store.setState({ phase: 'choose', discarded: null, remaining: [], score: null });
-}
-
 /** Обработка клика по тайлу — сброс. */
 function discardAt(index) {
   const { phase, hand } = store.getState();
@@ -346,7 +381,7 @@ function discardAt(index) {
   const remaining = hand.filter((_, i) => i !== index);
   // кан, оставшийся в руке после сброса, всё равно считается объявленным;
   // объявленные каны входят в оценку как фиксированные поны
-  const score = evaluateHand(withKanPons(remaining, declaredKans), scoreContext);
+  const score = evaluateHand(withKanPons(remaining, declaredKans), scoreContext, declaredKans);
 
   store.setState({
     phase: 'result',
@@ -445,9 +480,9 @@ function render(state) {
       els.subtitle.textContent = `Рука из ${state.remaining.length} тайлов. Тайл ${tileDisplayName(state.discarded)} сброшен.`;
     }
   }
-  // Кнопка: активна только до первой генерации дня (и пока идёт анимация)
-  els.btnGenerate.disabled = state.phase !== 'waiting' || dealing;
-  els.btnReset.hidden = state.phase !== 'result';
+  // Кнопка: активна только до первой генерации дня (и пока идёт анимация
+  // или восстановление руки дня с сервера).
+  els.btnGenerate.disabled = state.phase !== 'waiting' || dealing || booting;
 
   // Мёртвая стена: ура-индикатор показывается только после сброса
   els.uraItem.hidden = dailyContext.uraIndicators.length === 0;
@@ -486,7 +521,6 @@ els.dailyDate.textContent = dailyContext.dayKey;
 els.btnGenerate.addEventListener('click', () => {
   void generateHand();
 });
-els.btnReset.addEventListener('click', resetChoice);
 els.btnKan.addEventListener('click', () => declareKan());
 els.btnKanSkip.addEventListener('click', () => skipKan());
 
@@ -494,7 +528,7 @@ initStructureEditor({
   onChange: () => {
     const state = store.getState();
     if (state.phase === 'result') {
-      store.setState({ score: evaluateHand(withKanPons(state.remaining, declaredKans), scoreContext) });
+      store.setState({ score: evaluateHand(withKanPons(state.remaining, declaredKans), scoreContext, declaredKans) });
     } else if (state.phase === 'complete') {
       store.setState({ score: evaluateCompleteHand(state.hand, scoreContext) });
     }
@@ -514,11 +548,14 @@ initTestMode();
 initRolesPanel();
 initBugViewer();
 
+initHandHistory();
+
 initLeaderboard({
   listEl: els.leaderboard,
   panelEl: els.leaderboardPanel,
   dateLabel: els.lbDate,
   dayKey: dailyContext.dayKey,
+  onRowClick: openLeaderboardHand,
 }).then((refresh) => {
   refreshLeaderboard = refresh;
 });

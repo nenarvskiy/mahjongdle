@@ -50,7 +50,7 @@ export function recalcScore({ hand, tiles, kans = [], oldScore, complete = false
     const rescored = evaluateCompleteHand(hand, scoringCtx);
     if (rescored?.total != null) next = rescored.total;
   } else if (Array.isArray(tiles) && tiles.length === 13) {
-    next = evaluateHand(withKanPons(tiles, kans), scoringCtx).total;
+    next = evaluateHand(withKanPons(tiles, kans), scoringCtx, kans).total;
   }
 
   return {

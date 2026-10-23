@@ -136,7 +136,11 @@ test('leaderboard: порядок, ограничение, другая дата
   const { date, rows } = await res.json();
   assert.equal(date, DAY);
   assert.equal(rows.length, 2);
-  assert.deepEqual(rows[0], { id: 'sub-2', name: 'Игрок sub-2', picture: null, score: 250, discarded: null });
+  // рука не сохранялась (счёт без day_hand) — hand: null, каны [], complete false
+  assert.deepEqual(rows[0], {
+    id: 'sub-2', name: 'Игрок sub-2', picture: null, score: 250, discarded: null,
+    hand: null, kans: [], complete: false,
+  });
   assert.equal(rows[1].score, 200);
 
   const one = await (await fetch(`${base}/api/scores/${DAY}?limit=1`)).json();
@@ -456,4 +460,109 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
 
   await new Promise((resolve) => srv.close(resolve));
   rmSync(dir, { recursive: true, force: true });
+});
+
+// ── Рука дня на сервере: черновик при генерации, восстановление, защита ──
+const HDATE = '2026-11-01';
+const HAND14 = ['1m','1m','2m','3m','4m','5p','5p','6p','7s','8s','9s','ew','ew','1s'];
+
+test('me/hand: без сессии → 401', async () => {
+  const r = await fetch(`${base}/api/me/hand/${HDATE}`);
+  assert.equal(r.status, 401);
+  const p = await fetch(`${base}/api/me/hand`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ date: HDATE, hand: HAND14 }),
+  });
+  assert.equal(p.status, 401);
+});
+
+test('me/hand: черновик при генерации и восстановление', async () => {
+  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const auth = { authorization: `Bearer ${body.token}` };
+
+  const post = await fetch(`${base}/api/me/hand`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...auth },
+    body: JSON.stringify({ date: HDATE, hand: HAND14, dayCtx: { dayKey: HDATE } }),
+  });
+  assert.equal(post.status, 200);
+
+  const get = await fetch(`${base}/api/me/hand/${HDATE}`, { headers: auth });
+  assert.equal(get.status, 200);
+  const row = await get.json();
+  assert.deepEqual(row.hand, HAND14);
+  assert.equal(row.score, 0);
+  assert.equal(row.complete, false);
+  assert.equal(row.tiles, null);
+
+  // кривая рука отклоняется
+  const bad = await fetch(`${base}/api/me/hand`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...auth },
+    body: JSON.stringify({ date: HDATE, hand: HAND14.slice(0, 13) }),
+  });
+  assert.equal(bad.status, 400);
+
+  // другой день без руки → hand: null
+  const empty = await fetch(`${base}/api/me/hand/2026-11-02`, { headers: auth });
+  assert.equal(empty.status, 200);
+  assert.equal((await empty.json()).hand, null);
+});
+
+test('me/hand: черновик не затирает руку со счётом (после сброса)', async () => {
+  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const auth = { authorization: `Bearer ${body.token}` };
+
+  // игрок сбросил: счёт + tiles записаны через /api/scores
+  const post = await postScore(body.token, {
+    date: HDATE,
+    score: 5000,
+    discarded: '1s',
+    tiles: HAND14.filter((t) => t !== '1s'),
+    hand: HAND14,
+    complete: false,
+    dayCtx: { dayKey: HDATE },
+  });
+  assert.equal(post.status, 200);
+
+  // повторная синхронизация «черновика» не затирает данные со счётом
+  const sync = await fetch(`${base}/api/me/hand`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...auth },
+    body: JSON.stringify({ date: HDATE, hand: ['9m','9m','9m','9m','1p','1p','1p','2p','3p','4p','5p','6p','7p','8p'] }),
+  });
+  assert.equal(sync.status, 200);
+
+  const row = await (await fetch(`${base}/api/me/hand/${HDATE}`, { headers: auth })).json();
+  assert.equal(row.score, 5000);
+  assert.equal(row.discarded, '1s');
+  assert.equal(row.tiles.length, 13);
+  assert.deepEqual(row.hand, HAND14);
+});
+
+test('me/hands: история рук; строки таблицы несут руку для просмотра', async () => {
+  // без сессии → 401
+  const anon = await fetch(`${base}/api/me/hands`);
+  assert.equal(anon.status, 401);
+
+  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const auth = { authorization: `Bearer ${body.token}` };
+
+  // история sub-2: день HDATE (черновик + счёт 5000 из предыдущего теста)
+  const list = await (await fetch(`${base}/api/me/hands`, { headers: auth })).json();
+  assert.ok(Array.isArray(list.rows));
+  assert.ok(list.rows.length >= 1);
+  assert.equal(list.rows[0].date, HDATE); // новые даты первыми
+  const row = list.rows.find((r) => r.date === HDATE);
+  assert.deepEqual(row.hand, HAND14);
+  assert.equal(row.score, 5000);
+  assert.equal(row.complete, false);
+
+  // строка таблицы дня несёт руку и каны (клик по строке → просмотр)
+  const lb = await (await fetch(`${base}/api/scores/${HDATE}`)).json();
+  assert.equal(lb.rows.length, 1);
+  assert.deepEqual(lb.rows[0].hand, HAND14);
+  assert.deepEqual(lb.rows[0].kans, []);
+  assert.equal(lb.rows[0].complete, false);
 });

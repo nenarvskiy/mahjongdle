@@ -1,6 +1,6 @@
 import { NUM_TILES } from './tile-index.js';
 import { maxCountsForDeadTiles } from './tiles.js';
-import { calcShanten, tenpaiWaits } from './shanten.js';
+import { calcShanten, tenpaiWaits, kanLock } from './shanten.js';
 import { evaluateComplete } from './evaluate.js';
 import { tierOfHan } from './tiers.js';
 
@@ -9,12 +9,13 @@ const EMPTY = Object.freeze({
 });
 const potentialCache = new Map();
 const keyOf = (counts) => counts.join('');
+const kanKeyOf = (kans) => (kans ?? []).map((k) => (typeof k === 'string' ? k : k?.tile)).join(',');
 
 /** Лучшая по хану достройка среди перечисленных 13-тайловых состояний. */
-function bestCompletion(tenpaiStates, ctx) {
+function bestCompletion(tenpaiStates, ctx, declaredKans = []) {
   let best = { ...EMPTY };
   for (const counts of tenpaiStates) {
-    for (const winningTile of tenpaiWaits(counts)) {
+    for (const winningTile of tenpaiWaits(counts, declaredKans)) {
       const completed = counts.slice();
       completed[winningTile]++;
       const result = evaluateComplete(completed, {
@@ -40,9 +41,10 @@ function bestCompletion(tenpaiStates, ctx) {
  * maxCounts — потолок копий вида в руке (копии индикаторов лежат в мёртвой
  * стене и в добор не попадают).
  */
-function improveOnce(states, fromShanten, maxCounts) {
+function improveOnce(states, fromShanten, maxCounts, declaredKans = []) {
   const nextStates = new Map();
   const target = fromShanten - 1;
+  const lock = kanLock(declaredKans);
   for (const counts of states) {
     for (let draw = 0; draw < NUM_TILES; draw++) {
       const cap = maxCounts ? maxCounts[draw] : 4;
@@ -51,9 +53,12 @@ function improveOnce(states, fromShanten, maxCounts) {
       withDraw[draw]++;
       for (let discard = 0; discard < NUM_TILES; discard++) {
         if (!withDraw[discard]) continue;
+        // Тайлы объявленного кана зафиксированы: сбрасывать можно только
+        // копии сверх «пона» (если добор принёс ещё одну).
+        if (withDraw[discard] <= lock[discard]) continue;
         const next = withDraw.slice();
         next[discard]--;
-        if (calcShanten(next) !== target) continue;
+        if (calcShanten(next, declaredKans) !== target) continue;
         nextStates.set(keyOf(next), next);
       }
     }
@@ -74,7 +79,7 @@ function improveOnce(states, fromShanten, maxCounts) {
  *    ищется ЗАНОВО уже с урадорами; этот хан задаёт тир и базу и то, какая
  *    именно рука показана в «потенциале».
  */
-export function analyzePotential(counts, shanten, ctx = {}) {
+export function analyzePotential(counts, shanten, ctx = {}, declaredKans = []) {
   if (shanten < 0 || shanten > 2) return { ...EMPTY };
   const uraIndicators = ctx.uraIndicators ?? [];
   const deadTiles = ctx.deadTiles ?? [...(ctx.doraIndicators ?? []), ...uraIndicators];
@@ -82,19 +87,20 @@ export function analyzePotential(counts, shanten, ctx = {}) {
   const uraKey = uraIndicators.join(',');
   const deadKey = deadTiles.join(',');
   const redKey = (ctx.redFives ?? []).join(',');
-  const cacheKey = `${keyOf(counts)}|${shanten}|${ctx.dealer ? 1 : 0}|${ctx.seatWind ?? '-'}|${ctx.roundWind ?? '-'}|${doraKey}|${uraKey}|${deadKey}|${redKey}`;
+  const kanKey = kanKeyOf(declaredKans);
+  const cacheKey = `${keyOf(counts)}|${shanten}|${ctx.dealer ? 1 : 0}|${ctx.seatWind ?? '-'}|${ctx.roundWind ?? '-'}|${doraKey}|${uraKey}|${deadKey}|${redKey}|${kanKey}`;
   if (potentialCache.has(cacheKey)) return potentialCache.get(cacheKey);
 
   const maxCounts = maxCountsForDeadTiles(deadTiles);
   let states = [counts];
   for (let current = shanten; current > 0; current--) {
-    states = improveOnce(states, current, maxCounts);
+    states = improveOnce(states, current, maxCounts, declaredKans);
     if (states.length === 0) break;
   }
 
-  const best = states.length ? bestCompletion(states, ctx) : { ...EMPTY };
+  const best = states.length ? bestCompletion(states, ctx, declaredKans) : { ...EMPTY };
   const withoutUra = states.length && uraIndicators.length
-    ? bestCompletion(states, { ...ctx, uraIndicators: [] })
+    ? bestCompletion(states, { ...ctx, uraIndicators: [] }, declaredKans)
     : best;
   const uraHan = (best.yaku ?? [])
     .filter((item) => item?.id === 'ura_dora')

@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.8</span></h1>
+      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.9</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -115,7 +115,6 @@
 
   <footer class="toolbar">
     <button id="btn-generate" type="button" disabled>Сгенерировать руку</button>
-    <button id="btn-reset" type="button" hidden>Отменить сброс</button>
     <button id="btn-structures" type="button">Настроить структуры</button>
     <button id="btn-test-mode" type="button" hidden>Тестовый режим</button>
     <button id="btn-bugs" type="button" hidden>Логи и жалобы</button>
@@ -285,6 +284,28 @@
     </div>
     <div id="bugs-error" class="bugs-error" role="alert" hidden></div>
     <div id="bugs-list" class="bugs-list"></div>
+  </dialog>
+
+  <dialog id="hands-dialog" class="structure-dialog hands-dialog">
+    <div class="dialog-heading">
+      <div>
+        <h2 id="hands-dialog-title">Мои руки</h2>
+        <p>Ежедневные руки: клик по дате — просмотр. В таблице дня клик по
+        строке показывает руку игрока за этот день.</p>
+      </div>
+      <button id="btn-hands-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div id="hands-list" class="hands-list"></div>
+
+    <div id="hands-view" hidden>
+      <div id="hands-view-hand" class="hand"></div>
+      <div id="hands-view-kans" class="hands-kans"></div>
+      <p id="hands-view-meta" class="hands-meta"></p>
+      <div class="hands-actions">
+        <button id="btn-hands-back" type="button">← к списку</button>
+      </div>
+    </div>
   </dialog>
 
   <script type="module" src="./src/main.js"></script>

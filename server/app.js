@@ -16,7 +16,8 @@ import { signSession, verifySession } from './auth.js';
 import {
   upsertUser, getUser, upsertScore, leaderboard, insertEvent, listEvents,
   updateEventPayload, addEventReport,
-  upsertDayHand, getDayHand, listDayHands, markDayHandRecalculated, setScoreValue,
+  upsertDayHand, upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
+  markDayHandRecalculated, setScoreValue,
 } from './db.js';
 import { recalcScore } from './recalc.js';
 import { DEFAULT_ROLES_FILE, readRolesFile, roleFor, setRole } from './roles.js';
@@ -279,7 +280,7 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       tilesJson = JSON.stringify(tiles);
     }
     let discardedStr = null;
-    if (discarded !== undefined) {
+    if (discarded != null) {
       if (typeof discarded !== 'string' || discarded.length > 4) {
         return httpError(res, 400, 'discarded — id тайла');
       }
@@ -373,6 +374,65 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       newScore: fresh.score,
       changed: fresh.score !== mine.score,
       recalculated: fresh.recalculated,
+    });
+  });
+
+  /**
+   * POST /api/me/hand {date, hand, dayCtx} — зафиксировать исходную руку дня
+   * сразу при генерации (до сброса). Рука больше не пропадает вместе с
+   * localStorage: при загрузке страницы клиент восстанавливает её с сервера.
+   */
+  app.get('/api/me/hands', (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    let limit = parseInt(req.query.limit ?? '30', 10);
+    if (!Number.isFinite(limit) || limit < 1) limit = 30;
+    limit = Math.min(limit, 100);
+    res.json({ rows: listMyDayHands(db, user.id, limit) });
+  });
+
+  app.post('/api/me/hand', (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    const { date, hand, dayCtx } = req.body ?? {};
+    if (!isValidDate(date)) {
+      return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    }
+    const isTileArray = (arr) =>
+      Array.isArray(arr) && arr.length <= 14 && arr.every((t) => typeof t === 'string' && t.length <= 4);
+    if (!isTileArray(hand) || hand.length !== 14) {
+      return httpError(res, 400, 'hand — массив из 14 id тайлов');
+    }
+    upsertDayHandDraft(db, {
+      userId: user.id,
+      date,
+      hand,
+      dayCtx: dayCtx && typeof dayCtx === 'object' ? dayCtx : {},
+    });
+    res.json({ date, hand });
+  });
+
+  /**
+   * GET /api/me/hand/:date → {date, hand, tiles, discarded, kans, complete, score}
+   * или {date, hand: null}, если рука за этот день не фиксировалась.
+   */
+  app.get('/api/me/hand/:date', (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    const { date } = req.params;
+    if (!isValidDate(date)) {
+      return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    }
+    const row = getDayHand(db, user.id, date);
+    if (!row) return res.json({ date, hand: null });
+    res.json({
+      date,
+      hand: row.hand,
+      tiles: row.tiles,
+      discarded: row.discarded,
+      kans: row.kans,
+      complete: row.complete,
+      score: row.score,
     });
   });
 

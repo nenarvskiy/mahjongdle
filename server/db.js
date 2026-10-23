@@ -121,16 +121,30 @@ export function upsertScore(db, { userId, date, score, discarded, tiles }) {
   return { score: best, isBest, rank };
 }
 
-/** Таблица дня: топ-N, сортировка — очки (по убыванию), при равенстве — раньше по времени. */
+/**
+ * Таблица дня: топ-N, сортировка — очки (по убыванию), при равенстве — раньше
+ * по времени. Строки несут и руку дня игрока (day_hands) — для просмотра
+ * по клику на строку; hand = null, если рука не сохранялась.
+ */
 export function leaderboard(db, date, limit) {
-  return db.prepare(`
-    SELECT u.id AS id, u.name AS name, u.picture AS picture, s.score AS score, s.discarded AS discarded
+  const rows = db.prepare(`
+    SELECT u.id AS id, u.name AS name, u.picture AS picture,
+           s.score AS score, s.discarded AS discarded,
+           dh.hand AS hand, dh.kans AS kans, dh.complete AS complete
     FROM scores s
     JOIN users u ON u.id = s.user_id
+    LEFT JOIN day_hands dh ON dh.user_id = s.user_id AND dh.date = s.date
     WHERE s.date = ?
     ORDER BY s.score DESC, s.created_at ASC
     LIMIT ?
   `).all(date, limit);
+  for (const row of rows) {
+    const hand = parseJson(row.hand, []);
+    row.hand = Array.isArray(hand) && hand.length ? hand : null;
+    row.kans = parseJson(row.kans, []);
+    row.complete = row.complete === 1;
+  }
+  return rows;
 }
 
 // --- Сквозной лог событий (раздачи, счёты, жалобы) ---
@@ -259,6 +273,27 @@ export function upsertDayHand(db, {
   );
 }
 
+/**
+ * Черновик руки дня: исходные 14 тайлов на момент генерации (score=0 —
+ * «в процессе»). Позволяет восстановить руку игрока, если она пропадает из
+ * localStorage (очистка кеша, другое устройство) и игрок ещё не сбрасывал.
+ * Если запись уже со счётом (сброс/пересчёт) — её данные не трогаем.
+ */
+export function upsertDayHandDraft(db, { userId, date, hand = [], dayCtx = {} }) {
+  db.prepare(`
+    INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
+    VALUES (?, ?, ?, NULL, '[]', NULL, 0, 0, ?, 0, ?)
+    ON CONFLICT(user_id, date) DO UPDATE SET
+      hand = CASE WHEN day_hands.score > 0 THEN day_hands.hand ELSE excluded.hand END,
+      day_ctx = CASE WHEN day_hands.score > 0 THEN day_hands.day_ctx ELSE excluded.day_ctx END
+  `).run(
+    userId, date,
+    JSON.stringify(hand ?? []),
+    JSON.stringify(dayCtx ?? {}),
+    new Date().toISOString(),
+  );
+}
+
 function decodeDayHand(row) {
   return {
     ...row,
@@ -280,6 +315,17 @@ export function getDayHand(db, userId, date) {
 /** Все руки за дату (для ночного пересчёта). */
 export function listDayHands(db, date) {
   return db.prepare('SELECT * FROM day_hands WHERE date = ?').all(date).map(decodeDayHand);
+}
+
+/** Руки дня игрока по убыванию даты (профиль: история ежедневных рук). */
+export function listMyDayHands(db, userId, limit) {
+  return db.prepare(`
+    SELECT date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated
+    FROM day_hands
+    WHERE user_id = ?
+    ORDER BY date DESC
+    LIMIT ?
+  `).all(userId, limit).map(decodeDayHand);
 }
 
 /** Отметить руку пересчитанной и сохранить новый счёт. */

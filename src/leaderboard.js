@@ -4,7 +4,7 @@
  */
 import { fetchLeaderboard, getAuth, onAuthChange, isAuthAvailable } from './auth.js';
 
-export async function initLeaderboard({ listEl, panelEl, dateLabel, dayKey, limit = 10 }) {
+export async function initLeaderboard({ listEl, panelEl, dateLabel, dayKey, limit = 10, onRowClick = null }) {
   let rows = [];
 
   function render() {
@@ -51,6 +51,11 @@ export async function initLeaderboard({ listEl, panelEl, dateLabel, dayKey, limi
       score.className = 'lb-score';
       score.textContent = row.score.toLocaleString('ru-RU');
 
+      if (onRowClick) {
+        li.classList.add('lb-clickable');
+        li.title = 'Клик — показать руку за этот день';
+        li.addEventListener('click', () => onRowClick(row));
+      }
       li.append(rank, name, score);
       listEl.append(li);
     });
