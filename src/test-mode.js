@@ -89,7 +89,7 @@ export function initTestMode() {
   const tabTest = document.getElementById('tab-test');
   const entry = document.getElementById('btn-test-mode');
 
-  const q = (sel) => view.querySelector(sel);
+  const q = (sel) => document.getElementById(sel.slice(1));
   const els = {
     roundWinds: q('#tm-round-winds'),
     seatWinds: q('#tm-seat-winds'),
