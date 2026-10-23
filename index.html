@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.7</span></h1>
+      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.8</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -22,8 +22,12 @@
       <div id="auth-slot" class="auth-slot"></div>
     </div>
   </header>
+  <nav class="view-tabs" id="view-tabs">
+      <button id="tab-game" class="view-tab is-active" type="button">Игра</button>
+      <button id="tab-test" class="view-tab" type="button" hidden>Тестовый режим</button>
+    </nav>
 
-  <main>
+  <main id="view-game">
     <section class="panel yesterday-panel" id="yesterday-panel" hidden>
       <div class="daily-heading">
         <h2 id="yesterday-title">Вчерашняя рука</h2>
@@ -144,7 +148,7 @@
     </div>
   </dialog>
 
-  <dialog id="test-mode-dialog" class="structure-dialog test-dialog">
+  <section id="view-test" class="test-view" hidden>
     <div class="dialog-heading">
       <div>
         <h2>Тестовый режим</h2>
@@ -192,6 +196,8 @@
       </div>
     </div>
     <div class="hand-wrap">
+      <div id="tm-palette" class="tile-palette" role="list"></div>
+      <div id="tm-kan-dora-wall" class="kan-dora-wall"></div>
       <div id="tm-hand" class="hand" role="list"></div>
       <div id="tm-kan-list" class="kan-list"></div>
     </div>
@@ -224,7 +230,7 @@
         <button type="button" id="tm-bug-cancel">Отмена</button>
       </div>
     </form>
-  </dialog>
+  </section>
 
   <dialog id="roles-dialog" class="structure-dialog roles-dialog">
     <div class="dialog-heading">

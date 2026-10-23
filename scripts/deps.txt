@@ -1,9 +1,0 @@
-src/main.js:12|import { initTestMode } from './test-mode.js';
-src/main.js:54|btnTestMode: document.getElementById('btn-test-mode'),
-src/test-mode.js:106|const dialog = document.getElementById('test-mode-dialog');
-src/test-mode.js:387|document.getElementById('btn-test-mode').addEventListener('click', () => {
-test/test-mode.test.js:13|} from '../src/test-mode.js';
-scripts/deps.mjs:13|if (t.includes('test-mode')) out.push(`${f}:${i + 1}|${t.trim().slice(0, 80)}`);
-scripts/map.mjs:11|writeFileSync('scripts/m1.txt', scan('index.html', ['<main', '</main>', '</heade
-scripts/map.mjs:12|writeFileSync('scripts/m2.txt', scan('src/main.js', ['showModal', 'TestMode', 't
-scripts/map.mjs:14|writeFileSync('scripts/m4.txt', scan('src/test-mode.js', ['function ', 'renderCl
