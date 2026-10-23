@@ -1,0 +1,2 @@
+mode=yaku raw=0 greedy=1 n_deals=1000000000
+no_yaku_hands=104932803

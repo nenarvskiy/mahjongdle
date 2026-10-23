@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" font-family="Segoe UI, Arial, sans-serif" font-size="13">
+<rect width="960" height="540" fill="white"/>
+<text x="480.0" y="24" text-anchor="middle" font-size="16" font-weight="bold">Готовые стартовые руки: распределение счёта (N = 20,000,000,000 дилерских, готовых 60,358; риичи=да, ака=да, урадоры=да)</text>
+<line x1="74.0" y1="46" x2="74.0" y2="484" stroke="#ddd"/>
+<text x="74.0" y="502" text-anchor="middle">1</text>
+<line x1="169.8" y1="46" x2="169.8" y2="484" stroke="#ddd"/>
+<text x="169.8" y="502" text-anchor="middle">10</text>
+<line x1="265.6" y1="46" x2="265.6" y2="484" stroke="#ddd"/>
+<text x="265.6" y="502" text-anchor="middle">100</text>
+<line x1="361.3" y1="46" x2="361.3" y2="484" stroke="#ddd"/>
+<text x="361.3" y="502" text-anchor="middle">1k</text>
+<line x1="457.1" y1="46" x2="457.1" y2="484" stroke="#ddd"/>
+<text x="457.1" y="502" text-anchor="middle">10k</text>
+<line x1="552.9" y1="46" x2="552.9" y2="484" stroke="#ddd"/>
+<text x="552.9" y="502" text-anchor="middle">100k</text>
+<line x1="648.7" y1="46" x2="648.7" y2="484" stroke="#ddd"/>
+<text x="648.7" y="502" text-anchor="middle">1M</text>
+<line x1="744.4" y1="46" x2="744.4" y2="484" stroke="#ddd"/>
+<text x="744.4" y="502" text-anchor="middle">10M</text>
+<line x1="840.2" y1="46" x2="840.2" y2="484" stroke="#ddd"/>
+<text x="840.2" y="502" text-anchor="middle">100M</text>
+<line x1="936.0" y1="46" x2="936.0" y2="484" stroke="#ddd"/>
+<text x="936.0" y="502" text-anchor="middle">1B</text>
+<line x1="74" y1="484.0" x2="936" y2="484.0" stroke="#eee"/>
+<text x="68" y="488.0" text-anchor="end">10^0</text>
+<line x1="74" y1="396.4" x2="936" y2="396.4" stroke="#eee"/>
+<text x="68" y="400.4" text-anchor="end">10^1</text>
+<line x1="74" y1="308.8" x2="936" y2="308.8" stroke="#eee"/>
+<text x="68" y="312.8" text-anchor="end">10^2</text>
+<line x1="74" y1="221.2" x2="936" y2="221.2" stroke="#eee"/>
+<text x="68" y="225.2" text-anchor="end">10^3</text>
+<line x1="74" y1="133.6" x2="936" y2="133.6" stroke="#eee"/>
+<text x="68" y="137.6" text-anchor="end">10^4</text>
+<line x1="74" y1="46.0" x2="936" y2="46.0" stroke="#eee"/>
+<text x="68" y="50.0" text-anchor="end">10^5</text>
+<path d="M520.9,70.8 L549.7,415.8 L607.4,160.9 L636.2,179.9 L665.1,300.3 L722.7,281.9 L838.0,404.9 L866.9,484.0 L895.7,368.2" fill="none" stroke="#1565c0" stroke-width="1.6"/>
+<circle cx="520.9" cy="70.8" r="2" fill="#1565c0"/>
+<circle cx="549.7" cy="415.8" r="2" fill="#1565c0"/>
+<circle cx="607.4" cy="160.9" r="2" fill="#1565c0"/>
+<circle cx="636.2" cy="179.9" r="2" fill="#1565c0"/>
+<circle cx="665.1" cy="300.3" r="2" fill="#1565c0"/>
+<circle cx="722.7" cy="281.9" r="2" fill="#1565c0"/>
+<circle cx="838.0" cy="404.9" r="2" fill="#1565c0"/>
+<circle cx="866.9" cy="484.0" r="2" fill="#1565c0"/>
+<circle cx="895.7" cy="368.2" r="2" fill="#1565c0"/>
+<text x="505.0" y="532" text-anchor="middle">очки (log10)</text>
+<text x="18" y="265.0" text-anchor="middle" transform="rotate(-90 18 265.0)">число рук (log10)</text>
+</svg>

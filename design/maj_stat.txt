@@ -1,0 +1,72 @@
+# Riichi Mahjong Simulation Statistics
+
+> ИСТОРИЧЕСКИЙ ОТЧЁТ (до финальных правил: цумо давало +1 хан, урадор не было).
+> Актуальные дизайн-частоты базы перемерены 2026-10-17 под финальные правила
+> (риичи без цумо + ура-доры) и лежат в `config/scoring.json` ->
+> `systems.v4.designFrequencies.base`; см. `design/scoring-v4.md`,
+> раздел «Пересчёт 2026-10-17». Числа ниже не править.
+
+## Simulation Context & Parameters
+- Starting hands (14 tiles) simulated: 500,000,000
+- Execution time: 5363.3 seconds (93,226 hands/sec)
+- Rules: Riichi = yes, Tsumo = yes, Round wind = random (East/South), Player wind = random.
+- Shanten calculation: calculated after the best discard. 
+- Category assignment: based on the best possible hand after (shanten + 1) draws.
+
+## Glossary & Column Definitions
+- **Shanten**: Number of tiles away from Tenpai (2-shanten, 1-shanten, Tenpai).
+- **Hand Maximum**: The highest value hand category achievable.
+- **Count**: Number of hands in this category.
+- **% Inside**: Percentage within this specific shanten category.
+- **% of All**: Percentage of all 500,000,000 simulated hands.
+- **Cumulative >=**: Cumulative percentage (from top to bottom).
+
+### Hand Categories:
+- **Normal (<5 han)**: Обычная (<5 хан)
+- **Mangan (5)**: Манган (5)
+- **Haneman (6-7)**: Ханеман (6-7)
+- **Baiman (8-10)**: Байман (8-10)
+- **Sanbaiman (11-12)**: Санбайман (11-12)
+- **Yakuman (13+)**: Якуман (13+)
+
+---
+
+## 1. 2-Shanten (2-шантен)
+Total hands: 97,488,469 (19.4977% of all hands)
+
+| Hand Maximum | Count | % Inside | % of All | Cumulative >= |
+| :--- | :--- | :--- | :--- | :--- |
+| Normal (<5 han) | 68,635,566 | 70.404% | 13.7271% | 100.000% |
+| Mangan (5) | 13,498,314 | 13.846% | 2.6997% | 29.596% |
+| Haneman (6-7) | 13,900,151 | 14.258% | 2.7800% | 15.750% |
+| Baiman (8-10) | 1,253,410 | 1.286% | 0.2507% | 1.492% |
+| Sanbaiman (11-12) | 41,337 | 0.042% | 0.0083% | 0.206% |
+| Yakuman (13+) | 159,691 | 0.164% | 0.0319% | 0.164% |
+
+---
+
+## 2. 1-Shanten (1-шантен)
+Total hands: 11,662,397 (2.3325% of all hands)
+
+| Hand Maximum | Count | % Inside | % of All | Cumulative >= |
+| :--- | :--- | :--- | :--- | :--- |
+| Normal (<5 han) | 9,541,520 | 81.814% | 1.9083% | 100.000% |
+| Mangan (5) | 1,059,271 | 9.083% | 0.2119% | 18.186% |
+| Haneman (6-7) | 991,790 | 8.504% | 0.1984% | 9.103% |
+| Baiman (8-10) | 56,033 | 0.480% | 0.0112% | 0.599% |
+| Sanbaiman (11-12) | 1,717 | 0.015% | 0.0003% | 0.118% |
+| Yakuman (13+) | 12,066 | 0.103% | 0.0024% | 0.103% |
+
+---
+
+## 3. Tenpai (Тенпай)
+Total hands: 350,305 (0.0701% of all hands)
+
+| Hand Maximum | Count | % Inside | % of All | Cumulative >= |
+| :--- | :--- | :--- | :--- | :--- |
+| Normal (<5 han) | 310,439 | 88.620% | 0.0621% | 100.000% |
+| Mangan (5) | 19,671 | 5.615% | 0.0039% | 11.380% |
+| Haneman (6-7) | 19,321 | 5.515% | 0.0039% | 5.765% |
+| Baiman (8-10) | 704 | 0.201% | 0.0001% | 0.249% |
+| Sanbaiman (11-12) | 22 | 0.006% | 0.0000% | 0.049% |
+| Yakuman (13+) | 148 | 0.042% | 0.0000% | 0.042% |

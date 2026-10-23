@@ -1,0 +1,6752 @@
+[
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "0m",
+   "5m",
+   "7m",
+   "4p",
+   "0p",
+   "8p",
+   "1s",
+   "3s",
+   "3s",
+   "nw",
+   "nw"
+  ],
+  "indicator": 24,
+  "ura": 33,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "penchan": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 135
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "6m",
+   "9m",
+   "9p",
+   "2s",
+   "2s",
+   "3s",
+   "4s",
+   "nw",
+   "rd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 23,
+  "ura": 30,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "pon": 1,
+    "s334": 1
+   },
+   "structurePoints": 200,
+   "yaku": {
+    "yakuhai_pon": 870
+   },
+   "yakuPoints": 870,
+   "total": 1070
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "8m",
+   "9m",
+   "4s",
+   "5s",
+   "ew",
+   "sw",
+   "ww",
+   "nw",
+   "wd",
+   "wd",
+   "wd"
+  ],
+  "indicator": 19,
+  "ura": 32,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pon": 1,
+    "ryanmen": 1,
+    "penchan": 1
+   },
+   "structurePoints": 155,
+   "yaku": {
+    "yakuhai_pon": 870,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 885,
+   "total": 1040
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "3m",
+   "7m",
+   "9m",
+   "1p",
+   "3p",
+   "2s",
+   "6s",
+   "7s",
+   "7s",
+   "sw",
+   "sw"
+  ],
+  "indicator": 28,
+  "ura": 8,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "kanchan": 2
+   },
+   "structurePoints": 85,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 145
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "5m",
+   "9m",
+   "2p",
+   "3p",
+   "2s",
+   "3s",
+   "5s",
+   "ew",
+   "sw",
+   "wd",
+   "wd",
+   "gd"
+  ],
+  "indicator": 31,
+  "ura": 27,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 3
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 90,
+   "total": 165
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "4m",
+   "1p",
+   "2p",
+   "6p",
+   "6p",
+   "7p",
+   "8p",
+   "9p",
+   "4s",
+   "ew",
+   "ww",
+   "ww"
+  ],
+  "indicator": 9,
+  "ura": 0,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 2,
+   "han": 2,
+   "hanWithUra": 2,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 2,
+    "penchan": 1,
+    "nobetan": 1
+   },
+   "structurePoints": 140,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 240
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "2p",
+   "0p",
+   "6p",
+   "7p",
+   "3s",
+   "3s",
+   "4s",
+   "0s",
+   "6s",
+   "7s",
+   "ew"
+  ],
+  "indicator": 29,
+  "ura": 23,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "seq5": 1
+   },
+   "structurePoints": 390,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 390
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "5m",
+   "6m",
+   "6m",
+   "8m",
+   "9m",
+   "9m",
+   "2s",
+   "5s",
+   "5s",
+   "6s",
+   "ew",
+   "wd"
+  ],
+  "indicator": 23,
+  "ura": 1,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 145,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 160
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "7m",
+   "8m",
+   "1p",
+   "2p",
+   "5p",
+   "9p",
+   "4s",
+   "4s",
+   "5s",
+   "8s",
+   "9s",
+   "9s"
+  ],
+  "indicator": 15,
+  "ura": 21,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 125,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "7m",
+   "9m",
+   "1p",
+   "4p",
+   "5p",
+   "6p",
+   "3s",
+   "8s",
+   "ww",
+   "nw",
+   "gd"
+  ],
+  "indicator": 0,
+  "ura": 11,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "0m",
+   "7m",
+   "1s",
+   "2s",
+   "3s",
+   "7s",
+   "7s",
+   "8s",
+   "9s",
+   "ew",
+   "ww",
+   "wd"
+  ],
+  "indicator": 5,
+  "ura": 7,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 115,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 145
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "2m",
+   "4m",
+   "8m",
+   "9m",
+   "6p",
+   "7p",
+   "1s",
+   "1s",
+   "4s",
+   "ew",
+   "sw",
+   "rd"
+  ],
+  "indicator": 16,
+  "ura": 21,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "penchan": 1
+   },
+   "structurePoints": 60,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 90
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "6m",
+   "8m",
+   "4p",
+   "8p",
+   "3s",
+   "4s",
+   "6s",
+   "6s",
+   "8s",
+   "9s",
+   "nw"
+  ],
+  "indicator": 10,
+  "ura": 8,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "s246": 2
+   },
+   "structurePoints": 100,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "0m",
+   "9p",
+   "9p",
+   "1s",
+   "1s",
+   "4s",
+   "9s",
+   "ew",
+   "sw",
+   "nw",
+   "wd",
+   "gd"
+  ],
+  "indicator": 33,
+  "ura": 19,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2
+   },
+   "structurePoints": 30,
+   "yaku": {
+    "valuable_tile": 60
+   },
+   "yakuPoints": 60,
+   "total": 90
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "6m",
+   "9m",
+   "3p",
+   "7p",
+   "7p",
+   "8p",
+   "8p",
+   "3s",
+   "4s",
+   "ew",
+   "ww",
+   "gd"
+  ],
+  "indicator": 27,
+  "ura": 9,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "s1122": 1
+   },
+   "structurePoints": 295,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 325
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "4m",
+   "4m",
+   "6m",
+   "7m",
+   "8m",
+   "3p",
+   "4p",
+   "5p",
+   "9p",
+   "2s",
+   "5s",
+   "gd"
+  ],
+  "indicator": 33,
+  "ura": 6,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 2
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "5m",
+   "7m",
+   "8m",
+   "9m",
+   "2p",
+   "2s",
+   "3s",
+   "3s",
+   "7s",
+   "gd",
+   "rd"
+  ],
+  "indicator": 15,
+  "ura": 7,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "4m",
+   "8m",
+   "9m",
+   "2p",
+   "3p",
+   "4p",
+   "4s",
+   "5s",
+   "6s",
+   "gd",
+   "gd"
+  ],
+  "indicator": 16,
+  "ura": 8,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 1,
+   "hanWithUra": 1,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "pair": 1,
+    "chi": 3,
+    "penchan": 1
+   },
+   "structurePoints": 145,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 22205
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "7m",
+   "9m",
+   "2p",
+   "6p",
+   "7p",
+   "7p",
+   "8p",
+   "4s",
+   "0s",
+   "7s",
+   "wd",
+   "gd"
+  ],
+  "indicator": 26,
+  "ura": 5,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "3m",
+   "0m",
+   "5m",
+   "7m",
+   "8p",
+   "2s",
+   "5s",
+   "9s",
+   "ew",
+   "sw",
+   "sw",
+   "ww"
+  ],
+  "indicator": 15,
+  "ura": 20,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 80,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 95
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "6m",
+   "8m",
+   "1p",
+   "2p",
+   "2p",
+   "0p",
+   "5p",
+   "7p",
+   "8p",
+   "2s",
+   "8s",
+   "gd"
+  ],
+  "indicator": 30,
+  "ura": 9,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "kanchan": 1
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 80
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "7m",
+   "8m",
+   "8m",
+   "9m",
+   "7p",
+   "1s",
+   "4s",
+   "8s",
+   "ew",
+   "wd",
+   "gd"
+  ],
+  "indicator": 13,
+  "ura": 19,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "6m",
+   "8m",
+   "3p",
+   "6p",
+   "7p",
+   "9p",
+   "3s",
+   "3s",
+   "ew",
+   "ww",
+   "nw",
+   "gd"
+  ],
+  "indicator": 10,
+  "ura": 1,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "s246": 1
+   },
+   "structurePoints": 85,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 130
+  }
+ },
+ {
+  "tiles": [
+   "5m",
+   "6m",
+   "8m",
+   "8m",
+   "9m",
+   "6p",
+   "6p",
+   "7p",
+   "8p",
+   "7s",
+   "7s",
+   "nw",
+   "nw"
+  ],
+  "indicator": 23,
+  "ura": 10,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 2,
+   "han": 5,
+   "hanWithUra": 5,
+   "state": 0,
+   "tier": 1,
+   "base": 390,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "s334": 2
+   },
+   "structurePoints": 170,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 560
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "9m",
+   "9m",
+   "2p",
+   "3p",
+   "7p",
+   "3s",
+   "3s",
+   "7s",
+   "9s",
+   "sw",
+   "wd"
+  ],
+  "indicator": 11,
+  "ura": 23,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 2,
+    "kanchan": 1
+   },
+   "structurePoints": 85,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "0m",
+   "7m",
+   "9m",
+   "3p",
+   "9p",
+   "2s",
+   "2s",
+   "3s",
+   "4s",
+   "8s",
+   "ww",
+   "nw"
+  ],
+  "indicator": 4,
+  "ura": 9,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 110,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "6m",
+   "6m",
+   "7m",
+   "1p",
+   "3p",
+   "9p",
+   "1s",
+   "2s",
+   "7s",
+   "9s",
+   "nw",
+   "rd"
+  ],
+  "indicator": 2,
+  "ura": 4,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 2,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 100,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "0m",
+   "5m",
+   "6m",
+   "6m",
+   "7m",
+   "9m",
+   "2p",
+   "0p",
+   "6p",
+   "2s",
+   "7s",
+   "9s",
+   "sw"
+  ],
+  "indicator": 29,
+  "ura": 4,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 2,
+    "s1122": 1
+   },
+   "structurePoints": 325,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 340
+  }
+ },
+ {
+  "tiles": [
+   "7m",
+   "1p",
+   "7p",
+   "9p",
+   "2s",
+   "2s",
+   "3s",
+   "5s",
+   "5s",
+   "6s",
+   "ew",
+   "nw",
+   "wd"
+  ],
+  "indicator": 7,
+  "ura": 30,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 1,
+    "s334": 2
+   },
+   "structurePoints": 135,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 150
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "9m",
+   "9m",
+   "2p",
+   "6p",
+   "8p",
+   "1s",
+   "1s",
+   "2s",
+   "5s",
+   "7s",
+   "ew",
+   "rd"
+  ],
+  "indicator": 30,
+  "ura": 19,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 2,
+    "s334": 1
+   },
+   "structurePoints": 105,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "0m",
+   "9m",
+   "3p",
+   "5p",
+   "7p",
+   "1s",
+   "1s",
+   "2s",
+   "6s",
+   "6s",
+   "sw",
+   "rd"
+  ],
+  "indicator": 23,
+  "ura": 31,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 125,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 140
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "7p",
+   "9p",
+   "9p",
+   "3s",
+   "3s",
+   "6s",
+   "9s",
+   "ew",
+   "ww",
+   "nw",
+   "nw",
+   "gd"
+  ],
+  "indicator": 0,
+  "ura": 4,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 3
+   },
+   "structurePoints": 45,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 75
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "3m",
+   "7m",
+   "8m",
+   "9m",
+   "1p",
+   "7p",
+   "7p",
+   "9p",
+   "rd",
+   "rd"
+  ],
+  "indicator": 4,
+  "ura": 33,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 2,
+   "han": 4,
+   "hanWithUra": 4,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 1,
+    "chi": 2,
+    "kanchan": 1
+   },
+   "structurePoints": 110,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 270
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "6m",
+   "8m",
+   "3p",
+   "7p",
+   "8p",
+   "2s",
+   "3s",
+   "8s",
+   "8s",
+   "ew",
+   "nw",
+   "wd"
+  ],
+  "indicator": 2,
+  "ura": 14,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "kanchan": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 100
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "7m",
+   "1p",
+   "3p",
+   "4p",
+   "8p",
+   "3s",
+   "3s",
+   "4s",
+   "8s",
+   "ww",
+   "ww",
+   "nw"
+  ],
+  "indicator": 15,
+  "ura": 30,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "s334": 1
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "6m",
+   "7m",
+   "3p",
+   "6p",
+   "8p",
+   "2s",
+   "2s",
+   "5s",
+   "6s",
+   "7s",
+   "8s"
+  ],
+  "indicator": 33,
+  "ura": 29,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 2,
+   "han": 4,
+   "hanWithUra": 4,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "penchan": 1,
+    "nobetan": 1
+   },
+   "structurePoints": 160,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 260
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "3m",
+   "4m",
+   "6p",
+   "7p",
+   "1s",
+   "3s",
+   "4s",
+   "7s",
+   "7s",
+   "nw",
+   "rd"
+  ],
+  "indicator": 9,
+  "ura": 27,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "s334": 1
+   },
+   "structurePoints": 115,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 130
+  }
+ },
+ {
+  "tiles": [
+   "5m",
+   "8m",
+   "6p",
+   "6p",
+   "1s",
+   "1s",
+   "2s",
+   "4s",
+   "7s",
+   "8s",
+   "sw",
+   "ww",
+   "wd"
+  ],
+  "indicator": 21,
+  "ura": 8,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "s334": 1
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3p",
+   "3p",
+   "6p",
+   "3s",
+   "5s",
+   "ew",
+   "sw",
+   "nw",
+   "wd",
+   "gd",
+   "gd"
+  ],
+  "indicator": 9,
+  "ura": 16,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "kanchan": 1,
+    "penchan": 1
+   },
+   "structurePoints": 55,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 90,
+   "total": 145
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "6m",
+   "1p",
+   "3p",
+   "6p",
+   "8p",
+   "3s",
+   "3s",
+   "5s",
+   "9s",
+   "9s",
+   "ww"
+  ],
+  "indicator": 26,
+  "ura": 0,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 3,
+    "s246": 1
+   },
+   "structurePoints": 110,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "7m",
+   "9m",
+   "3p",
+   "4p",
+   "4p",
+   "2s",
+   "2s",
+   "4s",
+   "6s",
+   "nw",
+   "wd",
+   "rd"
+  ],
+  "indicator": 25,
+  "ura": 6,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 135
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "9m",
+   "9m",
+   "3p",
+   "3p",
+   "4p",
+   "6p",
+   "1s",
+   "1s",
+   "2s",
+   "7s",
+   "wd"
+  ],
+  "indicator": 22,
+  "ura": 18,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "s334": 2
+   },
+   "structurePoints": 135,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 150
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "5m",
+   "7m",
+   "9m",
+   "1p",
+   "6p",
+   "7p",
+   "4s",
+   "4s",
+   "5s",
+   "7s",
+   "8s",
+   "sw"
+  ],
+  "indicator": 1,
+  "ura": 17,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 150,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 165
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "6m",
+   "4p",
+   "4p",
+   "8p",
+   "9p",
+   "1s",
+   "3s",
+   "7s",
+   "9s",
+   "ew",
+   "gd",
+   "rd"
+  ],
+  "indicator": 23,
+  "ura": 4,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 3,
+    "penchan": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "4m",
+   "5m",
+   "6m",
+   "9m",
+   "1p",
+   "7p",
+   "8p",
+   "1s",
+   "0s",
+   "8s",
+   "8s",
+   "9s"
+  ],
+  "indicator": 31,
+  "ura": 12,
+  "roundWind": 29,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "s334": 2
+   },
+   "structurePoints": 140,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 140
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "1p",
+   "3p",
+   "3p",
+   "8p",
+   "9p",
+   "4s",
+   "8s",
+   "9s",
+   "ew",
+   "sw",
+   "ww"
+  ],
+  "indicator": 0,
+  "ura": 16,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "penchan": 3
+   },
+   "structurePoints": 45,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 60
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "5m",
+   "7m",
+   "8m",
+   "3p",
+   "9p",
+   "1s",
+   "3s",
+   "4s",
+   "7s",
+   "rd"
+  ],
+  "indicator": 19,
+  "ura": 10,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "7m",
+   "8m",
+   "8m",
+   "6p",
+   "9p",
+   "9p",
+   "2s",
+   "6s",
+   "7s",
+   "7s",
+   "sw",
+   "ww"
+  ],
+  "indicator": 29,
+  "ura": 3,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "ryanmen": 1
+   },
+   "structurePoints": 75,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 75
+  }
+ },
+ {
+  "tiles": [
+   "0m",
+   "9m",
+   "2p",
+   "2p",
+   "5p",
+   "7p",
+   "9p",
+   "1s",
+   "3s",
+   "7s",
+   "8s",
+   "sw",
+   "nw"
+  ],
+  "indicator": 11,
+  "ura": 1,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 100,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "1p",
+   "1p",
+   "8p",
+   "9p",
+   "1s",
+   "1s",
+   "6s",
+   "8s",
+   "8s",
+   "sw",
+   "nw",
+   "wd"
+  ],
+  "indicator": 24,
+  "ura": 22,
+  "roundWind": 29,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 3,
+    "penchan": 1
+   },
+   "structurePoints": 55,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 70
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "1p",
+   "1p",
+   "1p",
+   "2p",
+   "2p",
+   "4p",
+   "6p",
+   "8p",
+   "1s",
+   "2s",
+   "4s",
+   "nw"
+  ],
+  "indicator": 4,
+  "ura": 1,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 1,
+    "s246": 1,
+    "s3334": 1
+   },
+   "structurePoints": 645,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 660
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "3m",
+   "4m",
+   "4m",
+   "8m",
+   "1p",
+   "2p",
+   "3p",
+   "3p",
+   "1s",
+   "1s",
+   "9s"
+  ],
+  "indicator": 13,
+  "ura": 22,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 3,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "s1122": 1
+   },
+   "structurePoints": 330,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 430
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "7m",
+   "8m",
+   "4p",
+   "5p",
+   "8p",
+   "9p",
+   "9p",
+   "2s",
+   "3s",
+   "6s",
+   "9s",
+   "ww"
+  ],
+  "indicator": 4,
+  "ura": 8,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 3
+   },
+   "structurePoints": 75,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 75
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "4m",
+   "5m",
+   "9m",
+   "1p",
+   "5p",
+   "6p",
+   "5s",
+   "8s",
+   "9s",
+   "ww",
+   "gd",
+   "rd"
+  ],
+  "indicator": 1,
+  "ura": 11,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "9m",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "2s",
+   "5s",
+   "5s",
+   "8s",
+   "8s",
+   "gd",
+   "rd"
+  ],
+  "indicator": 0,
+  "ura": 3,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 3,
+    "ryanmen": 1
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 95
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "6m",
+   "9m",
+   "2p",
+   "3p",
+   "4p",
+   "4p",
+   "8p",
+   "9p",
+   "1s",
+   "ww",
+   "gd"
+  ],
+  "indicator": 31,
+  "ura": 25,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 1,
+    "penchan": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 85
+  }
+ },
+ {
+  "tiles": [
+   "8m",
+   "8m",
+   "1p",
+   "2p",
+   "4p",
+   "7p",
+   "9p",
+   "3s",
+   "3s",
+   "8s",
+   "wd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 10,
+  "ura": 27,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 3,
+    "kanchan": 2
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 75,
+   "total": 150
+  }
+ },
+ {
+  "tiles": [
+   "2p",
+   "3p",
+   "4p",
+   "6p",
+   "4s",
+   "4s",
+   "0s",
+   "7s",
+   "8s",
+   "9s",
+   "sw",
+   "sw",
+   "ww"
+  ],
+  "indicator": 16,
+  "ura": 5,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 3,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 165,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 325
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "0m",
+   "8m",
+   "5p",
+   "6p",
+   "9p",
+   "3s",
+   "4s",
+   "5s",
+   "ew",
+   "sw",
+   "rd"
+  ],
+  "indicator": 18,
+  "ura": 28,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 1,
+    "penchan": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 100
+  }
+ },
+ {
+  "tiles": [
+   "5m",
+   "7m",
+   "8m",
+   "8p",
+   "9p",
+   "1s",
+   "1s",
+   "3s",
+   "5s",
+   "5s",
+   "6s",
+   "6s",
+   "nw"
+  ],
+  "indicator": 27,
+  "ura": 24,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 1,
+    "penchan": 1,
+    "s1122": 1
+   },
+   "structurePoints": 320,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 335
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "6m",
+   "1p",
+   "6p",
+   "2s",
+   "7s",
+   "9s",
+   "ew",
+   "nw",
+   "rd",
+   "rd"
+  ],
+  "indicator": 4,
+  "ura": 33,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "kanchan": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 90,
+   "total": 160
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "8m",
+   "3p",
+   "4p",
+   "4p",
+   "7p",
+   "7p",
+   "8p",
+   "9p",
+   "3s",
+   "7s",
+   "8s",
+   "ww"
+  ],
+  "indicator": 6,
+  "ura": 1,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 115,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "6m",
+   "6m",
+   "8m",
+   "9m",
+   "1p",
+   "2p",
+   "4p",
+   "5p",
+   "3s",
+   "4s",
+   "ew"
+  ],
+  "indicator": 0,
+  "ura": 19,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "penchan": 3
+   },
+   "structurePoints": 85,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 85
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "2m",
+   "9m",
+   "4p",
+   "5p",
+   "7p",
+   "8p",
+   "9p",
+   "1s",
+   "4s",
+   "0s",
+   "7s",
+   "gd"
+  ],
+  "indicator": 0,
+  "ura": 14,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "ryanmen": 2
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "6m",
+   "8m",
+   "5p",
+   "7p",
+   "8p",
+   "9p",
+   "9p",
+   "9s",
+   "sw",
+   "ww",
+   "nw"
+  ],
+  "indicator": 9,
+  "ura": 14,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 2,
+    "penchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "5p",
+   "6p",
+   "7p",
+   "9p",
+   "9p",
+   "5s",
+   "6s",
+   "9s",
+   "9s",
+   "wd",
+   "wd"
+  ],
+  "indicator": 2,
+  "ura": 28,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 3,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 3,
+    "chi": 1,
+    "ryanmen": 1,
+    "kanchan": 1
+   },
+   "structurePoints": 120,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 280
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "7m",
+   "8m",
+   "9m",
+   "9m",
+   "2p",
+   "3p",
+   "9p",
+   "3s",
+   "6s",
+   "7s",
+   "9s",
+   "nw"
+  ],
+  "indicator": 28,
+  "ura": 22,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 2
+   },
+   "structurePoints": 80,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 80
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "4m",
+   "5m",
+   "7m",
+   "1p",
+   "1p",
+   "2p",
+   "5p",
+   "1s",
+   "2s",
+   "5s",
+   "ww"
+  ],
+  "indicator": 2,
+  "ura": 33,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 105,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "5m",
+   "9m",
+   "9m",
+   "4p",
+   "5p",
+   "8p",
+   "2s",
+   "7s",
+   "9s",
+   "nw",
+   "wd"
+  ],
+  "indicator": 25,
+  "ura": 8,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "kanchan": 1
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 80
+  }
+ },
+ {
+  "tiles": [
+   "5m",
+   "1p",
+   "8p",
+   "1s",
+   "3s",
+   "4s",
+   "8s",
+   "9s",
+   "ew",
+   "sw",
+   "nw",
+   "wd",
+   "gd"
+  ],
+  "indicator": 10,
+  "ura": 7,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "penchan": 1
+   },
+   "structurePoints": 30,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 75
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "4m",
+   "4m",
+   "5m",
+   "7m",
+   "4p",
+   "5p",
+   "1s",
+   "3s",
+   "9s",
+   "ew",
+   "rd"
+  ],
+  "indicator": 32,
+  "ura": 32,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 1,
+    "nobetan": 1
+   },
+   "structurePoints": 135,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 150
+  }
+ },
+ {
+  "tiles": [
+   "9m",
+   "2p",
+   "3p",
+   "3p",
+   "4p",
+   "8p",
+   "8p",
+   "3s",
+   "6s",
+   "ew",
+   "sw",
+   "nw",
+   "wd"
+  ],
+  "indicator": 9,
+  "ura": 17,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "s334": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "5m",
+   "8m",
+   "3p",
+   "5p",
+   "1s",
+   "2s",
+   "2s",
+   "2s",
+   "8s",
+   "nw",
+   "rd"
+  ],
+  "indicator": 11,
+  "ura": 33,
+  "roundWind": 29,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pon": 1,
+    "kanchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 190,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 205
+  }
+ },
+ {
+  "tiles": [
+   "8m",
+   "8m",
+   "8m",
+   "8m",
+   "3p",
+   "4p",
+   "6p",
+   "8p",
+   "8p",
+   "2s",
+   "4s",
+   "9s",
+   "wd"
+  ],
+  "indicator": 23,
+  "ura": 32,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kan": 1,
+    "kanchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 5565,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 5580
+  }
+ },
+ {
+  "tiles": [
+   "4m",
+   "2p",
+   "2p",
+   "4p",
+   "1s",
+   "2s",
+   "4s",
+   "5s",
+   "6s",
+   "7s",
+   "8s",
+   "9s",
+   "rd"
+  ],
+  "indicator": 6,
+  "ura": 16,
+  "roundWind": 29,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 2,
+   "han": 4,
+   "hanWithUra": 4,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "kanchan": 2,
+    "seq5": 1
+   },
+   "structurePoints": 380,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 495
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "6m",
+   "7m",
+   "7m",
+   "1p",
+   "2p",
+   "5s",
+   "9s",
+   "sw",
+   "nw",
+   "nw",
+   "rd"
+  ],
+  "indicator": 9,
+  "ura": 29,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "penchan": 1
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 95
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "5m",
+   "7m",
+   "9m",
+   "4p",
+   "4p",
+   "7p",
+   "3s",
+   "3s",
+   "4s",
+   "7s",
+   "ew",
+   "ww"
+  ],
+  "indicator": 20,
+  "ura": 26,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "s334": 1,
+    "s246": 1
+   },
+   "structurePoints": 125,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4p",
+   "5p",
+   "2s",
+   "3s",
+   "0s",
+   "6s",
+   "7s",
+   "ew",
+   "sw",
+   "ww",
+   "rd",
+   "rd"
+  ],
+  "indicator": 27,
+  "ura": 13,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "ryanmen": 2
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 90,
+   "total": 185
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "4m",
+   "6m",
+   "6m",
+   "8m",
+   "9m",
+   "2p",
+   "3p",
+   "9p",
+   "1s",
+   "4s",
+   "wd"
+  ],
+  "indicator": 31,
+  "ura": 10,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "7m",
+   "8m",
+   "9m",
+   "4p",
+   "5p",
+   "9p",
+   "3s",
+   "4s",
+   "6s",
+   "7s",
+   "7s",
+   "9s"
+  ],
+  "indicator": 19,
+  "ura": 2,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 3,
+    "kanchan": 1
+   },
+   "structurePoints": 115,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "1p",
+   "2p",
+   "3p",
+   "9p",
+   "3s",
+   "9s",
+   "9s",
+   "ew",
+   "ww"
+  ],
+  "indicator": 30,
+  "ura": 32,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "s334": 1
+   },
+   "structurePoints": 115,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "7m",
+   "8m",
+   "9m",
+   "1p",
+   "3p",
+   "7p",
+   "4s",
+   "5s",
+   "7s",
+   "sw",
+   "nw"
+  ],
+  "indicator": 29,
+  "ura": 13,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 1,
+    "kanchan": 2
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "1p",
+   "3p",
+   "4p",
+   "9p",
+   "1s",
+   "1s",
+   "1s",
+   "2s",
+   "5s",
+   "5s",
+   "ew",
+   "wd",
+   "rd"
+  ],
+  "indicator": 3,
+  "ura": 32,
+  "roundWind": 29,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "s3334": 1
+   },
+   "structurePoints": 615,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 645
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "1p",
+   "5p",
+   "9p",
+   "4s",
+   "5s",
+   "8s",
+   "ew",
+   "ew",
+   "ww",
+   "nw",
+   "gd",
+   "gd"
+  ],
+  "indicator": 29,
+  "ura": 24,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1
+   },
+   "structurePoints": 50,
+   "yaku": {
+    "valuable_pair": 120
+   },
+   "yakuPoints": 120,
+   "total": 170
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "4m",
+   "5m",
+   "5m",
+   "3p",
+   "3s",
+   "4s",
+   "5s",
+   "9s",
+   "ew",
+   "ww",
+   "wd"
+  ],
+  "indicator": 31,
+  "ura": 27,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "ryanmen": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 90
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "7m",
+   "1p",
+   "2p",
+   "3p",
+   "3s",
+   "7s",
+   "ew",
+   "sw",
+   "wd",
+   "gd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 32,
+  "ura": 21,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1
+   },
+   "structurePoints": 55,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 45
+   },
+   "yakuPoints": 105,
+   "total": 160
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "5m",
+   "8m",
+   "3p",
+   "3p",
+   "4p",
+   "5p",
+   "6p",
+   "4s",
+   "7s",
+   "9s",
+   "wd"
+  ],
+  "indicator": 0,
+  "ura": 4,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 1,
+    "nobetan": 1,
+    "s246": 1
+   },
+   "structurePoints": 165,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 180
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "2m",
+   "5m",
+   "5m",
+   "1p",
+   "3p",
+   "7p",
+   "4s",
+   "7s",
+   "sw",
+   "nw",
+   "rd"
+  ],
+  "indicator": 23,
+  "ura": 10,
+  "roundWind": 29,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3p",
+   "4p",
+   "8p",
+   "8p",
+   "9p",
+   "1s",
+   "2s",
+   "8s",
+   "8s",
+   "gd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 16,
+  "ura": 0,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 120,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 75,
+   "total": 195
+  }
+ },
+ {
+  "tiles": [
+   "7m",
+   "7m",
+   "1p",
+   "1p",
+   "3p",
+   "5p",
+   "6p",
+   "9p",
+   "8s",
+   "9s",
+   "sw",
+   "gd",
+   "gd"
+  ],
+  "indicator": 5,
+  "ura": 32,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "penchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 150
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "0m",
+   "8m",
+   "3p",
+   "4p",
+   "7p",
+   "7p",
+   "7p",
+   "8p",
+   "8p",
+   "1s",
+   "4s",
+   "8s"
+  ],
+  "indicator": 21,
+  "ura": 22,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "s3334": 1
+   },
+   "structurePoints": 600,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 600
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "0m",
+   "5m",
+   "6m",
+   "8m",
+   "2p",
+   "5p",
+   "9p",
+   "2s",
+   "6s",
+   "ww",
+   "nw",
+   "gd"
+  ],
+  "indicator": 18,
+  "ura": 21,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "s334": 1
+   },
+   "structurePoints": 60,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 75
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "4p",
+   "6p",
+   "7p",
+   "9p",
+   "2s",
+   "4s",
+   "7s",
+   "8s",
+   "ew",
+   "nw",
+   "gd"
+  ],
+  "indicator": 13,
+  "ura": 13,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 2,
+    "kanchan": 3
+   },
+   "structurePoints": 85,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "5m",
+   "6m",
+   "7m",
+   "7m",
+   "2p",
+   "3p",
+   "5p",
+   "1s",
+   "5s",
+   "5s",
+   "8s",
+   "wd"
+  ],
+  "indicator": 10,
+  "ura": 23,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "s246": 1
+   },
+   "structurePoints": 105,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "1p",
+   "4p",
+   "4p",
+   "7p",
+   "8p",
+   "9p",
+   "4s",
+   "8s",
+   "ew",
+   "sw",
+   "ww",
+   "gd",
+   "gd"
+  ],
+  "indicator": 26,
+  "ura": 11,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "chi": 1
+   },
+   "structurePoints": 70,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 75,
+   "total": 145
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "6m",
+   "9m",
+   "1p",
+   "2p",
+   "6p",
+   "0s",
+   "5s",
+   "8s",
+   "ew",
+   "nw"
+  ],
+  "indicator": 9,
+  "ura": 32,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "penchan": 1
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 80
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "7m",
+   "2p",
+   "4p",
+   "9p",
+   "2s",
+   "2s",
+   "3s",
+   "7s",
+   "sw",
+   "ww",
+   "nw",
+   "rd"
+  ],
+  "indicator": 28,
+  "ura": 32,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 110
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "9m",
+   "5p",
+   "8p",
+   "9p",
+   "9p",
+   "2s",
+   "9s",
+   "sw",
+   "sw",
+   "nw",
+   "rd"
+  ],
+  "indicator": 23,
+  "ura": 31,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1
+   },
+   "structurePoints": 50,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 90,
+   "total": 140
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "1p",
+   "3p",
+   "4p",
+   "4p",
+   "0p",
+   "2s",
+   "5s",
+   "6s",
+   "9s",
+   "nw",
+   "wd"
+  ],
+  "indicator": 8,
+  "ura": 22,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 2,
+    "s334": 1
+   },
+   "structurePoints": 110,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "6m",
+   "1p",
+   "1s",
+   "3s",
+   "0s",
+   "8s",
+   "ew",
+   "sw",
+   "ww",
+   "wd",
+   "gd",
+   "rd"
+  ],
+  "indicator": 10,
+  "ura": 1,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "s246": 1
+   },
+   "structurePoints": 50,
+   "yaku": {
+    "valuable_tile": 75
+   },
+   "yakuPoints": 75,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "5m",
+   "5m",
+   "8p",
+   "3s",
+   "5s",
+   "7s",
+   "8s",
+   "9s",
+   "sw",
+   "ww",
+   "nw",
+   "wd"
+  ],
+  "indicator": 5,
+  "ura": 18,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "penchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "4m",
+   "8m",
+   "8m",
+   "3p",
+   "3p",
+   "4p",
+   "6p",
+   "9p",
+   "3s",
+   "6s",
+   "rd"
+  ],
+  "indicator": 15,
+  "ura": 26,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "s334": 1
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "8m",
+   "9m",
+   "1p",
+   "1p",
+   "5p",
+   "7p",
+   "3s",
+   "6s",
+   "8s",
+   "ew",
+   "sw",
+   "wd"
+  ],
+  "indicator": 20,
+  "ura": 15,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 3
+   },
+   "structurePoints": 60,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 90
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "6m",
+   "7m",
+   "8m",
+   "1p",
+   "6p",
+   "1s",
+   "6s",
+   "9s",
+   "ww",
+   "wd",
+   "rd"
+  ],
+  "indicator": 2,
+  "ura": 0,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 1
+   },
+   "structurePoints": 60,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 105
+  }
+ },
+ {
+  "tiles": [
+   "7m",
+   "9m",
+   "3p",
+   "3p",
+   "4p",
+   "4p",
+   "9p",
+   "9p",
+   "3s",
+   "4s",
+   "6s",
+   "9s",
+   "9s"
+  ],
+  "indicator": 13,
+  "ura": 14,
+  "roundWind": 30,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 3,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 2,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s1122": 1
+   },
+   "structurePoints": 340,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 440
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "6p",
+   "7p",
+   "3s",
+   "0s",
+   "5s",
+   "7s",
+   "ew",
+   "sw",
+   "sw",
+   "nw"
+  ],
+  "indicator": 23,
+  "ura": 14,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 2,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 0,
+   "tier": 1,
+   "base": 390,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "ryanmen": 1,
+    "s246": 1
+   },
+   "structurePoints": 125,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 530
+  }
+ },
+ {
+  "tiles": [
+   "9m",
+   "1p",
+   "8p",
+   "1s",
+   "1s",
+   "3s",
+   "5s",
+   "7s",
+   "7s",
+   "nw",
+   "wd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 27,
+  "ura": 9,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2,
+    "s246": 1
+   },
+   "structurePoints": 80,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 75,
+   "total": 155
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "9m",
+   "9m",
+   "2p",
+   "1s",
+   "3s",
+   "4s",
+   "5s",
+   "6s",
+   "ww",
+   "ww",
+   "nw",
+   "nw"
+  ],
+  "indicator": 15,
+  "ura": 20,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 2,
+   "han": 2,
+   "hanWithUra": 3,
+   "state": 0,
+   "tier": 0,
+   "base": 100,
+   "structures": {
+    "pair": 3,
+    "nobetan": 1
+   },
+   "structurePoints": 145,
+   "yaku": {
+    "valuable_pair": 60
+   },
+   "yakuPoints": 60,
+   "total": 305
+  }
+ },
+ {
+  "tiles": [
+   "3m",
+   "4m",
+   "9m",
+   "1p",
+   "3p",
+   "4p",
+   "6p",
+   "7p",
+   "3s",
+   "3s",
+   "6s",
+   "7s",
+   "9s"
+  ],
+  "indicator": 15,
+  "ura": 7,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 4
+   },
+   "structurePoints": 95,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 95
+  }
+ },
+ {
+  "tiles": [
+   "6m",
+   "9m",
+   "3p",
+   "6p",
+   "6p",
+   "9p",
+   "3s",
+   "7s",
+   "ew",
+   "ew",
+   "sw",
+   "ww",
+   "gd"
+  ],
+  "indicator": 16,
+  "ura": 21,
+  "roundWind": 30,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 2
+   },
+   "structurePoints": 30,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 60
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "5m",
+   "7m",
+   "9m",
+   "1p",
+   "3p",
+   "7p",
+   "2s",
+   "4s",
+   "ew",
+   "sw",
+   "nw",
+   "gd"
+  ],
+  "indicator": 27,
+  "ura": 16,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 5,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "kanchan": 2,
+    "s246": 1
+   },
+   "structurePoints": 80,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "3m",
+   "8m",
+   "8m",
+   "2p",
+   "4p",
+   "7p",
+   "6s",
+   "8s",
+   "8s",
+   "9s",
+   "ww"
+  ],
+  "indicator": 4,
+  "ura": 28,
+  "roundWind": 29,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 110,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "3m",
+   "6m",
+   "6m",
+   "7m",
+   "7m",
+   "9m",
+   "2p",
+   "8p",
+   "6s",
+   "8s",
+   "wd"
+  ],
+  "indicator": 2,
+  "ura": 14,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 1,
+    "s1122": 1
+   },
+   "structurePoints": 305,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 320
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "2m",
+   "7m",
+   "6p",
+   "9p",
+   "3s",
+   "ew",
+   "ww",
+   "ww",
+   "nw",
+   "wd",
+   "gd"
+  ],
+  "indicator": 4,
+  "ura": 3,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "s334": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "3m",
+   "4m",
+   "0m",
+   "8m",
+   "1p",
+   "1p",
+   "8p",
+   "2s",
+   "2s",
+   "4s",
+   "9s",
+   "sw"
+  ],
+  "indicator": 0,
+  "ura": 28,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "kanchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 80,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 80
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "6m",
+   "8m",
+   "3p",
+   "3p",
+   "4p",
+   "1s",
+   "2s",
+   "3s",
+   "8s",
+   "9s",
+   "ew"
+  ],
+  "indicator": 6,
+  "ura": 8,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 5,
+   "state": 0,
+   "tier": 1,
+   "base": 390,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "kanchan": 1,
+    "penchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 140,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 530
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "5m",
+   "7m",
+   "8m",
+   "2p",
+   "3p",
+   "5p",
+   "6p",
+   "6p",
+   "5s",
+   "6s",
+   "7s",
+   "nw"
+  ],
+  "indicator": 3,
+  "ura": 19,
+  "roundWind": 30,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 3
+   },
+   "structurePoints": 100,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 115
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "7m",
+   "9m",
+   "7p",
+   "8p",
+   "9p",
+   "9p",
+   "5s",
+   "6s",
+   "sw",
+   "nw",
+   "wd",
+   "rd"
+  ],
+  "indicator": 16,
+  "ura": 17,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "chi": 1,
+    "ryanmen": 1,
+    "kanchan": 1
+   },
+   "structurePoints": 75,
+   "yaku": {
+    "valuable_tile": 45
+   },
+   "yakuPoints": 45,
+   "total": 120
+  }
+ },
+ {
+  "tiles": [
+   "5m",
+   "6m",
+   "6m",
+   "7m",
+   "2p",
+   "4p",
+   "7p",
+   "8p",
+   "5s",
+   "8s",
+   "sw",
+   "nw",
+   "rd"
+  ],
+  "indicator": 14,
+  "ura": 11,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 1,
+    "s334": 1
+   },
+   "structurePoints": 95,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 125
+  }
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "7m",
+   "4p",
+   "5p",
+   "8p",
+   "9p",
+   "4s",
+   "4s",
+   "4s",
+   "6s",
+   "nw",
+   "gd"
+  ],
+  "indicator": 8,
+  "ura": 31,
+  "roundWind": 30,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pon": 1,
+    "ryanmen": 1,
+    "kanchan": 1,
+    "penchan": 1
+   },
+   "structurePoints": 170,
+   "yaku": {
+    "valuable_tile": 30
+   },
+   "yakuPoints": 30,
+   "total": 200
+  }
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7s",
+   "8s",
+   "9s",
+   "7m"
+  ],
+  "indicator": 24,
+  "ura": 25,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "chi": 4
+   },
+   "structurePoints": 160,
+   "yaku": {
+    "sanshoku_dojun": 220000
+   },
+   "yakuPoints": 220000,
+   "total": 410160
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1m",
+   "2m",
+   "3m",
+   "4m",
+   "5m",
+   "6m",
+   "7m",
+   "8m",
+   "9m",
+   "9m",
+   "9m"
+  ],
+  "indicator": 24,
+  "ura": 26,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pon": 1,
+    "seq5": 1,
+    "s3334": 1
+   },
+   "structurePoints": 1055,
+   "yaku": {
+    "chinitsu": 83000000,
+    "ittsu": 510000
+   },
+   "yakuPoints": 83510000,
+   "total": 203511055
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "9m",
+   "1p",
+   "9p",
+   "1s",
+   "9s",
+   "ew",
+   "sw",
+   "ww",
+   "nw",
+   "wd",
+   "gd",
+   "5m"
+  ],
+  "indicator": 24,
+  "ura": 27,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 1,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 1,
+   "tier": 5,
+   "base": 1400000,
+   "structures": {},
+   "structurePoints": 0,
+   "yaku": {
+    "valuable_tile": 60
+   },
+   "yakuPoints": 60,
+   "total": 1400060
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2m",
+   "2m",
+   "3m",
+   "3m",
+   "4m",
+   "4m",
+   "5m",
+   "5m",
+   "6m",
+   "6m",
+   "7m",
+   "7m",
+   "8m"
+  ],
+  "indicator": 4,
+  "ura": 8,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 14,
+   "hanWithUra": 14,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "s1122": 3
+   },
+   "structurePoints": 825,
+   "yaku": {
+    "ryanpeikou": 770000000,
+    "chinitsu": 83000000,
+    "tanyao": 1600
+   },
+   "yakuPoints": 853001600,
+   "total": 973002425
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "9m",
+   "1p",
+   "9p",
+   "1s",
+   "9s",
+   "9m",
+   "9p",
+   "9s",
+   "ew",
+   "sw",
+   "ww",
+   "nw"
+  ],
+  "indicator": 24,
+  "ura": 29,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 2,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 0,
+   "tier": 5,
+   "base": 70000,
+   "structures": {
+    "pair": 3
+   },
+   "structurePoints": 45,
+   "yaku": {
+    "honroutou": 1000000,
+    "valuable_tile": 30
+   },
+   "yakuPoints": 1000030,
+   "total": 1070075
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "4m",
+   "5m",
+   "7p",
+   "8p",
+   "2s",
+   "4s",
+   "6s",
+   "ew",
+   "sw",
+   "wd",
+   "wd"
+  ],
+  "indicator": 30,
+  "ura": 2,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 3,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 2,
+    "penchan": 1,
+    "s246": 1
+   },
+   "structurePoints": 115,
+   "yaku": {
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 75,
+   "total": 190
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "0m",
+   "3m",
+   "4m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7m",
+   "rd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 3,
+  "ura": 10,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "pon": 1,
+    "chi": 2,
+    "s246": 1
+   },
+   "structurePoints": 255,
+   "yaku": {
+    "yakuhai_pon": 870
+   },
+   "yakuPoints": 870,
+   "total": 191125
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "0m",
+   "0p",
+   "0s",
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "rd"
+  ],
+  "indicator": 24,
+  "ura": 32,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 2,
+   "han": 6,
+   "hanWithUra": 8,
+   "state": 0,
+   "tier": 3,
+   "base": 2500,
+   "structures": {
+    "s246": 3
+   },
+   "structurePoints": 150,
+   "yaku": {
+    "sanshoku_dojun": 220000,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 220015,
+   "total": 222665
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "5m",
+   "5m",
+   "5m",
+   "5m",
+   "1p",
+   "2p",
+   "3p",
+   "4s",
+   "5s",
+   "6s",
+   "7s",
+   "8s",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 33,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "kan": 1,
+    "chi": 1,
+    "seq5": 1
+   },
+   "structurePoints": 5890,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 27890
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "2m",
+   "2m",
+   "3m",
+   "3m",
+   "4m",
+   "5m",
+   "6m",
+   "rd",
+   "rd",
+   "rd",
+   "ew"
+  ],
+  "indicator": 24,
+  "ura": 0,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 6,
+   "hanWithUra": 8,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pon": 1,
+    "seq5": 1,
+    "s334": 1
+   },
+   "structurePoints": 535,
+   "yaku": {
+    "honitsu": 19600,
+    "iipeikou": 10400,
+    "yakuhai_pon": 870,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 30885,
+   "total": 3331420
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "5m",
+   "5m",
+   "5m",
+   "5m"
+  ],
+  "indicator": 24,
+  "ura": 1,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "kan": 1,
+    "chi": 3
+   },
+   "structurePoints": 5620,
+   "yaku": {
+    "sanshoku_dojun": 220000
+   },
+   "yakuPoints": 220000,
+   "total": 247620
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "3m",
+   "3m",
+   "3m",
+   "4m",
+   "1p",
+   "2p",
+   "3p",
+   "4p",
+   "5p",
+   "6p",
+   "7p",
+   "8p",
+   "9p"
+  ],
+  "indicator": 24,
+  "ura": 2,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 0,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "nobetan": 1,
+    "seq5": 1,
+    "s3334": 1
+   },
+   "structurePoints": 1030,
+   "yaku": {
+    "ittsu": 510000
+   },
+   "yakuPoints": 510000,
+   "total": 701030
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2m",
+   "4m",
+   "6m",
+   "2p",
+   "4p",
+   "6p",
+   "2s",
+   "4s",
+   "6s",
+   "3m",
+   "5m",
+   "7m",
+   "9m"
+  ],
+  "indicator": 24,
+  "ura": 3,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 2,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 0,
+   "tier": 1,
+   "base": 390,
+   "structures": {
+    "kanchan": 1,
+    "seq5": 1,
+    "s246": 2
+   },
+   "structurePoints": 465,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 855
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "4m",
+   "1p",
+   "2p",
+   "4p",
+   "1s",
+   "2s",
+   "4s",
+   "7m",
+   "8m",
+   "ew",
+   "sw"
+  ],
+  "indicator": 24,
+  "ura": 4,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 4,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 3,
+   "tier": 0,
+   "base": 0,
+   "structures": {
+    "ryanmen": 1,
+    "kanchan": 3
+   },
+   "structurePoints": 65,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 80
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "6m",
+   "6m",
+   "6m",
+   "7m",
+   "2p",
+   "3p",
+   "4p",
+   "5s",
+   "6s",
+   "7s",
+   "8s",
+   "9s",
+   "ew"
+  ],
+  "indicator": 24,
+  "ura": 5,
+  "roundWind": 27,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 1,
+   "han": 3,
+   "hanWithUra": 4,
+   "state": 1,
+   "tier": 0,
+   "base": 720,
+   "structures": {
+    "chi": 1,
+    "seq5": 1,
+    "s3334": 1
+   },
+   "structurePoints": 970,
+   "yaku": {
+    "valuable_tile": 15
+   },
+   "yakuPoints": 15,
+   "total": 1705
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1p",
+   "1p",
+   "1s",
+   "1s",
+   "9m",
+   "9m",
+   "9p",
+   "9p",
+   "9s",
+   "9s",
+   "ew"
+  ],
+  "indicator": 24,
+  "ura": 6,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 5,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "pair": 6
+   },
+   "structurePoints": 90,
+   "yaku": {
+    "honroutou": 1000000,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 1000015,
+   "total": 1190105
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2m",
+   "3m",
+   "4m",
+   "2m",
+   "3m",
+   "4m",
+   "2p",
+   "3p",
+   "4p",
+   "5p",
+   "6p",
+   "7p",
+   "8p"
+  ],
+  "indicator": 24,
+  "ura": 7,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 0,
+   "han": 3,
+   "hanWithUra": 3,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "pair": 1,
+    "ryanmen": 1,
+    "seq5": 1,
+    "s1122": 1
+   },
+   "structurePoints": 660,
+   "yaku": {
+    "iipeikou": 10400,
+    "tanyao": 1600
+   },
+   "yakuPoints": 12000,
+   "total": 34660
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7m",
+   "8m",
+   "9m"
+  ],
+  "indicator": 3,
+  "ura": 21,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 7,
+   "hanWithUra": 7,
+   "state": 2,
+   "tier": 2,
+   "base": 350000,
+   "structures": {
+    "chi": 3,
+    "s334": 1
+   },
+   "structurePoints": 180,
+   "yaku": {
+    "sanshoku_dojun": 220000
+   },
+   "yakuPoints": 220000,
+   "total": 570180
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "5m",
+   "5m",
+   "1p",
+   "2p",
+   "3p",
+   "4p",
+   "5p",
+   "6p",
+   "7p",
+   "8p",
+   "9p",
+   "5m",
+   "5m"
+  ],
+  "indicator": 24,
+  "ura": 9,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "kan": 1,
+    "nobetan": 1,
+    "seq5": 1
+   },
+   "structurePoints": 5950,
+   "yaku": {
+    "ittsu": 510000
+   },
+   "yakuPoints": 510000,
+   "total": 537950
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "4m",
+   "5m",
+   "6m",
+   "7m",
+   "8m",
+   "9m",
+   "1m",
+   "1m",
+   "2m",
+   "3m"
+  ],
+  "indicator": 24,
+  "ura": 10,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 11,
+   "hanWithUra": 11,
+   "state": 2,
+   "tier": 4,
+   "base": 100000000,
+   "structures": {
+    "seq5": 1,
+    "s334": 1,
+    "s3334": 1
+   },
+   "structurePoints": 990,
+   "yaku": {
+    "chinitsu": 83000000,
+    "ittsu": 510000,
+    "iipeikou": 10400
+   },
+   "yakuPoints": 83520400,
+   "total": 183521390
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2m",
+   "2m",
+   "3m",
+   "3m",
+   "4m",
+   "5m",
+   "5m",
+   "5m",
+   "6m",
+   "7m",
+   "8m",
+   "9m",
+   "1p"
+  ],
+  "indicator": 24,
+  "ura": 11,
+  "roundWind": 29,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 1,
+   "han": 11,
+   "hanWithUra": 11,
+   "state": 1,
+   "tier": 4,
+   "base": 1200000,
+   "structures": {
+    "chi": 1,
+    "s1122": 1,
+    "s3334": 1
+   },
+   "structurePoints": 895,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 1200895
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "4m",
+   "4m",
+   "4m",
+   "5m",
+   "1p",
+   "1p",
+   "1p",
+   "2p",
+   "3p",
+   "4p",
+   "5p",
+   "6p",
+   "7p"
+  ],
+  "indicator": 24,
+  "ura": 12,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 1,
+   "hanWithUra": 2,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "seq5": 1,
+    "s3334": 2
+   },
+   "structurePoints": 1510,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 23510
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1m",
+   "1p",
+   "1p",
+   "1p",
+   "1s",
+   "1s",
+   "1s",
+   "9m",
+   "9m",
+   "9m",
+   "9p"
+  ],
+  "indicator": 24,
+  "ura": 13,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pon": 4
+   },
+   "structurePoints": 500,
+   "yaku": {
+    "chinroutou": 150000000000,
+    "sanshoku_doko": 430000000,
+    "honroutou": 1000000
+   },
+   "yakuPoints": 150431000000,
+   "total": 150551000500
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "3m",
+   "3m",
+   "3m",
+   "3m",
+   "4m",
+   "4m",
+   "4m",
+   "4m",
+   "5m",
+   "5m",
+   "5m",
+   "5m",
+   "6m"
+  ],
+  "indicator": 24,
+  "ura": 14,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 12,
+   "hanWithUra": 12,
+   "state": 2,
+   "tier": 4,
+   "base": 100000000,
+   "structures": {
+    "kan": 3
+   },
+   "structurePoints": 16500,
+   "yaku": {
+    "ryanpeikou": 770000000,
+    "chinitsu": 83000000,
+    "sanankou": 660000,
+    "tanyao": 1600
+   },
+   "yakuPoints": 853661600,
+   "total": 953678100
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "5m",
+   "5m",
+   "5m",
+   "6m",
+   "7m",
+   "8m",
+   "9m",
+   "1p",
+   "1p",
+   "2p"
+  ],
+  "indicator": 3,
+  "ura": 28,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 1,
+   "han": 7,
+   "hanWithUra": 7,
+   "state": 1,
+   "tier": 2,
+   "base": 7100,
+   "structures": {
+    "chi": 2,
+    "s334": 1,
+    "s3334": 1
+   },
+   "structurePoints": 720,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 7820
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "2m",
+   "2m",
+   "3m",
+   "3m",
+   "4m",
+   "5m",
+   "5m",
+   "7m",
+   "7m",
+   "9m",
+   "9m"
+  ],
+  "indicator": 24,
+  "ura": 16,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 9,
+   "hanWithUra": 9,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "chi": 1,
+    "kanchan": 1,
+    "seq5": 1,
+    "s246": 1
+   },
+   "structurePoints": 455,
+   "yaku": {
+    "chinitsu": 83000000,
+    "iipeikou": 10400
+   },
+   "yakuPoints": 83010400,
+   "total": 86310855
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2p",
+   "3p",
+   "4p",
+   "2p",
+   "3p",
+   "4p",
+   "2s",
+   "3s",
+   "4s",
+   "2m",
+   "4m",
+   "6m",
+   "8m"
+  ],
+  "indicator": 24,
+  "ura": 17,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 1,
+   "han": 5,
+   "hanWithUra": 5,
+   "state": 1,
+   "tier": 1,
+   "base": 4300,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "s1122": 1,
+    "s246": 1
+   },
+   "structurePoints": 380,
+   "yaku": {
+    "iipeikou": 10400,
+    "tanyao": 1600
+   },
+   "yakuPoints": 12000,
+   "total": 16680
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1m",
+   "2m",
+   "3m",
+   "4p",
+   "5p",
+   "6p",
+   "4p",
+   "5p",
+   "6p",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 18,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 4,
+   "hanWithUra": 4,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "pair": 2,
+    "s1122": 2
+   },
+   "structurePoints": 580,
+   "yaku": {
+    "ryanpeikou": 770000000
+   },
+   "yakuPoints": 770000000,
+   "total": 770022580
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2s",
+   "3s",
+   "4s",
+   "2s",
+   "3s",
+   "4s",
+   "6s",
+   "7s",
+   "8s",
+   "6s",
+   "7s",
+   "8s",
+   "1m"
+  ],
+  "indicator": 24,
+  "ura": 19,
+  "roundWind": 28,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 0,
+   "han": 6,
+   "hanWithUra": 8,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pair": 2,
+    "s1122": 2
+   },
+   "structurePoints": 580,
+   "yaku": {
+    "ryanpeikou": 770000000
+   },
+   "yakuPoints": 770000000,
+   "total": 773300580
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1m",
+   "2m",
+   "3m",
+   "2m",
+   "3m",
+   "4m",
+   "2m",
+   "3m",
+   "4m",
+   "5m"
+  ],
+  "indicator": 24,
+  "ura": 20,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 11,
+   "hanWithUra": 11,
+   "state": 2,
+   "tier": 4,
+   "base": 100000000,
+   "structures": {
+    "pair": 1,
+    "kan": 2,
+    "s334": 1
+   },
+   "structurePoints": 11075,
+   "yaku": {
+    "ryanpeikou": 770000000,
+    "chinitsu": 83000000
+   },
+   "yakuPoints": 853000000,
+   "total": 953011075
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "wd",
+   "wd",
+   "wd",
+   "gd",
+   "gd",
+   "gd",
+   "rd",
+   "rd",
+   "rd",
+   "1m",
+   "2m",
+   "3m",
+   "9p"
+  ],
+  "indicator": 24,
+  "ura": 21,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pon": 3,
+    "chi": 1
+   },
+   "structurePoints": 415,
+   "yaku": {
+    "daisangen": 3000000000,
+    "yakuhai_pon": 2610
+   },
+   "yakuPoints": 3000002610,
+   "total": 3120003025
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "ew",
+   "ew",
+   "ew",
+   "sw",
+   "sw",
+   "wd",
+   "wd",
+   "gd",
+   "gd",
+   "rd",
+   "rd",
+   "nw",
+   "nw"
+  ],
+  "indicator": 24,
+  "ura": 22,
+  "roundWind": 28,
+  "seatWind": 27,
+  "expected": {
+   "shanten": 1,
+   "han": 8,
+   "hanWithUra": 8,
+   "state": 1,
+   "tier": 3,
+   "base": 45000,
+   "structures": {
+    "pair": 5,
+    "pon": 1
+   },
+   "structurePoints": 200,
+   "yaku": {
+    "tsuuiisou": 10000000000,
+    "honroutou": 1000000,
+    "yakuhai_pon": 870,
+    "valuable_pair": 240
+   },
+   "yakuPoints": 10001001110,
+   "total": 10001046310
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "wd",
+   "wd",
+   "wd",
+   "gd",
+   "gd",
+   "gd",
+   "rd",
+   "rd",
+   "1m",
+   "2m",
+   "3m",
+   "4m",
+   "5m"
+  ],
+  "indicator": 24,
+  "ura": 23,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 8,
+   "hanWithUra": 8,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pair": 1,
+    "pon": 2,
+    "seq5": 1
+   },
+   "structurePoints": 615,
+   "yaku": {
+    "shousangen": 44000000,
+    "honitsu": 19600,
+    "yakuhai_pon": 1740,
+    "valuable_pair": 60
+   },
+   "yakuPoints": 44021400,
+   "total": 47322015
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "ew",
+   "ew",
+   "ew",
+   "sw",
+   "sw",
+   "sw",
+   "ww",
+   "ww",
+   "ww",
+   "nw",
+   "nw",
+   "1m",
+   "2m"
+  ],
+  "indicator": 24,
+  "ura": 24,
+  "roundWind": 27,
+  "seatWind": 30,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pair": 1,
+    "pon": 3,
+    "penchan": 1
+   },
+   "structurePoints": 400,
+   "yaku": {
+    "shousuushi": 100000000000,
+    "honitsu": 19600,
+    "yakuhai_pon": 870,
+    "valuable_pair": 60
+   },
+   "yakuPoints": 100000020530,
+   "total": 100120020930
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "ew",
+   "ew",
+   "ew",
+   "sw",
+   "sw",
+   "sw",
+   "ww",
+   "ww",
+   "ww",
+   "nw",
+   "nw",
+   "nw",
+   "1m"
+  ],
+  "indicator": 24,
+  "ura": 25,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pon": 4
+   },
+   "structurePoints": 500,
+   "yaku": {
+    "daisuushi": 23000000000000,
+    "honroutou": 1000000,
+    "honitsu": 19600,
+    "yakuhai_pon": 1740
+   },
+   "yakuPoints": 23000001021340,
+   "total": 23000121021840
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1m",
+   "9m",
+   "9m",
+   "9m",
+   "1p",
+   "1p",
+   "1p",
+   "9p",
+   "9p",
+   "9s",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 26,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pair": 2,
+    "pon": 3
+   },
+   "structurePoints": 405,
+   "yaku": {
+    "chinroutou": 150000000000,
+    "honroutou": 1000000,
+    "sanankou": 660000
+   },
+   "yakuPoints": 150001660000,
+   "total": 150121660405
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2s",
+   "2s",
+   "2s",
+   "3s",
+   "3s",
+   "4s",
+   "4s",
+   "6s",
+   "6s",
+   "8s",
+   "8s",
+   "gd",
+   "gd"
+  ],
+  "indicator": 24,
+  "ura": 27,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 1,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 1,
+   "tier": 5,
+   "base": 1400000,
+   "structures": {
+    "pair": 1,
+    "s246": 2,
+    "s3334": 1
+   },
+   "structurePoints": 695,
+   "yaku": {
+    "ryuuiisou": 150000000000,
+    "honitsu": 19600,
+    "iipeikou": 10400,
+    "valuable_pair": 60
+   },
+   "yakuPoints": 150000030060,
+   "total": 150001430755
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "2s",
+   "2s",
+   "3s",
+   "3s",
+   "4s",
+   "4s",
+   "6s",
+   "6s",
+   "8s",
+   "8s",
+   "gd",
+   "gd",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 28,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 8,
+   "hanWithUra": 8,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pair": 1,
+    "s1122": 1,
+    "s246": 2
+   },
+   "structurePoints": 390,
+   "yaku": {
+    "honitsu": 19600,
+    "iipeikou": 10400,
+    "valuable_pair": 60
+   },
+   "yakuPoints": 30060,
+   "total": 3330450
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1m",
+   "1p",
+   "1p",
+   "1p",
+   "1s",
+   "1s",
+   "1s",
+   "5m",
+   "6m",
+   "7m",
+   "9p"
+  ],
+  "indicator": 24,
+  "ura": 29,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 5,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "pon": 3,
+    "chi": 1
+   },
+   "structurePoints": 415,
+   "yaku": {
+    "sanshoku_doko": 430000000
+   },
+   "yakuPoints": 430000000,
+   "total": 430190415
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "ew",
+   "ew",
+   "sw",
+   "sw",
+   "1m",
+   "2m",
+   "3m",
+   "4p",
+   "5p",
+   "6p",
+   "7s",
+   "8s",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 30,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 3,
+   "hanWithUra": 6,
+   "state": 2,
+   "tier": 2,
+   "base": 350000,
+   "structures": {
+    "pair": 2,
+    "chi": 3
+   },
+   "structurePoints": 150,
+   "yaku": {
+    "valuable_pair": 120
+   },
+   "yakuPoints": 120,
+   "total": 350270
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "wd",
+   "wd",
+   "wd",
+   "gd",
+   "gd",
+   "gd",
+   "rd",
+   "rd",
+   "1m",
+   "2m",
+   "3m",
+   "4p",
+   "5p"
+  ],
+  "indicator": 24,
+  "ura": 31,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 5,
+   "hanWithUra": 8,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pair": 1,
+    "pon": 2,
+    "chi": 1,
+    "ryanmen": 1
+   },
+   "structurePoints": 325,
+   "yaku": {
+    "shousangen": 44000000,
+    "yakuhai_pon": 1740,
+    "valuable_pair": 60
+   },
+   "yakuPoints": 44001800,
+   "total": 47302125
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "wd",
+   "wd",
+   "wd",
+   "gd",
+   "gd",
+   "rd",
+   "1m",
+   "2m",
+   "3m",
+   "4p",
+   "5p",
+   "6p",
+   "7s"
+  ],
+  "indicator": 24,
+  "ura": 32,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 1,
+   "han": 5,
+   "hanWithUra": 8,
+   "state": 1,
+   "tier": 3,
+   "base": 45000,
+   "structures": {
+    "pair": 1,
+    "pon": 1,
+    "chi": 2
+   },
+   "structurePoints": 220,
+   "yaku": {
+    "yakuhai_pon": 870,
+    "valuable_pair": 60,
+    "valuable_tile": 15
+   },
+   "yakuPoints": 945,
+   "total": 46165
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "ew",
+   "sw",
+   "wd",
+   "gd",
+   "1m",
+   "2m",
+   "3m",
+   "4p",
+   "5p",
+   "6p",
+   "7s",
+   "8s",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 33,
+  "roundWind": 27,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 2,
+   "han": 3,
+   "hanWithUra": 6,
+   "state": 0,
+   "tier": 2,
+   "base": 520,
+   "structures": {
+    "chi": 3
+   },
+   "structurePoints": 120,
+   "yaku": {
+    "valuable_tile": 60
+   },
+   "yakuPoints": 60,
+   "total": 700
+  },
+  "note": "указанная рука"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7m",
+   "7m",
+   "9m",
+   "9m"
+  ],
+  "indicator": 24,
+  "ura": 7,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 3,
+   "hanWithUra": 6,
+   "state": 2,
+   "tier": 2,
+   "base": 350000,
+   "structures": {
+    "pair": 2,
+    "chi": 3
+   },
+   "structurePoints": 150,
+   "yaku": {
+    "sanshoku_dojun": 220000
+   },
+   "yakuPoints": 220000,
+   "total": 570150
+  },
+  "note": "ура-дора 9m"
+ },
+ {
+  "tiles": [
+   "1m",
+   "1m",
+   "1m",
+   "2m",
+   "3m",
+   "4m",
+   "5m",
+   "6m",
+   "7m",
+   "8m",
+   "9m",
+   "9m",
+   "9m"
+  ],
+  "indicator": 24,
+  "ura": 8,
+  "roundWind": 28,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 13,
+   "hanWithUra": 13,
+   "state": 2,
+   "tier": 5,
+   "base": 120000000,
+   "structures": {
+    "pon": 1,
+    "seq5": 1,
+    "s3334": 1
+   },
+   "structurePoints": 1055,
+   "yaku": {
+    "chinitsu": 83000000,
+    "ittsu": 510000
+   },
+   "yakuPoints": 83510000,
+   "total": 203511055
+  },
+  "note": "ура-дора 1m"
+ },
+ {
+  "tiles": [
+   "0m",
+   "3m",
+   "4m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7m",
+   "rd",
+   "rd",
+   "rd"
+  ],
+  "indicator": 3,
+  "ura": 3,
+  "roundWind": 28,
+  "seatWind": 28,
+  "expected": {
+   "shanten": 0,
+   "han": 4,
+   "hanWithUra": 5,
+   "state": 2,
+   "tier": 1,
+   "base": 190000,
+   "structures": {
+    "pon": 1,
+    "chi": 2,
+    "s246": 1
+   },
+   "structurePoints": 255,
+   "yaku": {
+    "yakuhai_pon": 870
+   },
+   "yakuPoints": 870,
+   "total": 191125
+  },
+  "note": "ура-дора 5m"
+ },
+ {
+  "tiles": [
+   "5m",
+   "5m",
+   "5m",
+   "5m",
+   "1p",
+   "2p",
+   "3p",
+   "4s",
+   "5s",
+   "6s",
+   "7s",
+   "8s",
+   "9s"
+  ],
+  "indicator": 24,
+  "ura": 12,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": -1,
+   "hanWithUra": -1,
+   "state": 2,
+   "tier": 0,
+   "base": 22000,
+   "structures": {
+    "kan": 1,
+    "chi": 1,
+    "seq5": 1
+   },
+   "structurePoints": 5890,
+   "yaku": {},
+   "yakuPoints": 0,
+   "total": 27890
+  },
+  "note": "ура-дора 5p"
+ },
+ {
+  "tiles": [
+   "2p",
+   "3p",
+   "4p",
+   "2p",
+   "3p",
+   "4p",
+   "2s",
+   "3s",
+   "4s",
+   "2m",
+   "4m",
+   "6m",
+   "8m"
+  ],
+  "indicator": 24,
+  "ura": 18,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 1,
+   "han": 5,
+   "hanWithUra": 6,
+   "state": 1,
+   "tier": 2,
+   "base": 7100,
+   "structures": {
+    "pair": 1,
+    "chi": 1,
+    "s1122": 1,
+    "s246": 1
+   },
+   "structurePoints": 380,
+   "yaku": {
+    "iipeikou": 10400,
+    "tanyao": 1600
+   },
+   "yakuPoints": 12000,
+   "total": 19480
+  },
+  "note": "ура-дора 2s"
+ },
+ {
+  "tiles": [
+   "1m",
+   "2m",
+   "3m",
+   "1p",
+   "2p",
+   "3p",
+   "1s",
+   "2s",
+   "3s",
+   "7m",
+   "7m",
+   "9m",
+   "9m"
+  ],
+  "indicator": 7,
+  "ura": 7,
+  "roundWind": 27,
+  "seatWind": 29,
+  "expected": {
+   "shanten": 0,
+   "han": 6,
+   "hanWithUra": 9,
+   "state": 2,
+   "tier": 3,
+   "base": 3300000,
+   "structures": {
+    "pair": 2,
+    "chi": 3
+   },
+   "structurePoints": 150,
+   "yaku": {
+    "sanshoku_dojun": 220000
+   },
+   "yakuPoints": 220000,
+   "total": 3520150
+  },
+  "note": "ура-дора 9m"
+ }
+]

@@ -1,0 +1,27 @@
+{
+ "rules": {
+  "riichiHan": 1,
+  "akaDora": true,
+  "uraDora": true,
+  "tsumo": false
+ },
+ "deals": 10000000000,
+ "complete": 30377,
+ "P_complete": 3.0377e-06,
+ "P_counts": [
+  27191,
+  2119,
+  963,
+  91,
+  1,
+  12
+ ],
+ "P": [
+  2.7191e-06,
+  2.119e-07,
+  9.63e-08,
+  9.1e-09,
+  1e-10,
+  1.2e-09
+ ]
+}

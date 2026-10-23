@@ -1,0 +1,17 @@
+{
+  "name": "mahjongdle-server",
+  "private": true,
+  "type": "module",
+  "description": "API для mahjongdle: вход через Google + таблица рекордов дня (Node 24+, node:sqlite)",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "google-auth-library": "^10.1.0"
+  }
+}

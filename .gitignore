@@ -1,0 +1,18 @@
+# Зависимости
+node_modules/
+server/node_modules/
+
+# Среда/секреты сервера
+server/.env
+.env
+
+# База данных сервера (создаётся автоматически)
+server/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Временные/отладочные
+*.log
+.DS_Store
+Thumbs.db

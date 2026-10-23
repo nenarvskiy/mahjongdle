@@ -1,0 +1,20 @@
+{
+  "name": "mahjongdle",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:stress": "node scripts/stress-scoring.js",
+    "analyze:rarity": "node scripts/analyze-rarity.js",
+    "stats": "py stats/scorestat.py",
+    "stats:quick": "py stats/scorestat.py -n 20000 --quick",
+    "stats:check:partition": "py stats/tools/check_partition.py",
+    "stats:check:shanten": "py stats/tools/check_shanten.py",
+    "stats:check:js": "node stats/tools/check_partition.mjs stats/fixtures/hands13.json stats/fixtures/hands13_scores.txt",
+    "stats:report:rank": "py stats/tools/report_rank_check.py",
+    "stats:report:inversions": "py stats/tools/report_inversions.py",
+    "server": "npm --prefix server start",
+    "server:install": "npm --prefix server install",
+    "server:test": "node --test test/server.test.js"
+  }
+}

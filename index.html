@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RNGlDle Mahjong</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>RNGlDle Mahjong</h1>
+      <p class="subtitle" id="subtitle">Выберите тайл для сброса</p>
+    </div>
+    <div class="topbar-auth">
+      <div id="auth-user" class="auth-user" hidden></div>
+      <div id="auth-slot" class="auth-slot"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel daily-panel">
+      <div class="daily-heading">
+        <h2>Условия дня</h2>
+        <span id="daily-date"></span>
+      </div>
+      <div class="daily-grid">
+        <div class="daily-item"><span>Ветер раунда</span><div id="round-wind" class="context-tile"></div></div>
+        <div class="daily-item"><span>Ветер игрока</span><div id="seat-wind" class="context-tile"></div></div>
+        <div class="daily-item dora-item">
+          <span>Индикатор доры</span>
+          <div class="dora-wall" aria-label="Мёртвая стена">
+            <div id="dora-indicator" class="context-tile"></div>
+            <div class="tile-back" aria-hidden="true"></div>
+            <div class="tile-back" aria-hidden="true"></div>
+            <div class="tile-back" aria-hidden="true"></div>
+            <div class="tile-back" aria-hidden="true"></div>
+            <div class="tile-back" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="daily-item ura-item" id="ura-item">
+          <span>Индикатор урадор</span>
+          <div id="ura-indicator" class="context-tile" title="Откроется после сброса"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Рука</h2>
+      <div id="hand" class="hand" role="list"></div>
+    </section>
+
+    <section class="panel" id="discarded-panel" hidden>
+      <h2>Сброшено</h2>
+      <div id="discarded" class="hand"></div>
+    </section>
+
+    <section class="panel" id="result-panel" hidden>
+      <h2>Результат</h2>
+      <div id="grouped-hand"></div>
+      <div id="result"></div>
+      <div id="score-status" class="score-status" hidden></div>
+      <div id="potential-preview" class="potential-preview" hidden>
+        <h3 id="potential-title">Потенциальная рука</h3>
+        <div id="potential-hand"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="leaderboard-panel" hidden>
+      <h2>Таблица дня <span id="lb-date" class="lb-date"></span></h2>
+      <ol id="leaderboard" class="leaderboard"></ol>
+    </section>
+  </main>
+
+  <footer class="toolbar">
+    <button id="btn-generate" type="button" disabled>Сгенерировать руку</button>
+    <button id="btn-reset" type="button" hidden>Отменить сброс</button>
+    <button id="btn-structures" type="button">Настроить структуры</button>
+    <button id="btn-test-mode" type="button" hidden>Тестовый режим</button>
+    <button id="btn-bugs" type="button" hidden>Логи и жалобы</button>
+    <button id="btn-roles" type="button" hidden>Роли (admin)</button>
+  </footer>
+
+  <dialog id="structure-dialog" class="structure-dialog">
+    <div class="dialog-heading">
+      <div>
+        <h2>Стоимость структур</h2>
+        <p>Изменения применяются сразу и сохраняются в этом браузере.</p>
+      </div>
+      <button id="btn-structures-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div id="structure-list" class="structure-list"></div>
+
+    <form id="structure-add-form" class="structure-form">
+      <h3>Новая структура</h3>
+      <p>Введите тайлы одной масти по порядку, например 124, 5566 или 12345.</p>
+      <label>Название <input name="label" maxlength="40" placeholder="Например, форма 135" required></label>
+      <label>Тайлы <input name="notation" inputmode="numeric" maxlength="8" placeholder="135" required></label>
+      <label>Очки <input name="points" type="number" min="0" max="100000" step="1" value="10" required></label>
+      <div id="structure-error" class="form-error" role="alert"></div>
+      <button type="submit">Добавить структуру</button>
+    </form>
+
+    <div class="dialog-actions">
+      <button id="btn-structures-reset" type="button">Вернуть стандартные значения</button>
+    </div>
+  </dialog>
+
+  <dialog id="test-mode-dialog" class="structure-dialog test-dialog">
+    <div class="dialog-heading">
+      <div>
+        <h2>Тестовый режим</h2>
+        <p>Очки считаются как в игре, но руки отсюда не попадают в таблицу дня и статистику.</p>
+      </div>
+      <button id="btn-test-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="tm-context">
+      <div class="tm-field">
+        <span>Ветер раунда</span>
+        <div id="tm-round-winds" class="tm-winds"></div>
+      </div>
+      <div class="tm-field">
+        <span>Ветер места</span>
+        <div id="tm-seat-winds" class="tm-winds"></div>
+      </div>
+      <div class="tm-field">
+        <span>Дора</span>
+        <input id="tm-dora" class="tm-input" placeholder="5m" maxlength="4" spellcheck="false">
+      </div>
+      <div class="tm-field">
+        <span>Ура</span>
+        <input id="tm-ura" class="tm-input" placeholder="—" maxlength="4" spellcheck="false">
+      </div>
+      <button id="btn-tm-rand" type="button">🎲 Случайные условия</button>
+    </div>
+
+    <div class="tm-controls">
+      <button id="btn-tm-new" type="button">Новая рука</button>
+      <button id="btn-tm-reset" type="button" hidden>Отменить сброс</button>
+      <form id="tm-custom-form" class="tm-custom">
+        <input id="tm-custom" placeholder="1m 2m 3m 1p 2p 3p 1s 2s 3s 4s 5s 9s rd rd (13–14 тайлов)" maxlength="140" spellcheck="false">
+        <button type="submit">Разыграть</button>
+      </form>
+      <div id="tm-error" class="form-error" role="alert" hidden></div>
+    </div>
+
+    <div id="tm-hand" class="hand" role="list"></div>
+    <div id="tm-discarded-panel" hidden>
+      <h3>Сброшено</h3>
+      <div id="tm-discarded" class="hand"></div>
+    </div>
+    <div id="tm-result-panel" hidden>
+      <h3>Результат</h3>
+      <div id="tm-grouped-hand"></div>
+      <div id="tm-result"></div>
+      <div id="tm-potential-preview" class="potential-preview" hidden>
+        <h3 id="tm-potential-title">Потенциальная рука</h3>
+        <div id="tm-potential-hand"></div>
+      </div>
+    </div>
+    <p id="tm-hint" class="tm-hint">Сгенерируйте руку или введите тайлы вручную.</p>
+
+    <div class="tm-bug-row">
+      <button id="btn-tm-bug" type="button">Сообщить об ошибке</button>
+    </div>
+    <form id="tm-bug-form" class="tm-bug" hidden>
+      <h3>Сообщить об ошибке</h3>
+      <p>К сообщению приложится текущая рука, условия и счёт. Видно админам.</p>
+      <textarea id="tm-bug-text" rows="3" maxlength="1000" required
+        placeholder="Что не так: какие очки ожидали, какие получили…"></textarea>
+      <div id="tm-bug-status" class="form-error" role="alert" hidden></div>
+      <div class="tm-bug-actions">
+        <button type="submit">Отправить</button>
+        <button type="button" id="tm-bug-cancel">Отмена</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="roles-dialog" class="structure-dialog roles-dialog">
+    <div class="dialog-heading">
+      <div>
+        <h2>Роли</h2>
+        <p>Google-аккаунты по email. По умолчанию — player. test и admin получают
+        тестовый режим, admin — управление ролями. Применяется при входе в аккаунт
+        (списки хранятся в server/config/roles.json на сервере).</p>
+      </div>
+      <button id="btn-roles-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="roles-lists">
+      <section class="roles-col">
+        <h3>Admin <span id="roles-admin-count" class="roles-count"></span></h3>
+        <ul id="roles-admin" class="roles-list"></ul>
+      </section>
+      <section class="roles-col">
+        <h3>Test <span id="roles-test-count" class="roles-count"></span></h3>
+        <ul id="roles-test" class="roles-list"></ul>
+      </section>
+    </div>
+
+    <form id="roles-add-form" class="roles-form">
+      <h3>Добавить / сменить роль</h3>
+      <label>Email <input id="roles-email" type="email" required placeholder="player@gmail.com"></label>
+      <label>Роль
+        <select id="roles-role">
+          <option value="player">player</option>
+          <option value="test">test</option>
+          <option value="admin">admin</option>
+        </select>
+      </label>
+      <div id="roles-error" class="form-error" role="alert" hidden></div>
+      <button type="submit">Сохранить</button>
+    </form>
+  </dialog>
+
+  <dialog id="bugs-dialog" class="structure-dialog bugs-dialog">
+    <div class="dialog-heading">
+      <div>
+        <h2>Логи и жалобы</h2>
+        <p>Блоки посчитанных рук: рука, условия, счёт с разбивкой «что за что»
+        и жалоба, если игрок её оставил. Просто сгенерированные руки без счёта
+        в лог не попадают.</p>
+      </div>
+      <button id="btn-bugs-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="bugs-tabs">
+      <button id="bugs-tab-bugs" class="active" type="button">Жалобы</button>
+      <button id="bugs-tab-all" type="button">Все руки</button>
+      <span class="bugs-tabs-spacer"></span>
+      <button id="btn-bugs-refresh" type="button">Обновить</button>
+    </div>
+    <div id="bugs-error" class="bugs-error" role="alert" hidden></div>
+    <div id="bugs-list" class="bugs-list"></div>
+  </dialog>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
