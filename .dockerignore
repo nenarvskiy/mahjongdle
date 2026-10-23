@@ -1,0 +1,13 @@
+# В образ не нужно: зависимости, git, статистика, тесты, локальная БД.
+.git
+.gitignore
+node_modules
+server/node_modules
+server/data
+*.db
+stats
+scripts
+test
+coverage
+.env
+*.log
