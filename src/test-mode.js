@@ -9,7 +9,7 @@ import { tileToIndex } from './tile-index.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
 import { renderTiles, renderScore, renderGroupedHand } from './ui.js';
 import { createDailyContext, createDeadWall, doraFromIndicator } from './daily-context.js';
-import { findKans, withKanPons, openKanDoraCount } from './kans.js';
+import { findKans, withKanPons, openKanDoraCount, KAN_DORA_SLOTS } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { logHand, updateHandBlock, reportHandBlock, scorePayload } from './event-log.js';
 
@@ -261,6 +261,21 @@ export function initTestMode() {
   // ---- оценка ----
   function fullTiles() { return withKanPons(hand, declaredKans); }
 
+  /** Контекст оценки: та же формула, что в ночном пересчёте (server/recalc.js):
+   *  кандоры — 1 базовая + по одной за каждый кан (макс. 5), и в конце дня
+   *  открыты все ура-доры мёртвой стены. */
+  function scoringContext() {
+    const wall = dayWall();
+    const open = openKanDoraCount(declaredKans.length);
+    const kanDoras = (wall.kanDora ?? []).slice(0, Math.min(open, KAN_DORA_SLOTS));
+    return {
+      ...ctx,
+      doraIndicators: [...(ctx.doraIndicators ?? []), ...kanDoras],
+      uraIndicators: [...(ctx.uraIndicators ?? []), ...(wall.kanUra ?? [])],
+      deadTiles: [...(ctx.deadTiles ?? []), ...kanDoras, ...(wall.kanUra ?? [])],
+    };
+  }
+
   function reevaluate() {
     if (!hand.length || !scored) {
       phase = 'edit';
@@ -278,7 +293,7 @@ export function initTestMode() {
     if (full.length === 13) {
       phase = 'result';
       remaining = hand;
-      score = evaluateHand(full, ctx);
+      score = evaluateHand(full, scoringContext());
       return;
     }
     phase = 'edit';
@@ -318,7 +333,7 @@ export function initTestMode() {
     discarded = hand[index];
     remaining = hand.filter((_, i) => i !== index);
     hand = remaining;
-    score = evaluateHand(withKanPons(remaining, declaredKans), ctx);
+    score = evaluateHand(withKanPons(remaining, declaredKans), scoringContext());
     phase = 'result';
     render();
     void syncHandBlock();
