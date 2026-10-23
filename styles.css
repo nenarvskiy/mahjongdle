@@ -875,3 +875,9 @@ button:active { transform: translateY(0); }
 .kan-dora-wall {
   margin: 8px 0;
 }
+
+.hand.await-discard {
+  outline: 2px dashed rgba(201, 167, 255, .55);
+  outline-offset: 6px;
+  border-radius: 10px;
+}

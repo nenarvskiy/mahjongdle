@@ -268,24 +268,17 @@ export function initTestMode() {
       remaining = [];
       return;
     }
-    if (hand.length === 13 && declaredKans.length === 0) {
-      phase = 'result';
-      remaining = hand;
-      score = evaluateHand(hand, ctx);
-      return;
-    }
     const full = fullTiles();
-    if (full.length >= 14) {
-      const complete = evaluateCompleteHand(full, ctx);
-      if (complete) {
-        phase = 'complete';
-        score = complete;
-        remaining = hand;
-        return;
-      }
+    if (full.length === 14) {
       phase = 'choose';
       score = null;
       remaining = [];
+      return;
+    }
+    if (full.length === 13) {
+      phase = 'result';
+      remaining = hand;
+      score = evaluateHand(full, ctx);
       return;
     }
     phase = 'edit';
@@ -462,10 +455,12 @@ export function initTestMode() {
     if (els.hint) {
       if (!hand.length) els.hint.textContent = 'Тыкайте тайлы в палитре, чтобы собрать руку.';
       else if (!scored) els.hint.textContent = `В руке ${hand.length}. Клик по тайлу убирает его. Затем «Просчитать руку».`;
-      else if (phase === 'choose') els.hint.textContent = pendingKan ? 'Объявите кан или пропустите.' : 'Выберите тайл для сброса.';
+      else if (pendingKan) els.hint.textContent = 'Есть кан: объявите его или пропустите.';
+      else if (phase === 'choose') els.hint.textContent = `Рука просчитана. Теперь выберите тайл для сброса (${hand.length} в руке).`;
       else if (phase === 'complete') els.hint.textContent = 'Готовая рука.';
       else els.hint.textContent = `Сброшен ${tileDisplayName(discarded)}.`;
     }
+    if (els.hand) els.hand.classList.toggle('await-discard', scored && phase === 'choose' && !pendingKan);
     if (els.reset) els.reset.hidden = !scored;
   }
 
