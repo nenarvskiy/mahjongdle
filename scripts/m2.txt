@@ -1,0 +1,6 @@
+11|import { initAuthButton, onAuthChange, getAuth, logout, subm
+12|import { initTestMode } from './test-mode.js';
+54|btnTestMode: document.getElementById('btn-test-mode'),
+190|els.btnTestMode.hidden = !canTestMode();
+198|els.btnTestMode.hidden = true;
+513|initTestMode();

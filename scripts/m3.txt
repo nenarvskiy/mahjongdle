@@ -1,0 +1,39 @@
+8|import { findKans, withKanPons, openKanDoraCount, countKans 
+9|import { renderClosedKan, renderKanPrompt, renderKanDoras } 
+63|kanList: document.getElementById('kan-list'),
+138|kans: declaredKans.map((kan) => kan.tile),
+212|// Объявленные каны: [{tile, tiles}]; pendingKan — предложен
+213|// pendingKans — очередь (корректная работа нескольких канов
+214|let declaredKans = [];
+215|let pendingKan = null;
+216|let pendingKans = [];
+219|function refreshKanPrompt(state) {
+222|pendingKans = candidates;
+223|pendingKan = candidates[0] ?? null;
+224|if (!pendingKan) {
+229|renderKanPrompt(els.kanPromptTiles, pendingKan);
+233|function declareKan() {
+235|if (!pendingKan || state.phase !== 'choose') return;
+236|const skip = new Set(pendingKan.indices);
+239|declaredKans = [...declaredKans, { tile: pendingKan.tile, ti
+240|pendingKan = null;
+241|pendingKans = [];
+253|function skipKan() {
+254|const rest = pendingKans.filter((kan) => kan !== pendingKan)
+256|pendingKans = rest;
+257|pendingKan = rest[0];
+258|renderKanPrompt(els.kanPromptTiles, pendingKan);
+261|pendingKan = null;
+262|pendingKans = [];
+281|declaredKans = [];
+282|pendingKan = null;
+283|pendingKans = [];
+349|const score = evaluateHand(withKanPons(remaining, declaredKa
+397|els.kanList.innerHTML = '';
+398|for (const kan of declaredKans) renderClosedKan(els.kanList,
+402|const kanCount = countKans(declaredKans, state.phase === 'wa
+403|renderKanDoras(els.kanDoraWall, dailyContext.deadWall.tiles,
+461|if (state.phase === 'choose') refreshKanPrompt(state);
+490|els.btnKan.addEventListener('click', () => declareKan());
+491|els.btnKanSkip.addEventListener('click', () => skipKan());
+497|store.setState({ score: evaluateHand(withKanPons(state.remai

@@ -1,0 +1,13 @@
+24|</header>
+26|<main>
+110|</main>
+112|<footer class="toolbar">
+116|<button id="btn-test-mode" type="button" hidden>Те
+121|<dialog id="structure-dialog" class="structure-dia
+145|</dialog>
+147|<dialog id="test-mode-dialog" class="structure-dia
+227|</dialog>
+229|<dialog id="roles-dialog" class="structure-dialog 
+264|</dialog>
+266|<dialog id="bugs-dialog" class="structure-dialog b
+285|</dialog>
