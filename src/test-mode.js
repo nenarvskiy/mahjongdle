@@ -412,7 +412,7 @@ export function initTestMode() {
     if (!ctx) return;
     renderWinds();
     renderPalette();
-
+    refreshKanPrompt();
     const canEdit = !scored;
     const canDiscard = scored && phase === 'choose' && !pendingKan;
     renderTiles(els.hand, hand, {
@@ -450,7 +450,6 @@ export function initTestMode() {
       for (const kan of declaredKans) renderClosedKan(els.kanList, kan);
     }
     if (els.kanDoras) renderKanDoras(els.kanDoras, dayWall(), openKanDoraCount(declaredKans.length));
-    refreshKanPrompt();
 
     if (els.hint) {
       if (!hand.length) els.hint.textContent = 'Тыкайте тайлы в палитре, чтобы собрать руку.';
