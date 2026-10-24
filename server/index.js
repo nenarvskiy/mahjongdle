@@ -13,10 +13,11 @@
  *                       тогда игра и API на одном origin, один порт);
  *                       'off' — только API (фронтенд раздаётся отдельно).
  */
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
+import { createBackup, pullBackupFile } from './backup.js';
 import { openDb } from './db.js';
 import { createGoogleVerifier } from './google.js';
 
@@ -41,7 +42,25 @@ const CORS_ORIGINS = (env.CORS_ORIGINS ?? '')
 // 'off' — не раздавать фронтенд; пусто — корень репозитория (один origin).
 const STATIC_DIR = env.STATIC_DIR === 'off' ? '' : (env.STATIC_DIR || path.resolve(HERE, '..'));
 
+// Бэкап БД в приватный GitHub-репо (защита от эфемерного диска Render):
+// BACKUP_GITHUB_REPO=owner/name, BACKUP_GITHUB_TOKEN, [BACKUP_FILE], [BACKUP_BRANCH].
+const BACKUP_REPO = env.BACKUP_GITHUB_REPO ?? '';
+const BACKUP_TOKEN = env.BACKUP_GITHUB_TOKEN ?? '';
+const BACKUP_FILE = env.BACKUP_FILE ?? 'leaderboard.db';
+const BACKUP_BRANCH = env.BACKUP_BRANCH ?? 'main';
+const BACKUP_API_BASE = env.BACKUP_API_BASE || undefined; // только для тестов
+const BACKUP_ON = Boolean(BACKUP_REPO && BACKUP_TOKEN);
+
 mkdirSync(path.dirname(DB_FILE), { recursive: true });
+
+// Свежий инстанс после деплоя: локальной БД нет — восстанавливаем из репо
+// ДО открытия подключения (иначе openDb создаст пустую схему).
+if (BACKUP_ON && (!existsSync(DB_FILE) || statSync(DB_FILE).size === 0)) {
+  console.log(`backup: локальной БД нет — восстанавливаю из ${BACKUP_REPO}/${BACKUP_FILE}…`);
+  await pullBackupFile(DB_FILE, {
+    repo: BACKUP_REPO, token: BACKUP_TOKEN, file: BACKUP_FILE, branch: BACKUP_BRANCH, apiBase: BACKUP_API_BASE,
+  });
+}
 
 // На free-инстансе Render файл вне подключённого диска (/opt/data) стирается
 // при каждом деплое — предупреждаем, чтобы таблица/история рук не «слетали».
@@ -54,14 +73,32 @@ if (process.env.NODE_ENV === 'production' && !DB_FILE.startsWith('/opt/data/')) 
   );
 }
 
+const db = openDb(DB_FILE);
+const backup = BACKUP_ON
+  ? createBackup({
+      db, dbPath: DB_FILE, repo: BACKUP_REPO, token: BACKUP_TOKEN,
+      file: BACKUP_FILE, branch: BACKUP_BRANCH, apiBase: BACKUP_API_BASE,
+    })
+  : null;
+
 const app = createApp({
-  db: openDb(DB_FILE),
+  db,
   verifyIdToken: createGoogleVerifier(env.GOOGLE_CLIENT_ID),
   sessionSecret: env.SESSION_SECRET,
   googleClientId: env.GOOGLE_CLIENT_ID,
   corsOrigins: CORS_ORIGINS,
   staticRoot: STATIC_DIR,
+  backup,
 });
+
+// Наблюдатель: раз в минуту — если БД менялась, commit в репо.
+if (backup) {
+  const timer = setInterval(() => {
+    backup.tick().catch(() => {});
+  }, 60_000);
+  timer.unref();
+  console.log(`backup: БД загружается в ${BACKUP_REPO}/${BACKUP_FILE} при каждом изменении (проверка раз в минуту)`);
+}
 
 app.listen(PORT, () => {
   const game = STATIC_DIR ? `игра: http://localhost:${PORT}` : 'игра: раздаётся отдельно (STATIC_DIR=off)';

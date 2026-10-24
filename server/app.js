@@ -126,7 +126,7 @@ function authProfile(req, db, secret) {
   return getUser(db, payload.sub);
 }
 
-export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, corsOrigins = [], rolesFile = DEFAULT_ROLES_FILE, staticRoot = DEFAULT_STATIC_ROOT }) {
+export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, corsOrigins = [], rolesFile = DEFAULT_ROLES_FILE, staticRoot = DEFAULT_STATIC_ROOT, backup = null }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(makeCors(corsOrigins));
@@ -488,6 +488,18 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       },
     });
     res.json({ date, hand });
+  });
+
+  /**
+   * GET /api/admin/backup → статус бэкапа БД в GitHub.
+   * Админ-диагностика: последний commit, ошибки, размер файла.
+   */
+  app.get('/api/admin/backup', async (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    if (await roleFor(user.email, rolesFile) !== 'admin') return httpError(res, 403, 'только admin');
+    if (!backup) return res.json({ configured: false });
+    res.json(backup.status());
   });
 
   /** GET /api/scores/:date?limit=N → {date, rows:[{name, picture, score, discarded}]} */
