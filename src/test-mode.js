@@ -155,6 +155,9 @@ export function initTestMode() {
   let declaredKans = [];
   let pendingKans = [];
   let pendingKan = null;
+  // Пропущенные каны: нажал «Пропустить» — этот кан в руке не предлагаем
+  // больше (сбрасывается только вместе с рукой: deal/resetAll/очистка).
+  let skippedKans = [];
   let discarded = null;
   let remaining = [];
   let score = null;
@@ -175,6 +178,7 @@ export function initTestMode() {
     declaredKans = [];
     pendingKans = [];
     pendingKan = null;
+    skippedKans = [];
     discarded = null;
     remaining = [];
     score = null;
@@ -212,7 +216,7 @@ export function initTestMode() {
       els.kanPrompt.hidden = true;
       return;
     }
-    if (!pendingKan) pendingKans = findKans(hand);
+    if (!pendingKan) pendingKans = findKans(hand).filter((kan) => !skippedKans.includes(kan.tile));
     pendingKan = pendingKans[0] ?? null;
     if (!pendingKan) {
       els.kanPrompt.hidden = true;
@@ -238,6 +242,9 @@ export function initTestMode() {
   }
 
   function skipKan() {
+    if (pendingKan && !skippedKans.includes(pendingKan.tile)) {
+      skippedKans = [...skippedKans, pendingKan.tile];
+    }
     const rest = pendingKans.filter((k) => k !== pendingKan);
     if (rest.length > 0) {
       pendingKans = rest;
@@ -291,6 +298,7 @@ export function initTestMode() {
     declaredKans = [];
     pendingKan = null;
     pendingKans = [];
+    skippedKans = [];
     discarded = null;
     remaining = [];
     score = null;
@@ -353,6 +361,7 @@ export function initTestMode() {
       score = null;
       pendingKan = null;
       pendingKans = [];
+      skippedKans = [];
       scored = false;
       blockId = null;
     }

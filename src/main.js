@@ -164,10 +164,14 @@ function stateFromHand(hand, kans = []) {
 
 // Объявленные каны: [{tile, tiles}]; pendingKan — предложенный кан,
 // pendingKans — очередь (корректная работа нескольких канов).
+// skippedKans — кан-тилы, которые игрок ПРОПУСТИЛ: такие каны больше не
+// предлагаем ни в этой сессии, ни после перезагрузки (хранятся в
+// localStorage вместе с рукой, см. daily-hand.js).
 // Объявлены ДО boot-IIFE: восстановление руки при загрузке их использует.
 let declaredKans = [];
 let pendingKan = null;
 let pendingKans = [];
+let skippedKans = [];
 
 const store = createStore({
   phase: 'waiting',
@@ -189,12 +193,16 @@ void (async () => {
     const stored = readStoredDailyHand();
     if (stored?.dayKey === dailyContext.dayKey) {
       next = stateFromHand(stored.hand, stored.kans ?? []);
+      skippedKans = stored.skipped ?? [];
     } else if (getAuth()) {
       // Локальной руки дня нет (очистка кеша, другое устройство) —
-      // восстанавливаем с сервера: рука фиксируется там при генерации.
+      // восстанавливаем с сервера: рука фиксируется там при генерации
+      // (пропущенные каны хранятся только локально — начинаем с чистого
+      // листа, каны предложат заново).
       const data = await fetchDailyHand(dailyContext.dayKey);
       if (data?.hand?.length) {
         writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? []);
+        skippedKans = [];
         next = stateFromHand(data.hand, data.kans ?? []);
       }
     }
@@ -342,10 +350,14 @@ function renderAuthUser() {
  */
 let dealing = false;
 // --- Каны ---
-/** Предложить кан, если он есть и фаза выбора. */
+/**
+ * Предложить кан, если он есть и фаза выбора.
+ * Пропущенные каны (skippedKans) НЕ предлагаем повторно: один раз нажал
+ * «Пропустить» — этот кан в руке больше не предлагать.
+ */
 function refreshKanPrompt(state) {
   const hand = state.phase === 'choose' ? state.hand : state.remaining;
-  const candidates = findKans(hand);
+  const candidates = findKans(hand).filter((kan) => !skippedKans.includes(kan.tile));
   pendingKans = candidates;
   pendingKan = candidates[0] ?? null;
   if (!pendingKan) {
@@ -380,6 +392,7 @@ function declareKan() {
     dailyContext.dayKey,
     completed ? full : hand,
     declaredKans.map((kan) => kan.tile),
+    skippedKans,
   );
   if (completed) {
     void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed }) }).then((res) => {
@@ -395,18 +408,41 @@ function declareKan() {
   });
 }
 
-/** Пропустить кан: следующий кан, иначе обычный сброс. */
+/**
+ * Пропустить кан: запоминаем (не предлагаем больше, и это переживает
+ * перезагрузку — хранится вместе с рукой), затем следующий кан из очереди
+ * или обычный сброс.
+ */
 function skipKan() {
+  if (pendingKan && !skippedKans.includes(pendingKan.tile)) {
+    skippedKans = [...skippedKans, pendingKan.tile];
+  }
   const rest = pendingKans.filter((kan) => kan !== pendingKan);
   if (rest.length > 0) {
     pendingKans = rest;
     pendingKan = rest[0];
     renderKanPrompt(els.kanPromptTiles, pendingKan);
+    // Закрепляем пропуск ДО перехода к следующему кану: если рендер
+    // перезапустит refreshKanPrompt, пропущенный кан уже не найдётся.
+    persistSkippedKans();
     return;
   }
   pendingKan = null;
   pendingKans = [];
   els.kanPrompt.hidden = true;
+  persistSkippedKans();
+}
+
+/** Сохранить пропущенные каны вместе с рукой дня (для восстановления). */
+function persistSkippedKans() {
+  const state = store.getState();
+  if (!state.daily) return;
+  writeStoredDailyHand(
+    dailyContext.dayKey,
+    state.hand,
+    declaredKans.map((kan) => kan.tile),
+    skippedKans,
+  );
 }
 
 // id блока лога текущей руки дня (одна рука = один блок; null — ещё не создан)
@@ -445,6 +481,7 @@ async function generateHand() {
     declaredKans = [];
     pendingKan = null;
     pendingKans = [];
+    skippedKans = [];
     if (completed) {
       void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand, score: completed }) }).then((res) => {
         if (res?.id) dailyBlockId = res.id;
@@ -486,6 +523,7 @@ async function reissueHand() {
     declaredKans = [];
     pendingKan = null;
     pendingKans = [];
+    skippedKans = [];
     els.kanPrompt.hidden = true;
     dailyBlockId = null;
     handFixWarning = null;
