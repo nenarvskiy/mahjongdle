@@ -186,6 +186,28 @@ main {
   gap: 16px;
 }
 
+/* --- Layout игры: сегодняшний блок по центру, окно «Вчера» справа --- */
+#view-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+}
+.game-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.game-side {
+  position: sticky;
+  top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .panel {
   padding: 19px 21px;
   overflow: hidden;
@@ -767,6 +789,8 @@ button:active { transform: translateY(0); }
   .toolbar { flex-wrap: wrap; padding: 4px 16px 22px; }
   #btn-structures { width: 100%; margin-left: 0; }
   .panel { padding: 15px; border-radius: 14px; }
+  #view-game { grid-template-columns: 1fr; }
+  .game-side { position: static; order: -1; }
   .daily-grid { grid-template-columns: 1fr; }
   .dora-item { grid-column: auto; align-items: flex-start; flex-direction: column; }
   .dora-wall { max-width: 100%; gap: 3px; }
@@ -798,8 +822,17 @@ button:active { transform: translateY(0); }
 .yesterday-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
 .yesterday-label { color: var(--muted); font-size: 12px; align-self: center; }
 .yesterday-kandoras { display: flex; gap: 4px; flex-wrap: wrap; }
-.yesterday-kandora .tile { --tile-size: 34px; }
-.yesterday-score { font-size: 14px; font-weight: 650; }
+.yesterday-kandora .tile { --tile-size: 30px; }
+.yesterday-ura { display: flex; gap: 4px; flex-wrap: wrap; }
+.yesterday-ura .tile { --tile-size: 30px; }
+.yesterday-dora-tag {
+  font-size: 11px;
+  color: #ffcf70;
+  align-self: center;
+  margin-left: -2px;
+}
+.yesterday-note { color: var(--muted); font-size: 13px; font-style: italic; }
+.yesterday-score { font-size: 14px; font-weight: 650; margin: 0; }
 .yesterday-score.is-up { color: #9fe0b8; }
 .yesterday-score.is-down { color: #ff9aa1; }
 

@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.10</span></h1>
+      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.11</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -28,22 +28,33 @@
     </nav>
 
   <main id="view-game">
-    <section class="panel yesterday-panel" id="yesterday-panel" hidden>
-      <div class="daily-heading">
-        <h2 id="yesterday-title">Вчерашняя рука</h2>
-      </div>
-      <div class="yesterday-row">
-        <span class="yesterday-label">Рука</span>
-        <div id="yesterday-hand" class="hand"></div>
-        <div id="yesterday-discarded" class="hand" hidden></div>
-      </div>
-      <div class="yesterday-row">
-        <span class="yesterday-label">Кан-доры</span>
-        <div id="yesterday-kandoras" class="yesterday-kandoras"></div>
-      </div>
-      <p id="yesterday-score" class="yesterday-score" hidden></p>
-    </section>
+    <aside class="game-side">
+      <section class="panel yesterday-panel" id="yesterday-panel" hidden>
+        <div class="daily-heading">
+          <h2 id="yesterday-title">Вчерашняя рука</h2>
+        </div>
+        <div class="yesterday-row">
+          <span class="yesterday-label">Рука</span>
+          <div id="yesterday-hand" class="hand"></div>
+          <div id="yesterday-discarded" class="hand" hidden></div>
+        </div>
+        <div class="yesterday-row" id="yesterday-ura-row" hidden>
+          <span class="yesterday-label">Ура</span>
+          <div id="yesterday-ura" class="yesterday-ura"></div>
+        </div>
+        <div class="yesterday-row">
+          <span class="yesterday-label">Кан-доры</span>
+          <div id="yesterday-kandoras" class="yesterday-kandoras"></div>
+        </div>
+        <div class="yesterday-row">
+          <span class="yesterday-label">Кан-ура</span>
+          <div id="yesterday-kanuras" class="yesterday-kandoras"></div>
+        </div>
+        <p id="yesterday-score" class="yesterday-score" hidden></p>
+      </section>
+    </aside>
 
+    <div class="game-main">
     <section class="panel daily-panel">
       <div class="daily-heading">
         <h2>Условия дня</h2>
@@ -65,7 +76,7 @@
         </div>
         <div class="daily-item ura-item" id="ura-item">
           <span>Индикатор урадор</span>
-          <div id="ura-indicator" class="context-tile" title="Откроется после сброса"></div>
+          <div id="ura-indicator" class="context-tile" title="Откроется в конце дня (ночной пересчёт)"></div>
         </div>
         <div class="daily-item kan-dora-item">
           <span>Кан-доры</span>
@@ -111,6 +122,7 @@
       <h2>Таблица дня <span id="lb-date" class="lb-date"></span></h2>
       <ol id="leaderboard" class="leaderboard"></ol>
     </section>
+    </div>
   </main>
 
   <footer class="toolbar">

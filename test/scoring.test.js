@@ -369,16 +369,33 @@ test('deterministic random hands preserve scoring invariants', () => {
 });
 // --- Кан как кан: 4-й тайл кан-дора в готовой руке ---
 
-test('complete hand with kan: четвёртый тайл кана считается дорой', () => {
+test('complete hand with kan: четвёртый тайл кана считается дорой, кан = блок 5500', () => {
   const ctx = { roundWind: 27, seatWind: 27, doraIndicators: ['9m'], uraIndicators: [] };
-  // кан 1m + 345p + 567s + пара 1p + 8m 9m 2s (11 тайлов)
+  // кан 1m + 234m + 456p + 789s + пара ew (11 тайлов)
   const hand11 = ['2m', '3m', '4m', '4p', '5p', '6p', '7s', '8s', '9s', 'ew', 'ew'];
   const full14 = withKanPons(hand11, ['1m']);
   const withKan = evaluateCompleteHand(full14, ctx, ['1m']);
   const withoutKan = evaluateCompleteHand(full14, ctx);
   assert.ok(withKan, 'рука готова с каном');
   assert.ok(withoutKan, 'та же рука готова и без аргумента кана (пон = 4-й сет)');
-  // дора = 1m (индикатор 9m): «пон» кана несёт 3 тайла, кан добавляет четвёртый —
-  // 4 доры (800) вместо 3 (400)
-  assert.equal(withKan.total - withoutKan.total, 400);
+  // Структура: с аргументом кана тайлы кана — блок «Кан» (5500) и не
+  // участвуют в поиске лучших форм остальной руки.
+  const kanBlocks = withKan.breakdown.find((r) => r.label === 'Структура').blocks.filter((b) => b.label === 'Кан');
+  assert.equal(kanBlocks.length, 1, 'в структуре ровно один блок «Кан»');
+  assert.equal(kanBlocks[0].points, 5500);
+  // Без аргумента кана те же тайлы дают лучшую «свободную» форму
+  // (3334 = 580 + рянмен = 20 → структура 715), с каном — 5665:
+  // 5665 − 715 = 4950; плюс дора: 4-й тайл кана = 4 доры (800) вместо
+  // 3 (400) → +400. Итого 5350.
+  assert.equal(withKan.total - withoutKan.total, 5350);
+});
+
+test('complete hand with kan: в отображении кан показывается блоком из 4 тайлов', () => {
+  const ctx = { roundWind: 27, seatWind: 27, doraIndicators: [], uraIndicators: [] };
+  const hand11 = ['2m', '3m', '4m', '4p', '5p', '6p', '7s', '8s', '9s', 'ew', 'ew'];
+  const full14 = withKanPons(hand11, ['1m']);
+  const withKan = evaluateCompleteHand(full14, ctx, ['1m']);
+  const kanGroup = withKan.display.find((g) => g.label === 'Кан');
+  assert.ok(kanGroup, 'в правилном отображении есть группа «Кан»');
+  assert.deepEqual(kanGroup.tiles, ['1m', '1m', '1m', '1m']);
 });

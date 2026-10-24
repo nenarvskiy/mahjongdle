@@ -1,5 +1,5 @@
 import { handToCounts, indexToTile } from './tile-index.js';
-import { calcShanten, isWinningHand } from './shanten.js';
+import { calcShanten, isWinningHand, kanLock } from './shanten.js';
 import { bestPartition, winningPartition } from './partition.js';
 import { patternLabel } from './patterns.js';
 import { detectV4Yaku } from './yaku-v4.js';
@@ -26,18 +26,27 @@ function displayFromPart(part) {
   ];
 }
 
-function partitionDisplay(counts) {
-  const part = bestPartition(counts);
+function partitionDisplay(counts, kanKinds = []) {
+  const part = bestPartition(counts, kanKinds);
   return { part, display: displayFromPart(part) };
+}
+
+/** Индексы видов тайлов объявленных канов (для кан-блоков в разбиении). */
+function kanKindsOf(declaredKans = []) {
+  const lock = kanLock(declaredKans);
+  const kinds = [];
+  for (let i = 0; i < lock.length; i++) if (lock[i]) kinds.push(i);
+  return kinds;
 }
 
 /**
  * Отображение готовой руки: правилное разбиение по типу руки
  * (4 сета + пара / 7 пар / кокуши), а не лучшее по очкам.
  * Очки структуры при этом считаются по лучшему разбиению (part).
+ * Объявленные каны показываются блоками «Кан».
  */
-function winningDisplay(counts) {
-  const win = winningPartition(counts);
+function winningDisplay(counts, kanKinds = []) {
+  const win = winningPartition(counts, kanKinds);
   return win ? displayFromPart(win) : null;
 }
 
@@ -105,11 +114,13 @@ function potentialDescription(potential) {
 export function evaluateCompleteHand(tiles, ctx = {}, declaredKans = []) {
   const counts = handToCounts(tiles);
   if (tiles.length !== 14 || !isWinningHand(counts)) return null;
-  const partition = partitionDisplay(counts);
+  // Объявленный кан в структуре — блок «Кан» (5500), а не «Пон» (125).
+  const kanKinds = kanKindsOf(declaredKans);
+  const partition = partitionDisplay(counts, kanKinds);
   const { part } = partition;
   // Готовую руку показываем правилами по типу руки (4 сета + пара / 7 пар /
   // кокуши), а не как лучшее по очкам.
-  const display = keepRedFives(winningDisplay(counts) ?? partition.display, tiles);
+  const display = keepRedFives(winningDisplay(counts, kanKinds) ?? partition.display, tiles);
   const redFives = tiles.filter((tile) => tile[0] === '0');
   const completed = evaluateComplete(counts, {
     ...ctx, redFives, closed: true, tsumo: true,
@@ -143,9 +154,11 @@ export function evaluateHand(tiles, ctx = {}, declaredKans = []) {
   const redFives = tiles.filter((tile) => tile[0] === '0');
   const scoringCtx = { ...ctx, redFives };
   // Объявленный кан — фиксированный мелд: его тайлы не участвуют в поиске
-  // шантена (их нельзя разломать или сбросить).
+  // шантена (их нельзя разломать или сбросить), а в структуре — это
+  // блок «Кан» (5500), а не «Пон» (125).
+  const kanKinds = kanKindsOf(declaredKans);
   const shanten = calcShanten(counts, declaredKans);
-  const partition = partitionDisplay(counts);
+  const partition = partitionDisplay(counts, kanKinds);
   const { part } = partition;
   const display = keepRedFives(partition.display, tiles);
 
@@ -163,7 +176,7 @@ export function evaluateHand(tiles, ctx = {}, declaredKans = []) {
   if (handDoraRow) breakdown.push(handDoraRow);
 
   const potentialDisplay = state <= 2 && potential.completedCounts
-    ? keepRedFives(winningDisplay(potential.completedCounts) ?? partitionDisplay(potential.completedCounts).display, tiles)
+    ? keepRedFives(winningDisplay(potential.completedCounts, kanKinds) ?? partitionDisplay(potential.completedCounts, kanKinds).display, tiles)
     : null;
 
   return {

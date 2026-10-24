@@ -43,6 +43,17 @@ const STATIC_DIR = env.STATIC_DIR === 'off' ? '' : (env.STATIC_DIR || path.resol
 
 mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
+// На free-инстансе Render файл вне подключённого диска (/opt/data) стирается
+// при каждом деплое — предупреждаем, чтобы таблица/история рук не «слетали».
+if (process.env.NODE_ENV === 'production' && !DB_FILE.startsWith('/opt/data/')) {
+  console.warn(
+    '⚠ БД хранится на ЭФЕМЕРНОМ диске: при каждом деплое Render таблица дня, ' +
+    'руки и история игроков сбрасываются.\n' +
+    '   Как исправить (Render → сервис → Disks → Attach: mount /opt/data, 1 ГБ;\n' +
+    '   Environment → DB_FILE=/opt/data/leaderboard.db). Подробности: server/README.md.',
+  );
+}
+
 const app = createApp({
   db: openDb(DB_FILE),
   verifyIdToken: createGoogleVerifier(env.GOOGLE_CLIENT_ID),

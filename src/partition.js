@@ -17,7 +17,46 @@ const findPattern = (id) => PATTERNS.find((p) => p.id === id);
  * Возвращает {score: 0, blocks, singles} в формате bestPartition или null,
  * если рука не готова.
  */
-export function winningPartition(counts) {
+export function winningPartition(counts, kanKinds = []) {
+  // С объявленными канами возможны только «стандарт» (4 сета + пара),
+  // где каждый кан — фиксированный блок «Кан».
+  if (kanKinds.length > 0) {
+    const kanP = findPattern('kan');
+    const pairP = findPattern('pair');
+    const ponP = findPattern('pon');
+    const chiP = findPattern('chi');
+    const c = counts.slice();
+    const kanBlocks = [];
+    for (const i of kanKinds) {
+      if (kanP && c[i] >= 3) {
+        c[i] -= 3;
+        kanBlocks.push({ pattern: kanP, base: i, points: kanP.points });
+      }
+    }
+    const needMelds = 4 - kanBlocks.length;
+    for (let p = 0; p < NUM_TILES; p++) {
+      if (c[p] < 2) continue;
+      const cc = c.slice();
+      cc[p] -= 2;
+      const melds = [];
+      if (needMelds >= 0 && takeMelds(cc, needMelds, melds)) {
+        return {
+          score: 0,
+          blocks: [
+            ...kanBlocks,
+            ...(pairP ? [{ pattern: pairP, base: p, points: pairP.points }] : []),
+            ...melds.map((m) => {
+              const pattern = m.kind === 'pon' ? ponP : chiP;
+              return { pattern, base: m.base, points: pattern ? pattern.points : 0 };
+            }),
+          ],
+          singles: [],
+        };
+      }
+    }
+    return null;
+  }
+
   // Кокуши: 13 разных видов терминалов/хоноров + одна пара
   let kinds = 0;
   let pairKind = null;
@@ -104,7 +143,39 @@ function takeMelds(c, n, melds) {
   return false;
 }
 
-export function bestPartition(counts) {
+export function bestPartition(counts, kanKinds = []) {
+  // Объявленный кан — фиксированный блок «Кан» (5500): его три тайла
+  // (четвёртый вынесен в список канов) не участвуют в разбиении остальной
+  // руки. Блок вычисляется жёстко, т.к. 5500 больше любых вариантов,
+  // которые могут дать эти же три тайла (максимум пон = 125).
+  const kanP = findPattern('kan');
+  if (kanKinds.length > 0 && kanP) {
+    const c = counts.slice();
+    const blocks = [];
+    let pts = 0;
+    let ok = true;
+    for (const i of kanKinds) {
+      if (!Number.isInteger(i) || c[i] < 3) { ok = false; break; }
+      c[i] -= 3;
+      blocks.push({ pattern: kanP, base: i, points: kanP.points });
+      pts += kanP.points;
+    }
+    if (ok) {
+      // В кэше хранится ИТОГ (кан-блок уже внутри) — дублировать его нельзя.
+      const k2 = keyOf(c) + '|' + kanKinds.slice().sort((a, b) => a - b).join(',');
+      const hit = cache.get(k2);
+      if (hit) return hit;
+      const rest = bestPartition(c);
+      const out = {
+        score: pts + rest.score,
+        blocks: [...blocks, ...rest.blocks],
+        singles: rest.singles,
+      };
+      cache.set(k2, out);
+      return out;
+    }
+  }
+
   const k = keyOf(counts);
   if (cache.has(k)) return cache.get(k);
 

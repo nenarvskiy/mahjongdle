@@ -330,6 +330,8 @@ function skipKan() {
 
 // id блока лога текущей руки дня (одна рука = один блок; null — ещё не создан)
 let dailyBlockId = null;
+// Предупреждение, если рука не удалось зафиксировать на сервере.
+let handFixWarning = null;
 async function generateHand() {
   if (dealing || booting || store.getState().phase !== 'waiting') return;
   dealing = true;
@@ -341,13 +343,18 @@ async function generateHand() {
     // Фиксируем руку на сервере: она больше не пропадает вместе с
     // localStorage (очистка кеша, другое устройство).
     if (getAuth()) {
-      void saveDailyHand(dailyContext.dayKey, hand, {
+      // Фиксация руки на сервере: она восстанавливается при следующем входе
+      // (другое устройство, чистый кеш). Ошибка видна игроку.
+      saveDailyHand(dailyContext.dayKey, hand, {
         dayKey: dailyContext.dayKey,
         doraIndicators: dailyContext.doraIndicators,
         uraIndicators: [],
         roundWindId: dailyContext.roundWindId,
         seatWindId: dailyContext.seatWindId,
-      }).catch(() => {});
+      }).catch(() => {
+        handFixWarning = 'рука не зафиксирована на сервере — при очистке кеша или на другом устройстве она может не восстановиться';
+        store.setState((s) => ({ ...s }));
+      });
     }
     const completed = evaluateCompleteHand(hand, scoreContextFor());
 
@@ -438,19 +445,16 @@ function discardAt(index) {
 
 /** Отрисовка по текущему состоянию. */
 function render(state) {
-  // Индикатор урадор открывается только после сброса: до этого момента тайл
-  // лежит «рубашкой вверх», и урадоры нигде не учитываются.
-  const uraOpen = state.phase !== 'choose' && state.phase !== 'waiting';
-  const uraTiles = uraOpen ? dailyContext.uraTiles : [];
+  // Ура-дора открывается в КОНЦЕ дня (ночной пересчёт): в течение дня
+  // индикатор лежит «рубашкой вверх», урадоры нигде не учитываются, а
+  // открывшийся тайл виден в окне «Вчерашняя рука».
+  const uraOpen = false;
+  const uraTiles = [];
 
   if (state.phase === 'waiting') {
-    // Рука ещё не сгенерирована: 14 тайлов рубашкой вверх.
+    // Рука ещё не сгенерирована: блок пустой, тайлов нет —
+    // рука появляется только после «Сгенерировать руку».
     els.hand.innerHTML = '';
-    for (let i = 0; i < CONFIG.handSize; i++) {
-      const back = document.createElement('div');
-      back.className = 'tile-back';
-      els.hand.append(back);
-    }
     els.discardedPanel.hidden = true;
     els.resultPanel.hidden = true;
     els.potentialPreview.hidden = true;
@@ -515,17 +519,20 @@ function render(state) {
     } else {
       els.subtitle.textContent = `Рука из ${state.remaining.length} тайлов. Тайл ${tileDisplayName(state.discarded)} сброшен.`;
     }
+    if (handFixWarning) {
+      els.subtitle.textContent += `  ⚠ ${handFixWarning}`;
+    }
   }
   // Кнопка: активна только до первой генерации дня (и пока идёт анимация
   // или восстановление руки дня с сервера).
   els.btnGenerate.disabled = state.phase !== 'waiting' || dealing || booting;
 
-  // Мёртвая стена: ура-индикатор показывается только после сброса
+  // Мёртвая стена: ура-индикатор показывается только в конце дня
   els.uraItem.hidden = dailyContext.uraIndicators.length === 0;
   if (uraOpen) {
     renderTiles(els.uraIndicator, dailyContext.uraIndicators, { disabled: true });
   } else {
-    els.uraIndicator.innerHTML = '<div class="tile-back" title="Откроется после сброса"></div>';
+    els.uraIndicator.innerHTML = '<div class="tile-back" title="Откроется в конце дня (ночной пересчёт)"></div>';
   }
 
   // Предложение кана — только когда есть кан и фаза выбора
@@ -538,7 +545,7 @@ function render(state) {
     els.nightNote.hidden = false;
     els.nightNote.textContent =
       'В полночь (00:00 МСК) откроются ура-доры и кандоры — очки и место в таблице могут вырасти. ' +
-      'Загляните завтра: вчерашняя рука и новый счёт будут сверху.';
+      'Загляните завтра: в окне справа будет вчерашняя рука, новый счёт и открывшиеся доры.';
   } else {
     els.nightNote.hidden = true;
   }
