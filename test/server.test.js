@@ -172,7 +172,7 @@ test('сессия: токен с другим секретом не прохо�
 
 test('статика: игра на том же origin, что и API; белым списком', async () => {
   const html = await (await fetch(`${base}/`)).text();
-  assert.ok(html.includes('RNGlDle'), 'корень отдаёт index.html игры');
+  assert.ok(html.includes('Mahjongdle'), 'корень отдаёт index.html игры');
 
   for (const p of ['/src/main.js', '/styles.css', '/config/auth.json', '/assets/tiles/1m.svg']) {
     const res = await fetch(`${base}${p}`);
@@ -565,4 +565,124 @@ test('me/hands: история рук; строки таблицы несут р
   assert.deepEqual(lb.rows[0].hand, HAND14);
   assert.deepEqual(lb.rows[0].kans, []);
   assert.equal(lb.rows[0].complete, false);
+});
+
+// ── Админ-реиздус руки дня + публичные каны дня ──
+
+test('admin reissue: новая рука заменяет старую, счёт удаляется, 1 рука/день', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'mj-reissue-'));
+  const rolesFile = path.join(dir, 'roles.json');
+  writeFileSync(rolesFile, JSON.stringify({ admin: ['sub-1@example.com'] }), 'utf8');
+  let srv;
+  const app = createApp({
+    db: openDb(':memory:'),
+    verifyIdToken: verifyStub,
+    sessionSecret: SECRET,
+    googleClientId: 'test-client',
+    rolesFile,
+  });
+  await new Promise((resolve) => { srv = app.listen(0, '127.0.0.1', resolve); });
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  const loginAt = async (idToken) => {
+    const res = await fetch(`${b}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken }),
+    });
+    return (await res.json()).token;
+  };
+  const adminTok = await loginAt('good-token-1-abcdefghijklmnopqrstuvwxyz');
+  const playerTok = await loginAt('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const authA = { 'content-type': 'application/json', authorization: `Bearer ${adminTok}` };
+  const authP = { 'content-type': 'application/json', authorization: `Bearer ${playerTok}` };
+  const reissue = (headers, body) =>
+    fetch(`${b}/api/admin/hand/reissue`, { method: 'POST', headers, body: JSON.stringify(body ?? {}) });
+  const RDATE = '2026-10-25';
+
+  // без сессии → 401; не admin → 403
+  const anonRes = await fetch(`${b}/api/admin/hand/reissue`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ date: RDATE }) });
+  assert.equal(anonRes.status, 401);
+  assert.equal((await reissue(authP, { date: RDATE })).status, 403);
+  // кривая дата → 400
+  assert.equal((await reissue(authA, { date: '2026-13-99' })).status, 400);
+
+  // admin (sub-1) генерирует руку дня
+  let r = await reissue(authA, { date: RDATE });
+  assert.equal(r.status, 200);
+  const first = await r.json();
+  assert.equal(first.date, RDATE);
+  assert.equal(first.hand.length, 14);
+
+  // игрок сыграл: сброс + счёт + кан
+  const post = await fetch(`${b}/api/scores`, {
+    method: 'POST',
+    headers: authA,
+    body: JSON.stringify({
+      date: RDATE, score: 12345, discarded: first.hand[13], tiles: first.hand.slice(0, 13),
+      hand: first.hand, kans: ['5m'], complete: false,
+      dayCtx: { dayKey: RDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' },
+    }),
+  });
+  assert.equal(post.status, 200);
+  // кан виден публично
+  let k = await (await fetch(`${b}/api/daily/kans?date=${RDATE}`)).json();
+  assert.deepEqual(k.kans, [{ name: 'Игрок sub-1', kanCount: 1 }]);
+  assert.equal((await fetch(`${b}/api/daily/kans?date=2026-13-99`)).status, 400);
+  assert.equal((await (await fetch(`${b}/api/daily/kans?date=2026-10-26`)).json()).kans.length, 0);
+
+  // реиздус: НОВАЯ рука, старые счёт/кан/сброс удалены
+  r = await reissue(authA, { date: RDATE });
+  assert.equal(r.status, 200);
+  const second = await r.json();
+  assert.notDeepEqual(second.hand, first.hand, 'рука другая');
+  const row = await (await fetch(`${b}/api/me/hand/${RDATE}`, { headers: authA })).json();
+  assert.deepEqual(row.hand, second.hand);
+  assert.equal(row.score, 0);
+  assert.equal(row.complete, false);
+  assert.equal(row.tiles, null);
+  assert.deepEqual(row.kans, []);
+  // из таблицы дня результат ушёл
+  const lb = await (await fetch(`${b}/api/scores/${RDATE}`)).json();
+  assert.equal(lb.rows.length, 0);
+  // каны дня после реиздуса — пустые
+  k = await (await fetch(`${b}/api/daily/kans?date=${RDATE}`)).json();
+  assert.deepEqual(k.kans, []);
+
+  await new Promise((resolve) => srv.close(resolve));
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('kans: повторная отправка счёта с пустыми kans не стирает объявленные каны', async () => {
+  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const headers = { 'content-type': 'application/json', authorization: `Bearer ${body.token}` };
+  const KDATE = '2026-10-21';
+  const HAND = ['1m', '1m', '1m', '1m', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', 'sw', 'nw'];
+  const dayCtx = { dayKey: KDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' };
+
+  // 1-я отправка: игрок объявил кан
+  let r = await fetch(`${base}/api/scores`, {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      date: KDATE, score: 2000, discarded: '4p', tiles: HAND.slice(0, 13),
+      hand: HAND, kans: ['1m'], complete: false, dayCtx,
+    }),
+  });
+  assert.equal(r.status, 200);
+
+  // 2-я отправка — эмуляция перезагрузки страницы старым клиентом
+  // (declaredKans не восстановлен → kans: []): счёт хуже, каны пустые
+  r = await fetch(`${base}/api/scores`, {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      date: KDATE, score: 1000, discarded: '4p', tiles: HAND.slice(0, 13),
+      hand: HAND, kans: [], complete: false, dayCtx,
+    }),
+  });
+  assert.equal(r.status, 200);
+
+  // кан дня сохранился (каны только накапливаются)
+  const row = await (await fetch(`${base}/api/me/hand/${KDATE}`, { headers })).json();
+  assert.deepEqual(row.kans, ['1m']);
+  const k = await (await fetch(`${base}/api/daily/kans?date=${KDATE}`)).json();
+  assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
 });

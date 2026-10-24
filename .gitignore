@@ -16,3 +16,6 @@ server/data/
 *.log
 .DS_Store
 Thumbs.db
+
+# Dev-утилиты (локальный CDP-хarness для проверки UI; не для продакшена)
+tools/

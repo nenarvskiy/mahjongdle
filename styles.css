@@ -35,21 +35,27 @@ main,
   margin-inline: auto;
 }
 
-.topbar { padding: 34px 28px 10px; }
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding: 14px 28px 12px;
+  background: rgba(16, 23, 19, .86);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
 }
 .topbar h1 {
   margin: 0;
-  font-size: clamp(25px, 4vw, 38px);
-  line-height: 1;
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.1;
   letter-spacing: -.04em;
 }
 .topbar h1::after { content: " 牌"; color: var(--accent); }
-.subtitle { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+.subtitle { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 
 /* ── Регистрация через Google и таблица дня ─────────────────────────────── */
 .topbar-left { min-width: 0; }
@@ -186,26 +192,11 @@ main {
   gap: 16px;
 }
 
-/* --- Layout игры: сегодняшний блок по центру, окно «Вчера» справа --- */
-#view-game {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 16px;
-  align-items: start;
-}
-.game-main {
+/* --- Layout игры: одна колонка; окно «Вчера» — отдельный полноэкранный вид --- */
+#view-game.game {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-width: 0;
-}
-.game-side {
-  position: sticky;
-  top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
 }
 
 .panel {
@@ -229,6 +220,9 @@ main {
 .hand { display: flex; flex-wrap: wrap; gap: var(--tile-gap); }
 
 /* --- Каны: предложение, закрытые каны, кандоры --- */
+.hand-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hand-heading h2 { margin-bottom: 6px; }
+.hand-status { color: var(--gold); font-size: 13px; font-weight: 600; }
 .hand-wrap { display: flex; align-items: flex-start; gap: 14px; }
 .kan-prompt {
   margin: 0 0 12px;
@@ -250,15 +244,23 @@ main {
 .kan-closed { display: flex; gap: 2px; }
 .kan-closed .tile { --tile-size: 44px; }
 .kan-closed .tile-back { --context-tile-size: 44px; }
-.kan-dora-item { grid-column: span 2; }
-.kan-dora-wall { flex-wrap: wrap; gap: 4px; }
+.kan-dora-item { grid-column: 1 / -1; }
+.kan-dora-item small { opacity: .75; font-weight: 400; }
+.kan-dora-wall { flex-wrap: wrap; gap: 6px; }
 .kan-dora-slot { display: flex; }
 .kan-dora-slot .tile { --tile-size: 38px; }
 .kan-dora-slot .tile-back { --context-tile-size: 38px; }
-.kan-dora-back {
-  border-color: #d4a54a;
-  box-shadow: 0 0 0 2px rgba(212, 165, 74, .6), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24);
-  cursor: help;
+.kan-dora-back { cursor: help; }
+/* Кан-дора «откроется в конце дня» (за кан, объявленный сегодня кем-то):
+   жёлтая обводка + пульс; наведение — чей это кан. */
+.kan-dora-pending {
+  border-color: #ffd76a;
+  box-shadow: 0 0 0 2px rgba(255, 215, 106, .95), 0 0 18px rgba(255, 215, 106, .45), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24);
+  animation: kan-dora-pulse 2.6s ease-in-out infinite;
+}
+@keyframes kan-dora-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 215, 106, .95), 0 0 10px rgba(255, 215, 106, .35), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24); }
+  50% { box-shadow: 0 0 0 2px rgba(255, 215, 106, 1), 0 0 22px rgba(255, 215, 106, .65), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24); }
 }
 .night-note {
   margin-top: 10px;
@@ -384,9 +386,20 @@ footer button:disabled { opacity: .45; cursor: default; }
   box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
 }
 
-.daily-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.daily-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .daily-heading h2 { margin-bottom: 13px; }
 .daily-heading span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Таймер «next roll in» — до полуночи МСК */
+.daily-clock {
+  padding: 4px 11px;
+  border: 1px solid rgba(142, 215, 255, .35);
+  border-radius: 999px;
+  background: rgba(142, 215, 255, .08);
+  color: #b9e2f7;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .daily-grid { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px; }
 .daily-item {
   min-height: 64px;
@@ -406,7 +419,8 @@ footer button:disabled { opacity: .45; cursor: default; }
 .context-tile .tile { --tile-size: var(--context-tile-size); cursor: default; box-shadow: 0 4px 0 #a9a695, 0 8px 14px rgba(0,0,0,.24); }
 .context-tile .tile:hover { transform: none; }
 .dora-item { grid-column: span 2; }
-.ura-item { grid-column: span 2; }
+.dora-row { display: flex; align-items: center; gap: 7px; }
+.dora-arrow { color: var(--gold); font-size: 18px; font-weight: 700; }
 .dora-wall { display: flex; align-items: flex-start; gap: 5px; }
 .tile-back {
   position: relative;
@@ -483,23 +497,48 @@ footer button:disabled { opacity: .45; cursor: default; }
 #result .score-yaku { color: var(--gold); }
 #result .score-potential { color: #8ed7ff; }
 
-.toolbar { display: flex; gap: 10px; padding: 5px 28px 28px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; padding: 5px 28px 28px; }
 button {
-  padding: 11px 17px;
+  padding: 11px 18px;
   border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--panel-2);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(54, 75, 62, .92), rgba(38, 55, 46, .92));
   color: var(--text);
   font-family: inherit;
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
-  transition: transform .12s ease, background .12s ease;
+  transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
 }
 button:hover { transform: translateY(-1px); background: rgba(58, 80, 66, .95); }
 button:active { transform: translateY(0); }
-#btn-generate { border-color: rgba(128, 214, 163, .28); background: rgba(64, 119, 82, .62); }
-#btn-structures { margin-left: auto; }
+footer button:disabled { opacity: .45; cursor: default; }
+
+/* Главная кнопка дня: под рукой, большая, зелёный градиент. */
+.generate-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 17px 20px;
+  border: 1px solid rgba(20, 84, 52, .9);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #a5e8c2 0%, #72d09a 55%, #58bb83 100%);
+  color: #0b2015;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  box-shadow: 0 12px 28px rgba(88, 187, 131, .32), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+.generate-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #b2eecb 0%, #7fd8a5 55%, #63c48d 100%);
+  box-shadow: 0 16px 34px rgba(88, 187, 131, .42), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+.generate-btn:disabled {
+  opacity: .55;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
 
 .structure-dialog {
   width: min(720px, calc(100% - 28px));
@@ -787,13 +826,12 @@ button:active { transform: translateY(0); }
   .topbar-auth { width: 100%; justify-content: flex-start; }
   main { padding: 12px 16px; }
   .toolbar { flex-wrap: wrap; padding: 4px 16px 22px; }
-  #btn-structures { width: 100%; margin-left: 0; }
   .panel { padding: 15px; border-radius: 14px; }
-  #view-game { grid-template-columns: 1fr; }
-  .game-side { position: static; order: -1; }
   .daily-grid { grid-template-columns: 1fr; }
   .dora-item { grid-column: auto; align-items: flex-start; flex-direction: column; }
   .dora-wall { max-width: 100%; gap: 3px; }
+  .kan-dora-slot .tile, .kan-dora-slot .tile-back { --tile-size: 32px; --context-tile-size: 32px; }
+  .yesterday-view { padding: 18px 14px 30px; }
   .daily-panel { --context-tile-size: 40px; }
   .daily-item { min-height: 55px; }
   .hand-group { padding: 7px; }
@@ -812,35 +850,87 @@ button:active { transform: translateY(0); }
   .roles-form { grid-template-columns: 1fr; margin-inline: 14px; }
 }
 
-/* --- Окно «Вчерашняя рука» --- */
-.yesterday-panel {
-  margin-bottom: 16px;
-  border-color: rgba(255, 200, 96, .3);
-  background: rgba(255, 200, 96, .04);
+/* --- Полноэкранное окно «Вчера» (один раз в день) --- */
+.yesterday-view {
+  flex: 1;
+  width: min(1180px, 100%);
+  margin-inline: auto;
+  padding: 30px 20px 44px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
-.yesterday-panel[hidden] { display: none; }
-.yesterday-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
-.yesterday-label { color: var(--muted); font-size: 12px; align-self: center; }
-.yesterday-kandoras { display: flex; gap: 4px; flex-wrap: wrap; }
-.yesterday-kandora .tile { --tile-size: 30px; }
-.yesterday-ura { display: flex; gap: 4px; flex-wrap: wrap; }
-.yesterday-ura .tile { --tile-size: 30px; }
+.yesterday-card {
+  width: 100%;
+  max-width: 780px;
+  border-color: rgba(255, 200, 96, .32);
+  background:
+    radial-gradient(circle at 85% -10%, rgba(255, 200, 96, .1), transparent 320px),
+    var(--panel);
+}
+.yesterday-card .daily-heading h2 {
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  text-transform: none;
+}
+.yesterday-card .daily-heading span { font-size: 14px; }
+.yesterday-lead { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+.yesterday-block { margin-bottom: 18px; }
+.yesterday-block h3 {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.yesterday-doras { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+.yesterday-kandora { position: relative; display: inline-flex; align-items: flex-start; gap: 3px; }
+.yesterday-kandora .tile { --tile-size: 34px; }
 .yesterday-dora-tag {
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
   color: #ffcf70;
   align-self: center;
-  margin-left: -2px;
 }
-.yesterday-note { color: var(--muted); font-size: 13px; font-style: italic; }
-.yesterday-score { font-size: 14px; font-weight: 650; margin: 0; }
+.yesterday-discarded {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.yesterday-score { margin: 20px 0; font-size: 16px; font-weight: 700; }
 .yesterday-score.is-up { color: #9fe0b8; }
 .yesterday-score.is-down { color: #ff9aa1; }
+.yesterday-actions { display: flex; }
+#btn-yesterday-today {
+  padding: 15px 28px;
+  border: 1px solid rgba(20, 84, 52, .9);
+  border-radius: 13px;
+  background: linear-gradient(180deg, #a5e8c2 0%, #72d09a 55%, #58bb83 100%);
+  color: #0b2015;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 12px 28px rgba(88, 187, 131, .32), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+#btn-yesterday-today:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px rgba(88, 187, 131, .42), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
 
 /* версия в шапке */
 .app-version {
-  font-size: 12px;
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 11px;
   font-weight: 600;
-  color: var(--muted, #8fa3ad);
+  color: var(--muted);
   letter-spacing: .02em;
   vertical-align: middle;
 }
@@ -972,3 +1062,39 @@ button:active { transform: translateY(0); }
 .hands-kans-label { color: var(--muted); font-size: 13px; margin-right: 2px; }
 .hands-meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
 .hands-actions { margin-top: 14px; }
+
+/* Контекст дня и разбивка очков в просмотре руки */
+.hands-context {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+.hands-ctx-lead {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.hands-ctx { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.hands-ctx-part b { color: var(--muted); font-weight: 600; }
+.hands-breakdown { margin-top: 12px; }
+.hands-breakdown-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hands-breakdown-list li {
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--muted);
+  font-size: 13px;
+}
+.hands-breakdown-list li.score-yaku { color: var(--gold); }
+.hands-breakdown-list li.score-potential { color: #8ed7ff; }

@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RNGlDle Mahjong</title>
+  <title>Mahjongdle</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>RNGlDle Mahjong <span class="app-version" id="app-version" style="font-size:12px;font-weight:400;opacity:.6;margin-left:8px">v0.6.11</span></h1>
+      <h1>Mahjongdle <span class="app-version" id="app-version">v0.6.12</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
         if (el) el.textContent = `v${APP_VERSION}`;
       </script>
-      <p class="subtitle" id="subtitle">Выберите тайл для сброса</p>
+      <p class="subtitle" id="subtitle">Одна рука в день. Сбросьте тайл — и получите счёт.</p>
     </div>
     <div class="topbar-auth">
       <div id="auth-user" class="auth-user" hidden></div>
@@ -27,66 +27,75 @@
       <button id="tab-test" class="view-tab" type="button" hidden>Тестовый режим</button>
     </nav>
 
-  <main id="view-game">
-    <aside class="game-side">
-      <section class="panel yesterday-panel" id="yesterday-panel" hidden>
-        <div class="daily-heading">
-          <h2 id="yesterday-title">Вчерашняя рука</h2>
-        </div>
-        <div class="yesterday-row">
-          <span class="yesterday-label">Рука</span>
-          <div id="yesterday-hand" class="hand"></div>
-          <div id="yesterday-discarded" class="hand" hidden></div>
-        </div>
-        <div class="yesterday-row" id="yesterday-ura-row" hidden>
-          <span class="yesterday-label">Ура</span>
-          <div id="yesterday-ura" class="yesterday-ura"></div>
-        </div>
-        <div class="yesterday-row">
-          <span class="yesterday-label">Кан-доры</span>
-          <div id="yesterday-kandoras" class="yesterday-kandoras"></div>
-        </div>
-        <div class="yesterday-row">
-          <span class="yesterday-label">Кан-ура</span>
-          <div id="yesterday-kanuras" class="yesterday-kandoras"></div>
-        </div>
-        <p id="yesterday-score" class="yesterday-score" hidden></p>
-      </section>
-    </aside>
+  <!-- Полноэкранное окно «Вчера»: показывается один раз в день, если вчера
+       была рука (открытые доры + пересчёт). Кнопка ведёт на основную страницу. -->
+  <section id="view-yesterday" class="yesterday-view" hidden>
+    <div class="yesterday-card panel">
+      <div class="daily-heading">
+        <h2>Вчера</h2>
+        <span id="yesterday-date"></span>
+      </div>
+      <p class="yesterday-lead">Ночью открылись ура-доры и кандоры — очки пересчитаны.</p>
 
-    <div class="game-main">
+      <div class="yesterday-block">
+        <h3>Ваша рука</h3>
+        <div id="yesterday-hand" class="hand"></div>
+        <div id="yesterday-discarded" class="hand yesterday-discarded" hidden></div>
+      </div>
+
+      <div class="yesterday-block" id="yesterday-ura-block" hidden>
+        <h3>Открылась ура-дора</h3>
+        <div id="yesterday-ura" class="yesterday-doras"></div>
+      </div>
+
+      <div class="yesterday-block">
+        <h3>Открылись кан-доры</h3>
+        <div id="yesterday-kandoras" class="yesterday-doras"></div>
+      </div>
+
+      <div class="yesterday-block">
+        <h3>Кан-ура</h3>
+        <div id="yesterday-kanuras" class="yesterday-doras"></div>
+      </div>
+
+      <p id="yesterday-score" class="yesterday-score"></p>
+
+      <div class="yesterday-actions">
+        <button id="btn-yesterday-today" type="button">К сегодняшнему дню →</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="view-game" class="game">
     <section class="panel daily-panel">
       <div class="daily-heading">
         <h2>Условия дня</h2>
         <span id="daily-date"></span>
+        <span id="daily-clock" class="daily-clock" title="До конца дня (00:00 МСК) — откроются доры и пересчитаются очки"></span>
       </div>
       <div class="daily-grid">
         <div class="daily-item"><span>Ветер раунда</span><div id="round-wind" class="context-tile"></div></div>
         <div class="daily-item"><span>Ветер игрока</span><div id="seat-wind" class="context-tile"></div></div>
         <div class="daily-item dora-item">
-          <span>Индикатор доры</span>
-          <div class="dora-wall" aria-label="Мёртвая стена">
+          <span>Дора</span>
+          <div class="dora-row">
             <div id="dora-indicator" class="context-tile"></div>
-            <div class="tile-back" aria-hidden="true"></div>
-            <div class="tile-back" aria-hidden="true"></div>
-            <div class="tile-back" aria-hidden="true"></div>
-            <div class="tile-back" aria-hidden="true"></div>
-            <div class="tile-back" aria-hidden="true"></div>
+            <span class="dora-arrow" aria-hidden="true">→</span>
+            <div id="dora-tile" class="context-tile"></div>
           </div>
         </div>
-        <div class="daily-item ura-item" id="ura-item">
-          <span>Индикатор урадор</span>
-          <div id="ura-indicator" class="context-tile" title="Откроется в конце дня (ночной пересчёт)"></div>
-        </div>
         <div class="daily-item kan-dora-item">
-          <span>Кан-доры</span>
+          <span>Кан-доры <small>(откроются в конце дня)</small></span>
           <div id="kan-dora-wall" class="dora-wall kan-dora-wall"></div>
         </div>
       </div>
     </section>
 
-    <section class="panel">
-      <h2>Рука</h2>
+    <section class="panel hand-panel">
+      <div class="hand-heading">
+        <h2>Рука</h2>
+        <span id="hand-status" class="hand-status" hidden></span>
+      </div>
       <div id="kan-prompt" class="kan-prompt" hidden>
         <p class="kan-prompt-text">Можно объявить кан:</p>
         <div id="kan-prompt-tiles" class="hand kan-prompt-tiles" role="list"></div>
@@ -99,6 +108,7 @@
         <div id="hand" class="hand" role="list"></div>
         <div id="kan-list" class="kan-list"></div>
       </div>
+      <button id="btn-generate" class="generate-btn" type="button">Сгенерировать руку</button>
     </section>
 
     <section class="panel" id="discarded-panel" hidden>
@@ -122,42 +132,14 @@
       <h2>Таблица дня <span id="lb-date" class="lb-date"></span></h2>
       <ol id="leaderboard" class="leaderboard"></ol>
     </section>
-    </div>
   </main>
 
   <footer class="toolbar">
-    <button id="btn-generate" type="button" disabled>Сгенерировать руку</button>
-    <button id="btn-structures" type="button">Настроить структуры</button>
+    <button id="btn-reissue" type="button" hidden>Заново сгенерировать руку (admin)</button>
     <button id="btn-test-mode" type="button" hidden>Тестовый режим</button>
     <button id="btn-bugs" type="button" hidden>Логи и жалобы</button>
     <button id="btn-roles" type="button" hidden>Роли (admin)</button>
   </footer>
-
-  <dialog id="structure-dialog" class="structure-dialog">
-    <div class="dialog-heading">
-      <div>
-        <h2>Стоимость структур</h2>
-        <p>Изменения применяются сразу и сохраняются в этом браузере.</p>
-      </div>
-      <button id="btn-structures-close" class="dialog-close" type="button" aria-label="Закрыть">×</button>
-    </div>
-
-    <div id="structure-list" class="structure-list"></div>
-
-    <form id="structure-add-form" class="structure-form">
-      <h3>Новая структура</h3>
-      <p>Введите тайлы одной масти по порядку, например 124, 5566 или 12345.</p>
-      <label>Название <input name="label" maxlength="40" placeholder="Например, форма 135" required></label>
-      <label>Тайлы <input name="notation" inputmode="numeric" maxlength="8" placeholder="135" required></label>
-      <label>Очки <input name="points" type="number" min="0" max="100000" step="1" value="10" required></label>
-      <div id="structure-error" class="form-error" role="alert"></div>
-      <button type="submit">Добавить структуру</button>
-    </form>
-
-    <div class="dialog-actions">
-      <button id="btn-structures-reset" type="button">Вернуть стандартные значения</button>
-    </div>
-  </dialog>
 
   <section id="view-test" class="test-view" hidden>
     <div class="dialog-heading">
@@ -313,6 +295,8 @@
     <div id="hands-view" hidden>
       <div id="hands-view-hand" class="hand"></div>
       <div id="hands-view-kans" class="hands-kans"></div>
+      <div id="hands-view-context" class="hands-context" hidden></div>
+      <div id="hands-view-breakdown" class="hands-breakdown" hidden></div>
       <p id="hands-view-meta" class="hands-meta"></p>
       <div class="hands-actions">
         <button id="btn-hands-back" type="button">← к списку</button>

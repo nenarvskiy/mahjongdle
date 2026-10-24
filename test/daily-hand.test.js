@@ -1,7 +1,8 @@
 /**
  * Тесты хранения «руки дня» (src/daily-hand.js): рука закрепляется за днём —
  * повторное открытие страницы в тот же день отдаёт ту же руку, на следующий
- * день — новая.
+ * день — новая. Сохраняются также объявленные каны дня (восстановление
+ * согласованной пары hand+kans после перезагрузки).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,16 +18,22 @@ function fakeStorage(initial = null) {
   };
 }
 
-test('readStoredDailyHand: пусто → null; валидный день → {dayKey, hand}', () => {
+test('readStoredDailyHand: пусто → null; валидный день → {dayKey, hand, kans: []}', () => {
   assert.equal(readStoredDailyHand(fakeStorage()), null);
   const s = fakeStorage();
-  writeStoredDailyHand('2026-10-23', ['1m', '2m', '3m'], s);
-  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['1m', '2m', '3m'] });
+  writeStoredDailyHand('2026-10-23', ['1m', '2m', '3m'], [], s);
+  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['1m', '2m', '3m'], kans: [] });
+});
+
+test('readStoredDailyHand: каны сохраняются и восстанавливаются', () => {
+  const s = fakeStorage();
+  writeStoredDailyHand('2026-10-23', ['1m', '2m', '3m'], ['9m'], s);
+  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['1m', '2m', '3m'], kans: ['9m'] });
 });
 
 test('readStoredDailyHand: чужой день ≠ текущий — решение принимает main.js', () => {
   const s = fakeStorage();
-  writeStoredDailyHand('2026-10-22', ['1m'], s);
+  writeStoredDailyHand('2026-10-22', ['1m'], [], s);
   const data = readStoredDailyHand(s);
   assert.equal(data.dayKey, '2026-10-22'); // сама функция просто читает; dayKey сверяет вызывающий
 });
@@ -36,16 +43,20 @@ test('readStoredDailyHand: мусор в хранилище → null (не па�
   for (const junk of ['not json', '{"dayKey":1}', '{"dayKey":"x","hand":"y"}', '{"dayKey":"x","hand":[1]}', '[]']) {
     assert.equal(readStoredDailyHand(fakeStorage([key, junk])), null, `для значения ${junk}`);
   }
+  // каны-мусор не валидны → Kans просто [], рука остаётся
+  const s = fakeStorage();
+  writeStoredDailyHand('2026-10-23', ['1m'], 'nope', s);
+  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['1m'], kans: [] });
 });
 
 test('writeStoredDailyHand: перезаписывает предыдущий день', () => {
   const s = fakeStorage();
-  writeStoredDailyHand('2026-10-22', ['1m'], s);
-  writeStoredDailyHand('2026-10-23', ['2m', '3m'], s);
-  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['2m', '3m'] });
+  writeStoredDailyHand('2026-10-22', ['1m'], [], s);
+  writeStoredDailyHand('2026-10-23', ['2m', '3m'], [], s);
+  assert.deepEqual(readStoredDailyHand(s), { dayKey: '2026-10-23', hand: ['2m', '3m'], kans: [] });
 });
 
 test('хранилище недоступно (null) — не падает', () => {
   assert.equal(readStoredDailyHand(null), null);
-  writeStoredDailyHand('2026-10-23', ['1m'], null); // void
+  writeStoredDailyHand('2026-10-23', ['1m'], [], null); // void
 });

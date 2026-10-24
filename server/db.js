@@ -248,6 +248,16 @@ export function upsertDayHand(db, {
   userId, date, hand = [], tiles = null, kans = [], discarded = null,
   score, complete = false, dayCtx = {},
 }) {
+  // Каны дня только НАКОПЛИТЫВАЮТСЯ: повторная отправка результата (например,
+  // автоматом после перезагрузки страницы старым клиентом, который не
+  // восстанавливает declaredKans) не должна стирать уже объявленные каны —
+  // от них зависят кан-доры всего дня.
+  const existingRow = db.prepare('SELECT kans FROM day_hands WHERE user_id = ? AND date = ?').get(userId, date);
+  let mergedKans = kans ?? [];
+  if (existingRow) {
+    const oldKans = parseJson(existingRow.kans, []);
+    if (oldKans.length) mergedKans = Array.from(new Set([...oldKans, ...mergedKans]));
+  }
   db.prepare(`
     INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
@@ -264,7 +274,7 @@ export function upsertDayHand(db, {
     userId, date,
     JSON.stringify(hand ?? []),
     tiles ? JSON.stringify(tiles) : null,
-    JSON.stringify(kans ?? []),
+    JSON.stringify(mergedKans),
     discarded,
     Number.isFinite(score) ? score : 0,
     complete ? 1 : 0,
@@ -326,6 +336,51 @@ export function listMyDayHands(db, userId, limit) {
     ORDER BY date DESC
     LIMIT ?
   `).all(userId, limit).map(decodeDayHand);
+}
+
+/**
+ * Админ-реиздус руки дня: рука ЗАМЕНЯЕТСЯ (новая 14), старый результат
+ * удаляется из scores, счёт/каны/сброс сбрасываются. Логика «1 рука в день»
+ * сохраняется: это всё ещё та же строка (user_id, date), просто с новой рукой.
+ */
+export function reissueDayHand(db, { userId, date, hand = [], dayCtx = {} }) {
+  db.prepare('DELETE FROM scores WHERE user_id = ? AND date = ?').run(userId, date);
+  db.prepare(`
+    INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
+    VALUES (?, ?, ?, NULL, '[]', NULL, 0, 0, ?, 0, ?)
+    ON CONFLICT(user_id, date) DO UPDATE SET
+      hand = excluded.hand,
+      tiles = NULL,
+      kans = '[]',
+      discarded = NULL,
+      score = 0,
+      complete = 0,
+      day_ctx = excluded.day_ctx,
+      recalculated = 0
+  `).run(
+    userId, date,
+    JSON.stringify(hand ?? []),
+    JSON.stringify(dayCtx ?? {}),
+    new Date().toISOString(),
+  );
+}
+
+/**
+ * Каны дня (публично): кто из игроков за дату объявил каны — для
+ * «кан-дора откроется в конце дня» на главной странице.
+ */
+export function listDayKans(db, date) {
+  return db.prepare(`
+    SELECT u.name, dh.kans
+    FROM day_hands dh
+    LEFT JOIN users u ON u.id = dh.user_id
+    WHERE dh.date = ? AND dh.kans != '[]'
+    ORDER BY dh.created_at ASC
+    LIMIT 10
+  `).all(date).map((row) => ({
+    name: row.name ?? 'аноним',
+    kanCount: parseJson(row.kans, []).length,
+  }));
 }
 
 /** Отметить руку пересчитанной и сохранить новый счёт. */

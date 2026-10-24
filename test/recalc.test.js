@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { recalcScore, recalcDay } from '../server/recalc.js';
 import { createDeadWall } from '../src/daily-context.js';
 import { KAN_DORA_SLOTS, withKanPons } from '../src/kans.js';
-import { evaluateCompleteHand } from '../src/scoring.js';
+import { evaluateCompleteHand, evaluateHand } from '../src/scoring.js';
 
 const DAY = '2026-10-22';
 // Готовая рука: 123m 456m 789m 123p 55s
@@ -71,15 +71,25 @@ test('recalcScore: 13 тайлов после сброса тоже пересч
   assert.equal(r.openKanDoras, 1);
 });
 
-test('recalcScore: кан как фиксированный пон учитывается в 13-тайловой руке', () => {
+test('recalcScore: кан как фиксированный пон учитывается в руке после сброса', () => {
+  // Рука ПОСЛЕ кана и сброса: 10 тайлов (+ пон кана при оценке = 13).
   const tiles10 = ['1m', '2m', '3m', '4m', '5m', '6m', '7m', '8m', '9m', '1p'];
-  const without = recalcScore({ tiles: tiles10, oldScore: 0, complete: false, ctx: emptyCtx(), dayKey: DAY });
+  const wall = createDeadWall(DAY);
+  const scoringCtx = {
+    ...emptyCtx(),
+    doraIndicators: wall.kanDora.slice(0, 2),
+    uraIndicators: wall.kanUra,
+  };
   const withKan = recalcScore({
     tiles: tiles10, kans: ['5s'], oldScore: 0, complete: false, ctx: emptyCtx(), dayKey: DAY,
   });
-  assert.equal(typeof without.newScore, 'number');
-  assert.equal(typeof withKan.newScore, 'number');
+  // Пересчёт обязан совпасть с прямой оценкой 13-тайловой руки (10 + пон).
+  const direct = evaluateHand(withKanPons(tiles10, ['5s']), scoringCtx, ['5s']);
   assert.equal(withKan.openKanDoras, 2);
+  assert.equal(withKan.newScore, direct.total, 'кан-рука после сброса реально пересчитывается');
+  // 10 тайлов БЕЗ кана — не рука для оценки: счёт не меняется.
+  const notAHand = recalcScore({ tiles: tiles10, oldScore: 77, complete: false, ctx: emptyCtx(), dayKey: DAY });
+  assert.equal(notAHand.newScore, 77);
 });
 
 test('recalcDay: пакетный пересчёт возвращает userId и новые очки', () => {

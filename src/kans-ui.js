@@ -38,18 +38,29 @@ export function renderKanPrompt(container, kan) {
   }
 }
 
-/** Слоты кандор: открытые тайлы и закрытые рубашки с золотой обводкой. */
-export function renderKanDoras(container, deadWall, openCount) {
+/**
+ * Слоты кандор: открытые тайлы и закрытые рубашки.
+ * pending — [{index, tooltip}]: слоты, которые «откроются в конце дня»
+ * (за каны, объявленные сегодня кем угодно) — рубашка с ЖЁЛТОЙ обводкой
+ * и пояснением на наведении.
+ */
+export function renderKanDoras(container, deadWall, openCount, pending = []) {
+  const pendingByIndex = new Map(pending.map((p) => [p.index, p.tooltip]));
   container.innerHTML = '';
   for (const slot of kanDoraSlots(deadWall, openCount)) {
     const cell = document.createElement('div');
     cell.className = 'kan-dora-slot';
     if (slot.open) {
       cell.append(createTileElement(slot.tile, { disabled: true }));
+    } else if (pendingByIndex.has(slot.index)) {
+      const back = document.createElement('div');
+      back.className = 'tile-back kan-dora-back kan-dora-pending';
+      back.title = pendingByIndex.get(slot.index);
+      cell.append(back);
     } else {
       const back = document.createElement('div');
       back.className = 'tile-back kan-dora-back';
-      back.title = 'Кан-дора уже открыта — возвращайтесь завтра, чтобы узнать её';
+      back.title = 'Откроется, если сегодня объявят ещё один кан';
       cell.append(back);
     }
     container.append(cell);

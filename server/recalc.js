@@ -57,7 +57,12 @@ export function recalcScore({ hand, tiles, kans = [], oldScore, complete = false
     // кана — 11 тайлов + 3×кан): каны передаются для оценки (доры ×4).
     const rescored = evaluateCompleteHand(hand, scoringCtx, kans);
     if (rescored?.total != null) next = rescored.total;
-  } else if (Array.isArray(tiles) && tiles.length === 13) {
+  } else if (
+    Array.isArray(tiles) &&
+    // 13 тайлов после сброса; с каноми — 13 − 3×каны (10 при одном кане),
+    // поны канов добавляются обратно перед оценкой.
+    (tiles.length === 13 || tiles.length + 3 * kanCount === 13)
+  ) {
     next = evaluateHand(withKanPons(tiles, kans), scoringCtx, kans).total;
   }
 

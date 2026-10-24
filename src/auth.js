@@ -205,3 +205,13 @@ export function fetchDailyHand(dayKey) {
 export function fetchMyHands(limit = 30) {
   return api(`/api/me/hands?limit=${limit}`);
 }
+
+/** Каны дня (публично): {date, kans:[{name, kanCount}]} — кто объявил каны. */
+export function fetchDayKans(dayKey) {
+  return api(`/api/daily/kans?date=${encodeURIComponent(dayKey)}`);
+}
+
+/** Админ: новая рука дня вместо старой (счёт удаляется). {date, hand}. */
+export function reissueDailyHand(dayKey) {
+  return api('/api/admin/hand/reissue', { method: 'POST', body: { date: dayKey } });
+}

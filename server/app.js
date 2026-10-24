@@ -17,8 +17,10 @@ import {
   upsertUser, getUser, upsertScore, leaderboard, insertEvent, listEvents,
   updateEventPayload, addEventReport,
   upsertDayHand, upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
-  markDayHandRecalculated, setScoreValue,
+  markDayHandRecalculated, setScoreValue, reissueDayHand, listDayKans,
 } from './db.js';
+import { createDailyContext } from '../src/daily-context.js';
+import { drawHand } from '../src/tiles.js';
 import { recalcScore } from './recalc.js';
 import { DEFAULT_ROLES_FILE, readRolesFile, roleFor, setRole } from './roles.js';
 
@@ -434,6 +436,49 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       complete: row.complete,
       score: row.score,
     });
+  });
+
+  /**
+   * GET /api/daily/kans?date=YYYY-MM-DD → {date, kans:[{name, kanCount}]}
+   * Публично: кто за дату объявил каны — клиент обводит жёлтым
+   * «откроется в конце дня» кан-доры в списке дор.
+   */
+  app.get('/api/daily/kans', (req, res) => {
+    const { date } = req.query;
+    if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    res.json({ date, kans: listDayKans(db, date) });
+  });
+
+  /**
+   * POST /api/admin/hand/reissue {date?} → {date, hand} (только admin).
+   * Выдаёт игроку НОВУЮ руку дня, ЗАМЕНЯЯ старую в БД (scores тоже удаляет):
+   * логика «1 рука в день» сохраняется — строка дня одна, рука новая.
+   */
+  app.post('/api/admin/hand/reissue', async (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    if (await roleFor(user.email, rolesFile) !== 'admin') return httpError(res, 403, 'только admin');
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date()).filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]);
+    const t = Object.fromEntries(parts);
+    const date = req.body?.date ?? `${t.year}-${t.month}-${t.day}`;
+    if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    const ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
+    const hand = drawHand(14, { deadTiles: ctx.deadTiles });
+    reissueDayHand(db, {
+      userId: user.id,
+      date,
+      hand,
+      dayCtx: {
+        dayKey: date,
+        doraIndicators: ctx.doraIndicators,
+        uraIndicators: [],
+        roundWindId: ctx.roundWindId,
+        seatWindId: ctx.seatWindId,
+      },
+    });
+    res.json({ date, hand });
   });
 
   /** GET /api/scores/:date?limit=N → {date, rows:[{name, picture, score, discarded}]} */

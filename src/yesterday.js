@@ -1,11 +1,15 @@
 /**
- * Окно «Вчерашняя рука» (справа).
+ * Полноэкранное окно «Вчера».
  *
- * Видно каждому вошедшему игроку (рука/счёт — только если вчера была рука):
- *  - вчерашняя рука тайлами и сброшенный тайл (или «рука не сдавалась»);
- *  - что открылось в конце дня: ура-индикатор + ура-дора,
- *    открытые кан-доры (1 базовая + по одной за кан) и кан-ура;
- *  - старый и новый счёт, если он изменился после ночного пересчёта.
+ * Правила показа (по ТЗ):
+ *  - вчера руки НЕ было → игрок сразу на основной странице;
+ *  - вчера рука БЫЛА → при входе показывается полноэкранное окно:
+ *    вчерашняя рука, открывшиеся доры (ура, кан-доры, кан-ура) и старый/
+ *    новый счёт; кнопка «К сегодняшнему дню» ведёт на основную страницу;
+ *  - в ТЕЧЕНИЕ дня окно показывается ОДИН РАЗ: после нажатия кнопки
+ *    (или повторного входа в тот же день) игрок попадает сразу на основную
+ *    страницу;
+ *  - гость (не вошёл) — сразу основная страница.
  *
  * Данные готовит сервер (GET /api/me/yesterday): он же один раз за день
  * пересчитывает вчерашние руки с ура-дорами и кандорами. Ура-индикатор
@@ -16,19 +20,51 @@ import { renderTiles } from './ui.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { openKanDoraCount } from './kans.js';
 
+const SEEN_KEY = 'mh_yesterday_seen_v1';
+
 export function initYesterday({ dayKey }) {
-  const panel = document.getElementById('yesterday-panel');
-  if (!panel) return;
+  const view = document.getElementById('view-yesterday');
+  const game = document.getElementById('view-game');
+  const tabs = document.getElementById('view-tabs');
+  if (!view) return null;
+
+  const dateEl = document.getElementById('yesterday-date');
   const handEl = document.getElementById('yesterday-hand');
   const discardEl = document.getElementById('yesterday-discarded');
-  const uraRowEl = document.getElementById('yesterday-ura-row');
+  const uraBlockEl = document.getElementById('yesterday-ura-block');
   const uraEl = document.getElementById('yesterday-ura');
   const kanDoraEl = document.getElementById('yesterday-kandoras');
   const kanUraEl = document.getElementById('yesterday-kanuras');
   const scoreEl = document.getElementById('yesterday-score');
-  const titleEl = document.getElementById('yesterday-title');
+  const btnToday = document.getElementById('btn-yesterday-today');
 
-  /** Тайл с подписью (для открывшихся дор). */
+  function seen() {
+    try {
+      return localStorage.getItem(SEEN_KEY) === dayKey;
+    } catch {
+      return false;
+    }
+  }
+  function markSeen() {
+    try {
+      localStorage.setItem(SEEN_KEY, dayKey);
+    } catch {
+      /* приватный режим — окну просто придётся открыться повторно */
+    }
+  }
+
+  function showGate() {
+    view.hidden = false;
+    if (game) game.hidden = true;
+    if (tabs) tabs.hidden = true;
+  }
+  function hideGate() {
+    view.hidden = true;
+    if (game) game.hidden = false;
+    if (tabs) tabs.hidden = false;
+  }
+
+  /** Тайл-индикатор со стрелкой к открывшейся доре. */
   function doraCell(indicator) {
     const cell = document.createElement('div');
     cell.className = 'yesterday-kandora';
@@ -46,14 +82,12 @@ export function initYesterday({ dayKey }) {
     const ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
     const wall = ctx.deadWall;
 
-    if (uraRowEl && uraEl) {
+    if (ctx.uraIndicators.length) {
+      uraBlockEl.hidden = false;
       uraEl.innerHTML = '';
-      if (ctx.uraIndicators.length) {
-        uraRowEl.hidden = false;
-        uraEl.append(doraCell(ctx.uraIndicators[0]));
-      } else {
-        uraRowEl.hidden = true;
-      }
+      uraEl.append(doraCell(ctx.uraIndicators[0]));
+    } else {
+      uraBlockEl.hidden = true;
     }
 
     // Открытые кан-доры: 1 базовая + по одной за объявленный кан.
@@ -72,64 +106,58 @@ export function initYesterday({ dayKey }) {
 
   async function refresh() {
     if (!getAuth()) {
-      panel.hidden = true;
+      hideGate();
+      return;
+    }
+    if (seen()) {
+      hideGate();
       return;
     }
     let data;
     try {
       data = await fetchYesterday(dayKey);
     } catch {
-      panel.hidden = true;
+      hideGate();
       return;
     }
-    if (!data || !data.date) {
-      panel.hidden = true;
+    // Вчера руки не было → сразу на основную страницу.
+    if (!data || data.hand == null) {
+      hideGate();
       return;
     }
 
-    panel.hidden = false;
-    const hasHand = Array.isArray(data.hand) && data.hand.length > 0;
-    titleEl.textContent = hasHand
-      ? `Вчерашняя рука (${data.date})`
-      : `Вчера (${data.date})`;
-
-    if (hasHand) {
-      const tiles = data.tiles?.length ? data.tiles : data.hand;
-      renderTiles(handEl, tiles, { disabled: true });
-      if (data.discarded) {
-        discardEl.hidden = false;
-        renderTiles(discardEl, [data.discarded], { disabled: true });
-      } else {
-        discardEl.hidden = true;
-      }
-      handEl.hidden = false;
+    dateEl.textContent = data.date;
+    const tiles = data.tiles?.length ? data.tiles : data.hand;
+    handEl.innerHTML = '';
+    renderTiles(handEl, tiles, { disabled: true });
+    if (data.discarded) {
+      discardEl.hidden = false;
+      discardEl.innerHTML = '';
+      renderTiles(discardEl, [data.discarded], { disabled: true });
     } else {
       discardEl.hidden = true;
-      handEl.replaceChildren();
-      const note = document.createElement('span');
-      note.className = 'yesterday-note';
-      note.textContent = 'рука не сдавалась';
-      handEl.append(note);
     }
 
     renderOpenedDoras(data.date, data.kans ?? []);
 
-    if (hasHand) {
-      const oldScore = Number(data.oldScore ?? 0);
-      const newScore = Number(data.newScore ?? oldScore);
-      if (newScore !== oldScore) {
-        const up = newScore > oldScore;
-        scoreEl.textContent = `Очки пересчитаны: ${oldScore.toLocaleString('ru-RU')} → ${newScore.toLocaleString('ru-RU')} (${up ? '+' : ''}${(newScore - oldScore).toLocaleString('ru-RU')})`;
-        scoreEl.className = `yesterday-score ${up ? 'is-up' : 'is-down'}`;
-      } else {
-        scoreEl.textContent = `Очки: ${newScore.toLocaleString('ru-RU')} (не изменились)`;
-        scoreEl.className = 'yesterday-score';
-      }
-      scoreEl.hidden = false;
+    const oldScore = Number(data.oldScore ?? 0);
+    const newScore = Number(data.newScore ?? oldScore);
+    if (newScore !== oldScore) {
+      const up = newScore > oldScore;
+      scoreEl.textContent = `Очки пересчитаны: ${oldScore.toLocaleString('ru-RU')} → ${newScore.toLocaleString('ru-RU')} (${up ? '+' : ''}${(newScore - oldScore).toLocaleString('ru-RU')})`;
+      scoreEl.className = `yesterday-score ${up ? 'is-up' : 'is-down'}`;
     } else {
-      scoreEl.hidden = true;
+      scoreEl.textContent = `Очки: ${newScore.toLocaleString('ru-RU')} (не изменились)`;
+      scoreEl.className = 'yesterday-score';
     }
+
+    showGate();
   }
 
-  return { refresh };
+  btnToday.addEventListener('click', () => {
+    markSeen();
+    hideGate();
+  });
+
+  return { refresh, seen };
 }

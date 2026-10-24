@@ -464,7 +464,7 @@ export function initTestMode() {
       els.kanList.innerHTML = '';
       for (const kan of declaredKans) renderClosedKan(els.kanList, kan);
     }
-    if (els.kanDoras) renderKanDoras(els.kanDoras, dayWall(), openKanDoraCount(declaredKans.length));
+    if (els.kanDoras) renderKanDoras(els.kanDoras, dayWall().kanDora, openKanDoraCount(declaredKans.length));
 
     if (els.hint) {
       if (!hand.length) els.hint.textContent = 'Тыкайте тайлы в палитре, чтобы собрать руку.';
