@@ -327,12 +327,14 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
    * GET /api/me/yesterday?date=YYYY-MM-DD → вчерашняя рука игрока.
    *
    * date — СЕГОДНЯШНИЙ день (клиентский dayKey); вчера вычисляется на сервере.
-   * При первом обращении за день вчерашние руки пересчитываются с учётом всех
-   * ура-дор и открытых кандор (один раз, флаг recalculated), таблица дня
+   * При первом обращении за день вчерашние руки пересчитываются с учётом
+   * открывшихся в полночь дор: ура — 1 базовая + по одной за каждый кан дня,
+   * кан-доры — по одной за каждый кан дня (каны дня = все игроки); один раз,
+   * флаг recalculated; таблица дня
    * обновляется — поэтому рейтинг может измениться.
    *
-   * Ответ: {date, hand, discarded, oldScore, newScore, changed, kanDoras,
-   *          kanDoraCount, recalculated}
+   * Ответ: {date, hand, discarded, kans, oldScore, newScore, changed,
+   *          dayKanCount, recalculated}
    */
   app.get('/api/me/yesterday', (req, res) => {
     const user = authProfile(req, db, sessionSecret);
@@ -342,7 +344,12 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     const yesterday = dayBefore(today);
 
     const mine = getDayHand(db, user.id, yesterday);
-    if (!mine) return res.json({ date: yesterday, hand: null });
+    if (!mine) return res.json({ date: yesterday, hand: null, dayKanCount: 0 });
+
+    // Суммарные каны вчерашнего дня (все игроки): именно они определяют,
+    // сколько дор открылось в полночь.
+    const dayKanCount = listDayKans(db, yesterday)
+      .reduce((sum, k) => sum + (k.kanCount || 0), 0);
 
     // Ленивый ночной пересчёт: один раз на дату (и на игрока).
     if (!mine.recalculated) {
@@ -356,6 +363,7 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
           complete: row.complete,
           ctx: row.day_ctx,
           dayKey: yesterday,
+          dayKanCount,
         });
         markDayHandRecalculated(db, row.user_id, yesterday, r.newScore);
         // Таблицу дня обновляем всегда: после ночного пересчёта очки могли
@@ -375,6 +383,7 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       oldScore: mine.score,
       newScore: fresh.score,
       changed: fresh.score !== mine.score,
+      dayKanCount,
       recalculated: fresh.recalculated,
     });
   });

@@ -5,7 +5,7 @@ import { renderTiles, renderScore, renderGroupedHand, createTileElement } from '
 import { evaluateCompleteHand, evaluateHand } from './scoring.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
-import { findKans, withKanPons, openKanDoraCount, KAN_DORA_SLOTS } from './kans.js';
+import { findKans, withKanPons, MAX_KAN_DORA } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initAuthButton, onAuthChange, getAuth, getRole, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand, fetchDayKans, reissueDailyHand } from './auth.js';
 import { initTestMode } from './test-mode.js';
@@ -20,11 +20,11 @@ import { APP_VERSION } from './version.js';
 const dailyContext = createDailyContext();
 
 /**
- * Контекст СДАЧИ: ура-доры при сдаче не учитываются — они открываются
- * в полночь (00:00 МСК), и сервер пересчитывает вчерашние очки.
- * Кандоры при этом учитываются: 1 базовая открыта с начала дня, каждый
- * объявленный кан открывает ещё одну (макс. 5) — та же формула, что в
- * серверном пересчёте (server/recalc.js).
+ * Контекст живой игры: только базовая дора (индикатор дня) и ветра.
+ * Ура-доры и кан-доры НИКТО не знает до полуночи (00:00 МСК): они
+ * открываются в конце дня, и сервер пересчитывает вчерашние очки
+ * (server/recalc.js) — 1 ура-дора по умолчанию + 1 ура и 1 кан-дора
+ * за каждый кан дня.
  */
 const baseScoreContext = {
   ...dailyContext,
@@ -32,14 +32,9 @@ const baseScoreContext = {
   uraTiles: [],
 };
 
-/** Контекст оценки с учётом объявленных канов (кандоры). */
-function scoreContextFor(kans = []) {
-  const open = openKanDoraCount(kans.length);
-  const kanDoras = dailyContext.deadWall.kanDora.slice(0, Math.min(open, KAN_DORA_SLOTS));
-  return {
-    ...baseScoreContext,
-    doraIndicators: [...baseScoreContext.doraIndicators, ...kanDoras],
-  };
+/** Контекст оценки: тот же для всех фаз (кан-доры открываются в полночь). */
+function scoreContextFor(_kans = []) {
+  return baseScoreContext;
 }
 
 /**
@@ -57,13 +52,14 @@ function refreshDayKans() {
 }
 
 /**
- * Слоты кан-дор «откроются в конце дня»: базовая (slot 0) открыта всегда,
- * за каждый кан дня (кто бы его ни объявил) открыта ещё одна — обводится
- * жёлтым с пояснением, ЧЕЙ это кан. Открытие — в полночь, в окне «Вчера».
+ * Слоты кан-дор «откроются в конце дня»: базовой НЕТ — одна кан-дора
+ * за каждый кан дня (кто бы его ни объявил). До полуночи все слоты
+ * закрыты; за объявленные каны обводятся жёлтым с пояснением, ЧЕЙ кан.
+ * Индексы 0-based по 4-слотовой стене (kanDora.slice(0, MAX_KAN_DORA)).
  */
 function kanDoraPending() {
   const total = Math.min(
-    KAN_DORA_SLOTS - 1,
+    MAX_KAN_DORA,
     Math.max(declaredKans.length, dayKans.reduce((sum, k) => sum + (k.kanCount || 0), 0)),
   );
   const names = dayKans.map((k) => k.name).slice(0, total);
@@ -72,7 +68,7 @@ function kanDoraPending() {
   for (let i = 0; i < total; i++) {
     const who = names[i] ?? (i < declaredKans.length && me ? me : null);
     pending.push({
-      index: i + 1,
+      index: i,
       tooltip: who
         ? `Игрок «${who}» получил кан, поэтому в конце дня всем откроется кан-дора. Заходите завтра.`
         : 'Сегодня объявили кан — в конце дня всем откроется кан-дора. Заходите завтра.',
@@ -661,10 +657,15 @@ function render(state) {
     }
   }
 
-  // Кан-доры: базовая (slot 0) открыта весь день; за каждый кан дня —
-  // ещё одна, обведённая жёлтым («откроется в конце дня», чей кан — в подсказке).
+  // Кан-доры в строке доры: базовой НЕТ, все 4 слота закрыты до полуночи;
+  // за каждый кан дня — жёлтая обводка («откроется в конце дня», чей кан —
+  // в подсказке). Открытые тайлы кан-дор игрок увидит завтра, в окне «Вчера».
   const pending = kanDoraPending();
-  renderKanDoras(els.kanDoraWall, dailyContext.deadWall.kanDora, 1, pending);
+  renderKanDoras(els.kanDoraWall, dailyContext.deadWall.kanDora.slice(0, MAX_KAN_DORA), 0, pending);
+
+  // Таймер «до полуночи» виден только после того, как рука дня потрачена:
+  // до генерации ждать нечего.
+  els.dailyClock.hidden = !state.hand || state.hand.length === 0;
 
   // Кнопка генерации: видна ПОД рукой только до первой генерации дня
   // (во время анимации/восстановления — заблокирована).

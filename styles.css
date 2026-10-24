@@ -244,12 +244,11 @@ main {
 .kan-closed { display: flex; gap: 2px; }
 .kan-closed .tile { --tile-size: 44px; }
 .kan-closed .tile-back { --context-tile-size: 44px; }
-.kan-dora-item { grid-column: 1 / -1; }
-.kan-dora-item small { opacity: .75; font-weight: 400; }
-.kan-dora-wall { flex-wrap: wrap; gap: 6px; }
+/* Кан-доры — продолжение строки доры: закрытые рубашки в том же ряду. */
+.kan-dora-wall { display: flex; flex-wrap: wrap; gap: 5px; }
 .kan-dora-slot { display: flex; }
-.kan-dora-slot .tile { --tile-size: 38px; }
-.kan-dora-slot .tile-back { --context-tile-size: 38px; }
+.kan-dora-slot .tile { --tile-size: 40px; }
+.kan-dora-slot .tile-back { --context-tile-size: 40px; }
 .kan-dora-back { cursor: help; }
 /* Кан-дора «откроется в конце дня» (за кан, объявленный сегодня кем-то):
    жёлтая обводка + пульс; наведение — чей это кан. */
@@ -419,7 +418,7 @@ footer button:disabled { opacity: .45; cursor: default; }
 .context-tile .tile { --tile-size: var(--context-tile-size); cursor: default; box-shadow: 0 4px 0 #a9a695, 0 8px 14px rgba(0,0,0,.24); }
 .context-tile .tile:hover { transform: none; }
 .dora-item { grid-column: span 2; }
-.dora-row { display: flex; align-items: center; gap: 7px; }
+.dora-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .dora-arrow { color: var(--gold); font-size: 18px; font-weight: 700; }
 .dora-wall { display: flex; align-items: flex-start; gap: 5px; }
 .tile-back {
@@ -994,9 +993,6 @@ footer button:disabled { opacity: .45; cursor: default; }
 }
 .tile-palette .tile {
   cursor: pointer;
-}
-.kan-dora-wall {
-  margin: 8px 0;
 }
 
 .hand.await-discard {

@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Mahjongdle <span class="app-version" id="app-version">v0.6.12</span></h1>
+      <h1>Mahjongdle <span class="app-version" id="app-version">v0.6.13</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -35,7 +35,7 @@
         <h2>Вчера</h2>
         <span id="yesterday-date"></span>
       </div>
-      <p class="yesterday-lead">Ночью открылись ура-доры и кандоры — очки пересчитаны.</p>
+      <p class="yesterday-lead">В полночь открылись ура-доры и кан-доры (за каждый кан дня) — очки пересчитаны.</p>
 
       <div class="yesterday-block">
         <h3>Ваша рука</h3>
@@ -44,18 +44,13 @@
       </div>
 
       <div class="yesterday-block" id="yesterday-ura-block" hidden>
-        <h3>Открылась ура-дора</h3>
+        <h3>Открылись ура-доры</h3>
         <div id="yesterday-ura" class="yesterday-doras"></div>
       </div>
 
-      <div class="yesterday-block">
+      <div class="yesterday-block" id="yesterday-kandora-block" hidden>
         <h3>Открылись кан-доры</h3>
         <div id="yesterday-kandoras" class="yesterday-doras"></div>
-      </div>
-
-      <div class="yesterday-block">
-        <h3>Кан-ура</h3>
-        <div id="yesterday-kanuras" class="yesterday-doras"></div>
       </div>
 
       <p id="yesterday-score" class="yesterday-score"></p>
@@ -82,11 +77,8 @@
             <div id="dora-indicator" class="context-tile"></div>
             <span class="dora-arrow" aria-hidden="true">→</span>
             <div id="dora-tile" class="context-tile"></div>
+            <div id="kan-dora-wall" class="dora-wall kan-dora-wall" title="Кан-доры: откроются в конце дня, по одной за каждый объявленный кан"></div>
           </div>
-        </div>
-        <div class="daily-item kan-dora-item">
-          <span>Кан-доры <small>(откроются в конце дня)</small></span>
-          <div id="kan-dora-wall" class="dora-wall kan-dora-wall"></div>
         </div>
       </div>
     </section>
@@ -187,7 +179,6 @@
     </div>
     <div class="hand-wrap">
       <div id="tm-palette" class="tile-palette" role="list"></div>
-      <div id="tm-kan-dora-wall" class="kan-dora-wall"></div>
       <div id="tm-hand" class="hand" role="list"></div>
       <div id="tm-kan-list" class="kan-list"></div>
     </div>

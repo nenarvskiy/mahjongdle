@@ -419,6 +419,7 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
   let r = await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth });
   assert.equal(r.status, 200);
   assert.equal((await r.json()).hand, null);
+  assert.equal((await (await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth })).json()).dayKanCount, 0);
 
   // сдача вчерашней готовой руки с каном
   const hand = ['1m','2m','3m','4m','5m','6m','7m','8m','9m','1p','2p','3p','5s','5s'];
@@ -448,6 +449,8 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
   assert.equal(y.recalculated, true);
   assert.equal(typeof y.newScore, 'number');
   assert.equal(typeof y.changed, 'boolean');
+  // Суммарные каны дня (здесь — один, наш) определяют открывшиеся доры.
+  assert.equal(y.dayKanCount, 1);
 
   // повторный запрос — без нового пересчёта (флаг), счёт тот же
   const again = await (await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth })).json();

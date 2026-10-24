@@ -3,13 +3,18 @@
  *  * «Мои руки» — прошлые руки игрока (профиль, GET /api/me/hands);
  *  * клик по строке таблицы дня — рука этого игрока (данные уже в строке).
  * Два вида: список (дата + состояние) → просмотр руки: тайлы, каны,
- * условия дня (ветра, дора, ура, кан-доры) и полная разбивка «за что очки».
+ * условия дня и полная разбивка «за что очки».
+ *
+ * ВАЖНО (видимость дор): ура-доры и кан-доры никто не должен знать до
+ * полуночи. Поэтому для руки СЕГОДНЯ показываем только ветра и дору, а
+ * разбивка считается живым контекстом (без ура и кан-дор). Для рук
+ * прошедших дней доры уже открыты в полночь — показываем открытые тайлы,
+ * а разбивка пересчитывается по канам дня (все игроки, /api/daily/kans).
  */
-import { getAuth, fetchMyHands } from './auth.js';
+import { getAuth, fetchMyHands, fetchDayKans } from './auth.js';
 import { renderTiles, createTileElement } from './ui.js';
-import { createDailyContext, createDeadWall, doraFromIndicator } from './daily-context.js';
-import { tileToIndex } from './tile-index.js';
-import { openKanDoraCount, withKanPons, KAN_DORA_SLOTS } from './kans.js';
+import { createDailyContext, doraFromIndicator } from './daily-context.js';
+import { openKanDoraCount, withKanPons } from './kans.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
 
 const $ = (id) => document.getElementById(id);
@@ -64,17 +69,19 @@ export function showHandList(rows, title = 'Мои руки') {
     btn.append(date, state);
 
     if (hasHand) {
-      btn.addEventListener('click', () => showHandView({
-        title: `Рука за ${row.date}`,
-        date: row.date,
-        dayCtx: row.day_ctx,
-        tiles: row.tiles,
-        hand: row.hand,
-        kans: row.kans,
-        discarded: row.discarded,
-        score: row.score,
-        complete: row.complete,
-      }));
+      btn.addEventListener('click', () => {
+        void showHandView({
+          title: `Рука за ${row.date}`,
+          date: row.date,
+          dayCtx: row.day_ctx,
+          tiles: row.tiles,
+          hand: row.hand,
+          kans: row.kans,
+          discarded: row.discarded,
+          score: row.score,
+          complete: row.complete,
+        });
+      });
     } else {
       btn.disabled = true;
     }
@@ -82,42 +89,54 @@ export function showHandList(rows, title = 'Мои руки') {
   }
 }
 
-/** Сконтекст дня для руки: ветра, дора, ура, кан-доры (детерминированы dayKey). */
-function dayInfo(date, dayCtx) {
-  if (!date) return null;
-  let ctx;
+/** Контекст дня по дате (детерминирован dayKey). */
+function dayContextOf(dateKey) {
   try {
-    ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
+    return createDailyContext(new Date(`${dateKey}T12:00:00Z`));
   } catch {
     return null;
   }
-  const wall = ctx.deadWall;
-  const kansCount = dayCtx && Array.isArray(dayCtx.kans) ? dayCtx.kans.length : 0;
-  return { ctx, wall, kansCount };
 }
 
 /**
- * Разбивка «за что очки» пересчётом той же руки тем же контекстом,
- * что и серверный ночной пересчёт (server/recalc.js).
+ * Разбивка «за что очки» пересчётом той же руки тем же контекстом, что
+ * использует сервер:
+ *  - рука СЕГОДНЯ: живой контекст — дора и ветра только (ура-доры и
+ *    кан-доры откроются в полночь, до этого ни у кого не считаются);
+ *  - рука прошедшего дня: дора + открытые кан-доры (по кано дня) и
+ *    ура-доры (1 базовая + по одной за каждый кан дня).
  */
-function recompute({ date, dayCtx, tiles, hand, kans = [], complete = false, today = null }) {
-  if (!date) return null;
-  let ctx;
-  try {
-    ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
-  } catch {
-    return null;
-  }
+function recompute({
+  dateKey, dayCtx, tiles, hand, kans = [], complete = false,
+  isToday = false, dayKanCount = 0,
+}) {
+  if (!dateKey) return null;
+  const ctx = dayContextOf(dateKey);
+  if (!ctx) return null;
   const wall = ctx.deadWall;
-  const open = openKanDoraCount(kans.length);
-  const kanDoras = wall.kanDora.slice(0, Math.min(open, KAN_DORA_SLOTS));
-  const scoringCtx = {
-    ...ctx,
-    uraIndicators: [...(ctx.uraIndicators ?? []), ...wall.kanUra],
-    doraIndicators: [...(dayCtx?.doraIndicators ?? ctx.doraIndicators), ...kanDoras],
-    ...(dayCtx?.roundWind != null ? { roundWind: dayCtx.roundWind } : {}),
-    ...(dayCtx?.seatWind != null ? { seatWind: dayCtx.seatWind } : {}),
-  };
+
+  let scoringCtx;
+  if (isToday) {
+    // До полуночи: только базовая дора и ветра.
+    scoringCtx = {
+      ...ctx,
+      uraIndicators: [],
+      ...(dayCtx?.roundWind != null ? { roundWind: dayCtx.roundWind } : {}),
+      ...(dayCtx?.seatWind != null ? { seatWind: dayCtx.seatWind } : {}),
+    };
+  } else {
+    // В полночь открылись: кан-доры — по одной за кан дня (без базовой),
+    // ура — 1 базовая + по одной за кан дня.
+    const open = openKanDoraCount(dayKanCount);
+    scoringCtx = {
+      ...ctx,
+      uraIndicators: [...(ctx.uraIndicators ?? []), ...wall.kanUra.slice(0, open)],
+      doraIndicators: [...(dayCtx?.doraIndicators ?? ctx.doraIndicators), ...wall.kanDora.slice(0, open)],
+      ...(dayCtx?.roundWind != null ? { roundWind: dayCtx.roundWind } : {}),
+      ...(dayCtx?.seatWind != null ? { seatWind: dayCtx.seatWind } : {}),
+    };
+  }
+
   try {
     if (complete && Array.isArray(hand) && hand.length === 14) {
       return evaluateCompleteHand(hand, scoringCtx, kans);
@@ -135,14 +154,18 @@ function recompute({ date, dayCtx, tiles, hand, kans = [], complete = false, tod
   }
 }
 
-/** Строка условий дня: ветра, дора, ура, кан-доры. */
-function renderContextRow(el, date, dayCtx) {
+/**
+ * Строка условий дня: ветра, дора — всегда; ура и кан-доры — только для
+ * прошедших дней (до полуночи их никто не должен видеть).
+ */
+function renderContextRow(el, dateKey, dayCtx, { isToday = false, dayKanCount = 0 } = {}) {
   el.innerHTML = '';
   el.hidden = true;
-  const info = dayInfo(date, dayCtx);
-  if (!info) return;
-  const { ctx, wall } = info;
-  const open = openKanDoraCount(dayCtx?.kans?.length ?? 0);
+  if (!dateKey) return;
+  const ctx = dayContextOf(dateKey);
+  if (!ctx) return;
+  const wall = ctx.deadWall;
+  const open = openKanDoraCount(dayKanCount);
 
   const parts = [];
   const push = (label, value, title) => {
@@ -158,15 +181,25 @@ function renderContextRow(el, date, dayCtx) {
   push('Ветер раунда', ctx.roundWindId, 'Ветер раунда дня');
   push('Ветер игрока', ctx.seatWindId, 'Ветер места дня');
   push('Дора', `${ctx.doraIndicators.join(' ')} → ${ctx.doraTiles.join(' ')}`, 'Индикатор доры → дора');
-  if (ctx.uraIndicators?.length) {
-    push('Ура', `${ctx.uraIndicators.join(' ')} → ${ctx.uraTiles.join(' ')}`, 'Открывается в конце дня');
+  if (!isToday) {
+    // Открытые в полночь тайлы: ура (базовая + кан-уры) и кан-доры.
+    const uraTiles = [
+      ...(ctx.uraIndicators ?? []).map(doraFromIndicator),
+      ...wall.kanUra.slice(0, open).map(doraFromIndicator),
+    ];
+    if (uraTiles.length) {
+      push('Ура', uraTiles.join(' '), 'Ура-доры, открывшиеся в полночь');
+    }
+    const kanDoraTiles = wall.kanDora.slice(0, open).map(doraFromIndicator);
+    if (kanDoraTiles.length) {
+      push('Кан-доры', kanDoraTiles.join(' '), 'Кан-доры, открывшиеся в полночь: по одной за каждый кан дня');
+    }
   }
-  push('Кан-доры', wall.kanDora.slice(0, open).join(' '), `Открыто: ${open} (1 базовая + за каждый кан)`);
 
   if (!parts.length) return;
   const lead = document.createElement('div');
   lead.className = 'hands-ctx-lead';
-  lead.textContent = `Условия дня ${date}`;
+  lead.textContent = `Условия дня ${dateKey}`;
   el.append(lead);
   const row = document.createElement('div');
   row.className = 'hands-ctx';
@@ -194,10 +227,14 @@ function renderBreakdown(el, scoreResult) {
   el.hidden = false;
 }
 
-/** Просмотр конкретной руки: тайлы, каны, условия дня, разбивка очков. */
-export function showHandView({
+/**
+ * Просмотр конкретной руки: тайлы, каны, условия дня, разбивка очков.
+ * Для рук прошедших дней асинхронно запрашивает каны дня (все игроки),
+ * чтобы показать открытые в полночь доры.
+ */
+export async function showHandView({
   title, hand, kans = [], discarded = null, score = null, complete = false,
-  date = null, dayCtx = null, tiles = null, today = null,
+  date = null, dayCtx = null, tiles = null, today: todayRef = null,
 }) {
   const view = $('hands-view');
   view.hidden = false;
@@ -205,9 +242,39 @@ export function showHandView({
   $('hands-dialog-title').textContent = title;
   $('btn-hands-back').hidden = !listRows.length;
 
+  const dateKey = date ?? todayRef?.dayKey ?? today?.dayKey ?? null;
+  // «Сегодня» — день текущей игры: доры ещё не открыты.
+  const isToday = dateKey != null && today?.dayKey != null && dateKey === today.dayKey;
+
+  // Каны дня (все игроки) — только для прошедших дней: они определяют
+  // открытые в полночь доры. Сегодня — 0 (ничего не открыто).
+  let dayKanCount = 0;
+  if (!isToday && dateKey) {
+    try {
+      const data = await fetchDayKans(dateKey);
+      dayKanCount = Array.isArray(data?.kans)
+        ? data.kans.reduce((sum, k) => sum + (k.kanCount || 0), 0)
+        : 0;
+    } catch {
+      dayKanCount = kans.length; // сервер недоступен — оцениваем по своим канам
+    }
+  }
+
   const handEl = $('hands-view-hand');
   handEl.replaceChildren();
-  const doraTiles = date ? (() => { try { return createDailyContext(new Date(`${date}T12:00:00Z`)).doraTiles; } catch { return []; } })() : [];
+  const ctx = dateKey ? dayContextOf(dateKey) : null;
+  const doraTiles = ctx
+    ? (() => {
+        const marked = [...ctx.doraTiles];
+        if (!isToday) {
+          const open = openKanDoraCount(dayKanCount);
+          ctx.uraTiles.forEach((tile) => marked.push(tile));
+          ctx.deadWall.kanDora.slice(0, open).forEach((ind) => marked.push(doraFromIndicator(ind)));
+          ctx.deadWall.kanUra.slice(0, open).forEach((ind) => marked.push(doraFromIndicator(ind)));
+        }
+        return marked;
+      })()
+    : [];
   if (Array.isArray(hand) && hand.length) renderTiles(handEl, hand, { disabled: true, doraTiles });
   else handEl.replaceChildren();
 
@@ -221,8 +288,9 @@ export function showHandView({
     for (const tile of kans) kansEl.append(createTileElement(tile, { disabled: true }));
   }
 
-  renderContextRow($('hands-view-context'), date ?? today?.dayKey, dayCtx);
-  const recomputed = recompute({ date: date ?? today?.dayKey, dayCtx, tiles, hand, kans, complete });
+  const info = { isToday, dayKanCount };
+  renderContextRow($('hands-view-context'), dateKey, dayCtx, info);
+  const recomputed = recompute({ dateKey, dayCtx, tiles, hand, kans, complete, ...info });
   renderBreakdown($('hands-view-breakdown'), recomputed);
 
   const meta = [];
@@ -282,7 +350,7 @@ export function openLeaderboardHand(row) {
     list.append(p);
     return;
   }
-  showHandView({
+  void showHandView({
     title: row.name ? `${row.name} · таблица дня` : 'Рука игрока',
     hand: row.hand,
     kans: row.kans,

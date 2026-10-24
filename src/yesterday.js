@@ -1,19 +1,22 @@
 /**
- * Полноэкранное окно «Вчера».
+ * Полноэкранное окно «Вчера» — показ открытия дор в полночь.
  *
  * Правила показа (по ТЗ):
  *  - вчера руки НЕ было → игрок сразу на основной странице;
  *  - вчера рука БЫЛА → при входе показывается полноэкранное окно:
- *    вчерашняя рука, открывшиеся доры (ура, кан-доры, кан-ура) и старый/
+ *    вчерашняя рука, открывшиеся доры (ура, кан-доры) и старый/
  *    новый счёт; кнопка «К сегодняшнему дню» ведёт на основную страницу;
  *  - в ТЕЧЕНИЕ дня окно показывается ОДИН РАЗ: после нажатия кнопки
  *    (или повторного входа в тот же день) игрок попадает сразу на основную
  *    страницу;
  *  - гость (не вошёл) — сразу основная страница.
  *
- * Данные готовит сервер (GET /api/me/yesterday): он же один раз за день
- * пересчитывает вчерашние руки с ура-дорами и кандорами. Ура-индикатор
- * и мёртвая стена детерминированы dayKey — считаются локально.
+ * Что открывается в полночь (для ВСЕХ, по канам дня в целом):
+ *  - ура-доры: 1 базовая (ура-индикатор дня) + по одной за каждый кан;
+ *  - кан-доры: по одной за каждый кан дня (базовой НЕТ);
+ *  - очки пересчитаны сервером (GET /api/me/yesterday).
+ * Ура-индикатор и мёртвая стена детерминированы dayKey — тайлы считаются
+ * локально; количество — dayKanCount из ответа сервера.
  */
 import { getAuth, fetchYesterday } from './auth.js';
 import { renderTiles } from './ui.js';
@@ -33,8 +36,8 @@ export function initYesterday({ dayKey }) {
   const discardEl = document.getElementById('yesterday-discarded');
   const uraBlockEl = document.getElementById('yesterday-ura-block');
   const uraEl = document.getElementById('yesterday-ura');
+  const kanDoraBlockEl = document.getElementById('yesterday-kandora-block');
   const kanDoraEl = document.getElementById('yesterday-kandoras');
-  const kanUraEl = document.getElementById('yesterday-kanuras');
   const scoreEl = document.getElementById('yesterday-score');
   const btnToday = document.getElementById('btn-yesterday-today');
 
@@ -77,30 +80,37 @@ export function initYesterday({ dayKey }) {
     return cell;
   }
 
-  /** Открывшиеся в конце дня доры (детерминированы dayKey вчерашнего дня). */
-  function renderOpenedDoras(date, kans = []) {
+  /**
+   * Открывшиеся в полночь доры (детерминированы dayKey вчерашнего дня):
+   *  - ура: базовая (индикатор дня) + по одной кан-уре за кан дня;
+   *  - кан-доры: по одной за кан дня (без базовой).
+   */
+  function renderOpenedDoras(date, dayKanCount) {
     const ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
     const wall = ctx.deadWall;
+    const kanCount = openKanDoraCount(dayKanCount); // 0..4, без базовой
 
-    if (ctx.uraIndicators.length) {
+    // Ура-доры: 1 базовая + кан-уры.
+    const uraIndicators = [
+      ...ctx.uraIndicators,
+      ...wall.kanUra.slice(0, Math.min(4, Math.max(0, dayKanCount ?? 0))),
+    ];
+    if (uraIndicators.length) {
       uraBlockEl.hidden = false;
       uraEl.innerHTML = '';
-      uraEl.append(doraCell(ctx.uraIndicators[0]));
+      for (const indicator of uraIndicators) uraEl.append(doraCell(indicator));
     } else {
       uraBlockEl.hidden = true;
     }
 
-    // Открытые кан-доры: 1 базовая + по одной за объявленный кан.
-    const openCount = openKanDoraCount((kans ?? []).length);
-    kanDoraEl.innerHTML = '';
-    for (const indicator of wall.kanDora.slice(0, openCount)) {
-      kanDoraEl.append(doraCell(indicator));
-    }
-
-    // Кан-ура открываются все пять в конце дня.
-    kanUraEl.innerHTML = '';
-    for (const indicator of wall.kanUra) {
-      kanUraEl.append(doraCell(indicator));
+    // Кан-доры: только за каны дня.
+    const kanDoras = wall.kanDora.slice(0, kanCount);
+    if (kanDoras.length) {
+      kanDoraBlockEl.hidden = false;
+      kanDoraEl.innerHTML = '';
+      for (const indicator of kanDoras) kanDoraEl.append(doraCell(indicator));
+    } else {
+      kanDoraBlockEl.hidden = true;
     }
   }
 
@@ -138,7 +148,8 @@ export function initYesterday({ dayKey }) {
       discardEl.hidden = true;
     }
 
-    renderOpenedDoras(data.date, data.kans ?? []);
+    // dayKanCount — суммарные каны дня (все игроки) из серверного ответа.
+    renderOpenedDoras(data.date, Number(data.dayKanCount) || (data.kans ?? []).length);
 
     const oldScore = Number(data.oldScore ?? 0);
     const newScore = Number(data.newScore ?? oldScore);

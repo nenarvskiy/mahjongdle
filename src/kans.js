@@ -13,8 +13,11 @@
  */
 import { canonicalTileId } from './tiles.js';
 
-/** Слотов кандор в мёртвой стене. */
+/** Тайлов-кандор в мёртвой стене (часть 10 скрытых тайлов дня). */
 export const KAN_DORA_SLOTS = 5;
+
+/** Максимум кан-дор: одна за каждый кан, в руке не больше 4 канов. */
+export const MAX_KAN_DORA = 4;
 
 /** Все каны в наборе тайлов: [{tile, tiles, indices}]. */
 export function findKans(tiles) {
@@ -57,15 +60,26 @@ export function withKanPons(tiles, declaredKans = []) {
   return [...tiles, ...extra];
 }
 
-/** Сколько кандор открыто: 1 базовая + по одной за кан (макс. 5). */
-export function openKanDoraCount(kanCount, baseOpen = 1) {
-  return Math.max(baseOpen, Math.min(KAN_DORA_SLOTS, baseOpen + Math.max(0, kanCount)));
+/**
+ * Сколько кан-дор открыто: по одной за каждый кан дня, БЕЗ базовой
+ * (максимум 4 — столько канов, сколько может быть в руке).
+ */
+export function openKanDoraCount(kanCount, baseOpen = 0) {
+  return Math.min(MAX_KAN_DORA, baseOpen + Math.max(0, kanCount));
+}
+
+/**
+ * Сколько ура-дор открыто в конце дня: 1 базовая (ура индикатор дня) +
+ * по одной за каждый кан (максимум 5 тайлов-ура в мёртвой стене).
+ */
+export function openUraCount(kanCount) {
+  return Math.min(KAN_DORA_SLOTS, 1 + Math.max(0, kanCount));
 }
 
 /** Слоты кандор: [{index, tile, open}] — первые openCount открыты. */
 export function kanDoraSlots(deadWall, openCount) {
-  const open = Math.max(1, Math.min(KAN_DORA_SLOTS, openCount));
-  return deadWall.slice(0, KAN_DORA_SLOTS).map((tile, index) => ({
+  const open = Math.max(0, Math.min(deadWall.length, openCount));
+  return deadWall.map((tile, index) => ({
     index,
     tile,
     open: index < open,

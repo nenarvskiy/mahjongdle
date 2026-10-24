@@ -8,9 +8,9 @@ import { drawHand, sortHand, allTileIds, tileDisplayName, canonicalTileId } from
 import { tileToIndex } from './tile-index.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
 import { renderTiles, renderScore, renderGroupedHand } from './ui.js';
-import { createDailyContext, createDeadWall, doraFromIndicator } from './daily-context.js';
-import { findKans, withKanPons, openKanDoraCount, KAN_DORA_SLOTS } from './kans.js';
-import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
+import { doraFromIndicator } from './daily-context.js';
+import { findKans, withKanPons } from './kans.js';
+import { renderClosedKan, renderKanPrompt } from './kans-ui.js';
 import { logHand, updateHandBlock, reportHandBlock, scorePayload } from './event-log.js';
 
 const WIND_IDS = ['ew', 'sw', 'ww', 'nw'];
@@ -107,7 +107,6 @@ export function initTestMode() {
     btnKan: q('#tm-btn-kan'),
     btnKanSkip: q('#tm-btn-kan-skip'),
     kanList: q('#tm-kan-list'),
-    kanDoras: q('#tm-kan-dora-wall'),
     discardedPanel: q('#tm-discarded-panel'),
     discarded: q('#tm-discarded'),
     resultPanel: q('#tm-result-panel'),
@@ -161,17 +160,11 @@ export function initTestMode() {
   let score = null;
   let blockId = null;
 
-  function dayWall() {
-    try {
-      return createDeadWall(createDailyContext(new Date()).dayKey);
-    } catch {
-      return { kanDora: [], kanUra: [], tiles: [] };
-    }
-  }
-
+  /** Тайлы, исключённые из добора после кана: только индикаторы теста
+   *  (доры/уры — те, что заданы в этом тестовом режиме). Доры РЕЖИМА ДНЯ
+   *  в тесте не участвуют: тест — отдельный стенд, а не день. */
   function deadForDraw() {
-    const wall = dayWall();
-    return [...(ctx?.deadTiles ?? []), ...(wall.kanDora ?? []), ...(wall.kanUra ?? []), ...(wall.tiles ?? [])];
+    return [...(ctx?.deadTiles ?? [])];
   }
 
   function resetAll() {
@@ -261,19 +254,11 @@ export function initTestMode() {
   // ---- оценка ----
   function fullTiles() { return withKanPons(hand, declaredKans); }
 
-  /** Контекст оценки: та же формула, что в ночном пересчёте (server/recalc.js):
-   *  кандоры — 1 базовая + по одной за каждый кан (макс. 5), и в конце дня
-   *  открыты все ура-доры мёртвой стены. */
+  /** Контекст оценки: только условия ТЕКУЩЕГО теста (ветра + дора/ура,
+   *  заданные пользователем в полях). Доры режима дня здесь НЕ участвуют:
+   *  тест — отдельный стенд. */
   function scoringContext() {
-    const wall = dayWall();
-    const open = openKanDoraCount(declaredKans.length);
-    const kanDoras = (wall.kanDora ?? []).slice(0, Math.min(open, KAN_DORA_SLOTS));
-    return {
-      ...ctx,
-      doraIndicators: [...(ctx.doraIndicators ?? []), ...kanDoras],
-      uraIndicators: [...(ctx.uraIndicators ?? []), ...(wall.kanUra ?? [])],
-      deadTiles: [...(ctx.deadTiles ?? []), ...kanDoras, ...(wall.kanUra ?? [])],
-    };
+    return { ...ctx };
   }
 
   function reevaluate() {
@@ -464,7 +449,6 @@ export function initTestMode() {
       els.kanList.innerHTML = '';
       for (const kan of declaredKans) renderClosedKan(els.kanList, kan);
     }
-    if (els.kanDoras) renderKanDoras(els.kanDoras, dayWall().kanDora, openKanDoraCount(declaredKans.length));
 
     if (els.hint) {
       if (!hand.length) els.hint.textContent = 'Тыкайте тайлы в палитре, чтобы собрать руку.';
