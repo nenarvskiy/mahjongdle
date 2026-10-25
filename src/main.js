@@ -184,37 +184,93 @@ const store = createStore({
 
 // Пока восстанавливается рука дня, кнопка «Сгенерировать» блокируется.
 let booting = true;
-void (async () => {
-  let next = null;
+
+/**
+ * «Печать» руки дня: мультимножество тайлов (рука + тайлы канов),
+ * не зависящее от того, объявлены каны или ещё лежат в руке. По ней
+ * сравниваем «какая рука сейчас на экране» с «какая рука на сервере».
+ */
+function handKey(handTiles, kanList = []) {
+  const tiles = [...handTiles];
+  for (const k of kanList ?? []) tiles.push(k && typeof k === 'object' ? k.tile : k);
+  return sortHand(tiles).join('|');
+}
+
+/**
+ * Синхронизация руки дня с сервером для залогиненного игрока.
+ *
+ * Сервер — ИСТОЧНИК ПРАВДЫ: рука фиксируется на нём при генерации и может
+ * быть заменена (ре-ишю) с любого устройства, поэтому:
+ *  - серверная рука отличная от локальной → сервер выигрывает (кэш на
+ *    устройстве обновляется, рука на экране заменяется);
+ *  - на сервере руки нет → остаётся локальная (фолбэк: БД протёрта
+ *    деплоем, сервер недоступен, гостевая рука).
+ */
+let syncPromise = null; // защита от параллельных синхронизаций
+function syncDailyHandFromServer() {
+  if (!getAuth() || booting || dealing || reissuing) return;
+  if (syncPromise) return syncPromise;
+  syncPromise = (async () => {
+    try {
+      await syncDailyHandFromServerInner();
+    } finally {
+      syncPromise = null;
+    }
+  })();
+  return syncPromise;
+}
+
+async function syncDailyHandFromServerInner() {
+  const local = readStoredDailyHand();
+  const localOk = local?.dayKey === dailyContext.dayKey;
+  const localKey = localOk ? handKey(local.hand, local.kans ?? []) : null;
+  let data;
   try {
-    // Сначала localStorage — та же рука, что игрок видел до перезагрузки.
+    data = await fetchDailyHand(dailyContext.dayKey);
+  } catch {
+    return; // сервер недоступен — играем с локальной рукой
+  }
+  if (!data?.hand?.length) return; // на сервере нет руки — локальная остаётся
+  if (dealing || reissuing) return; // во время синхронизации начали генерацию
+  const cur = store.getState();
+  const curKey = cur.daily ? handKey(cur.hand, declaredKans) : null;
+  const newKey = handKey(data.hand, data.kans ?? []);
+  // Пока запрос шёл, пользователь сам сгенерировал руку (на чистом
+  // устройстве) — её рука новее нашего ответа, не затираем.
+  if (localKey === null && curKey !== null && curKey !== newKey) return;
+  // Показанная рука совпадает с серверной (мультимножество тайлов не
+  // зависит от того, объявлены каны или ещё лежат в руке) — ничего не
+  // трогаем: локальный кэш может содержать более точное состояние
+  // (объявленные каны, пропущенные каны), а серверная строка обновляется
+  // только при отправке счёта.
+  if (curKey === newKey) return;
+  // Серверная рука ДРУГАЯ (ре-ишю с другого устройства) — сервер выигрывает:
+  // заменяем руку на экране и обновляем кэш (пропущенные каны сбрасываются).
+  writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? [], []);
+  skippedKans = [];
+  store.setState(stateFromHand(data.hand, data.kans ?? []));
+}
+
+void (async () => {
+  // Фаза 1: мгновенно показываем локальную руку (если есть) — не ждём
+  // сервер, чтобы рука не «плывала» после перезагрузки.
+  const stored = readStoredDailyHand();
+  const local = stored?.dayKey === dailyContext.dayKey ? stored : null;
+  booting = false;
+  if (local) {
     // Каны дня восстанавливаются вместе с рукой: иначе при следующей
     // отправке счёта они были бы затёрты пустым списком (см. maybeSubmitScore).
-    const stored = readStoredDailyHand();
-    if (stored?.dayKey === dailyContext.dayKey) {
-      next = stateFromHand(stored.hand, stored.kans ?? []);
-      skippedKans = stored.skipped ?? [];
-    } else if (getAuth()) {
-      // Локальной руки дня нет (очистка кеша, другое устройство) —
-      // восстанавливаем с сервера: рука фиксируется там при генерации
-      // (пропущенные каны хранятся только локально — начинаем с чистого
-      // листа, каны предложат заново).
-      const data = await fetchDailyHand(dailyContext.dayKey);
-      if (data?.hand?.length) {
-        writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? []);
-        skippedKans = [];
-        next = stateFromHand(data.hand, data.kans ?? []);
-      }
-    }
-  } catch {
-    /* сервер недоступен — не мешаем игре */
+    skippedKans = local.skipped ?? [];
+    store.setState(stateFromHand(local.hand, local.kans ?? []));
+  } else {
+    store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
   }
-  // Сначала снимаем флаг: финальный setState вызывает рендер, и он обязан
-  // увидеть booting = false — иначе «Сгенерировать» остаётся заблокированной
-  // навсегда (раньше booting=false выставлялся ПОСЛЕ setState).
-  booting = false;
-  if (next) store.setState(next);
-  else store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
+  // Фаза 2: для залогиненных сверяемся с сервером (источник правды):
+  // на чистом устройстве рука появится здесь, а «устаревший» кэш
+  // (руку перевыдали на другом устройстве) — заменится на свежую.
+  // Откладываем в микротаск: переменные dealing/reissuing инициализируются
+  // ниже по модулю (TDZ), а сам запрос всё равно асинхронный.
+  if (getAuth()) void Promise.resolve().then(() => syncDailyHandFromServer());
 })();
 
 // Если день сменился, пока страница открыта (полночь МСК), — перезагружаем:
@@ -755,6 +811,15 @@ els.btnReissue.addEventListener('click', () => {
 initAuthButton(els.authSlot).then(renderAuthUser);
 onAuthChange(renderAuthUser);
 renderAuthUser();
+// Логин ПОСЛЕ загрузки страницы (новое устройство / повторный вход):
+// boot уже отработал без сессии — тянем руку дня с сервера. В UI ничего
+// не меняем, если рука уже показана (она сверится при следующей перезагрузке).
+onAuthChange((auth) => {
+  if (!auth) return;
+  const st = store.getState();
+  if (st.daily) return; // рука уже на экране — не трогаем
+  void syncDailyHandFromServer();
+});
 // Роль на сервере может измениться без повторного логина (hot-reload файла
 // ролей) — при загрузке страницы подтягиваем актуальный профиль.
 refreshMe();
