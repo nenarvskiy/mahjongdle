@@ -84,41 +84,115 @@ export function getUser(db, id) {
 }
 
 /**
- * Записать результат дня: храним ЛУЧШИЙ (максимум очков).
- * Возвращает { score, isBest, rank }:
- *   score  — лучший после этой записи,
- *   isBest — запись стала новым личным рекордом (включая первый),
- *   rank   — место в таблице дня (одинаковые очки — ранг по времени).
+ * Зафиксированный результат дня игрока (строка в scores с score > 0;
+ * страховка — day_hands с очками). null — результат ещё не записан.
+ * Политика «1 результат в день»: повторная отправка обычного игрока
+ * не пишется, возвращается эта запись (см. POST /api/scores).
  */
-export function upsertScore(db, { userId, date, score, discarded, tiles }) {
-  const existing = db
+export function getFixedResult(db, userId, date) {
+  const s = db
     .prepare('SELECT score, created_at FROM scores WHERE user_id = ? AND date = ?')
     .get(userId, date);
-  const isBest = !existing || score > existing.score;
-  const now = new Date().toISOString();
-  // время записи обновляем только при новом рекорде — иначе равенство очков
-  // в таблице дня решалось бы «последней» записью, а не первой
-  const keptAt = isBest ? now : existing.created_at;
-  if (existing) {
-    db.prepare(`
-      UPDATE scores SET score = ?, discarded = ?, tiles = ?, created_at = ?
-      WHERE user_id = ? AND date = ?
-    `).run(score, discarded, tiles, keptAt, userId, date);
-  } else {
-    db.prepare(`
-      INSERT INTO scores (user_id, date, score, discarded, tiles, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(userId, date, score, discarded, tiles, now);
-  }
-  const best = isBest ? score : existing.score;
-  // ранг: 1 + число игроков, чья строка строго «выше» нашей
-  const rank = db.prepare(`
+  if (s && s.score > 0) return { score: s.score, createdAt: s.created_at };
+  const dh = db
+    .prepare('SELECT score FROM day_hands WHERE user_id = ? AND date = ?')
+    .get(userId, date);
+  if (dh && dh.score > 0) return { score: dh.score, createdAt: null };
+  return null;
+}
+
+/** Ранг (score, createdAt) в таблице дня: 1 + число строго «выше». */
+export function dayRank(db, date, score, createdAt) {
+  return db.prepare(`
     SELECT 1 + (
       SELECT COUNT(*) FROM scores
       WHERE date = ? AND (score > ? OR (score = ? AND created_at < ?))
     ) AS rank
-  `).get(date, best, best, keptAt).rank;
-  return { score: best, isBest, rank };
+  `).get(date, score, score, createdAt ?? '').rank;
+}
+
+/**
+ * Записать результат дня ОДНОЙ транзакцией в оба слоя — scores (публичный
+ * счёт дня) и day_hands (рука/каны/сброс для ночного пересчёта). Слои
+ * всегда согласованы: одна запись — один счёт.
+ *
+ * force (admin/test) — перезапись уже зафиксированного результата: оба
+ * слоя получают новые значения, recalculated сбрасывается в 0 (новый
+ * результат пройдёт ночной пересчёт), created_at — время записи.
+ *
+ * Возвращает { score, isBest, rank }:
+ *   score  — результат после записи,
+ *   isBest — запись зафиксирована как результат (первая или force),
+ *   rank   — место в таблице дня (одинаковые очки — ранг по времени).
+ */
+export function submitDayResult(db, {
+  userId, date, score, discarded = null, tiles = null,
+  hand = [], kans = [], complete = false, dayCtx = {}, force = false,
+}) {
+  const now = new Date().toISOString();
+  const existing = getFixedResult(db, userId, date);
+  const isBest = !existing || force;
+  // tiles — массив id тайлов (или уже сериализованная строка / null)
+  const tilesJson = Array.isArray(tiles)
+    ? JSON.stringify(tiles)
+    : (typeof tiles === 'string' && tiles.length ? tiles : null);
+  db.exec('BEGIN');
+  try {
+    if (existing) {
+      // force-перезапись: created_at — время последней записи (ранг при
+      // равенстве очков решается ей, а не устаревшей первой записью).
+      db.prepare(`
+        UPDATE scores SET score = ?, discarded = ?, tiles = ?, created_at = ?
+        WHERE user_id = ? AND date = ?
+      `).run(score, discarded, tilesJson, now, userId, date);
+    } else {
+      db.prepare(`
+        INSERT INTO scores (user_id, date, score, discarded, tiles, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(userId, date, score, discarded, tilesJson, now);
+    }
+    // Каны дня накапливаются: повторная запись не стирает объявленные каны
+    // (от них зависит ночной пересчёт всего дня); при force — пишем
+    // присланные как есть (явная перезапись).
+    const existingRow = db
+      .prepare('SELECT kans FROM day_hands WHERE user_id = ? AND date = ?')
+      .get(userId, date);
+    let mergedKans = kans ?? [];
+    if (!force && existingRow) {
+      const oldKans = parseJson(existingRow.kans, []);
+      if (oldKans.length) mergedKans = Array.from(new Set([...oldKans, ...mergedKans]));
+    }
+    db.prepare(`
+      INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+      ON CONFLICT(user_id, date) DO UPDATE SET
+        hand = excluded.hand,
+        tiles = excluded.tiles,
+        kans = excluded.kans,
+        discarded = excluded.discarded,
+        day_ctx = excluded.day_ctx,
+        score = excluded.score,
+        complete = excluded.complete,
+        recalculated = CASE WHEN ? = 1 THEN 0 ELSE day_hands.recalculated END
+    `).run(
+      userId, date,
+      JSON.stringify(hand ?? []),
+      tilesJson,
+      JSON.stringify(mergedKans),
+      discarded,
+      Number.isFinite(score) ? score : 0,
+      complete ? 1 : 0,
+      JSON.stringify(dayCtx ?? {}),
+      now,
+      force ? 1 : 0,
+    );
+    db.exec('COMMIT');
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch { /* уже откатилось */ }
+    throw e;
+  }
+  const createdAt = isBest ? now : existing.createdAt;
+  return { score, isBest, rank: dayRank(db, date, score, createdAt) };
 }
 
 /**
@@ -237,50 +311,6 @@ function parseJson(text, fallback) {
   } catch {
     return fallback;
   }
-}
-
-/**
- * Сохранить руку дня на момент сдачи (лучший результат дня — в scores).
- * Повторная запись в тот же день перезаписывает руку, но счёт/флаг пересчёта
- * сбрасываются только если новый счёт больше прежнего.
- */
-export function upsertDayHand(db, {
-  userId, date, hand = [], tiles = null, kans = [], discarded = null,
-  score, complete = false, dayCtx = {},
-}) {
-  // Каны дня только НАКОПЛИТЫВАЮТСЯ: повторная отправка результата (например,
-  // автоматом после перезагрузки страницы старым клиентом, который не
-  // восстанавливает declaredKans) не должна стирать уже объявленные каны —
-  // от них зависят кан-доры всего дня.
-  const existingRow = db.prepare('SELECT kans FROM day_hands WHERE user_id = ? AND date = ?').get(userId, date);
-  let mergedKans = kans ?? [];
-  if (existingRow) {
-    const oldKans = parseJson(existingRow.kans, []);
-    if (oldKans.length) mergedKans = Array.from(new Set([...oldKans, ...mergedKans]));
-  }
-  db.prepare(`
-    INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
-    ON CONFLICT(user_id, date) DO UPDATE SET
-      hand = excluded.hand,
-      tiles = excluded.tiles,
-      kans = excluded.kans,
-      discarded = excluded.discarded,
-      day_ctx = excluded.day_ctx,
-      score = CASE WHEN excluded.score > day_hands.score THEN excluded.score ELSE day_hands.score END,
-      complete = CASE WHEN excluded.score > day_hands.score THEN excluded.complete ELSE day_hands.complete END,
-      recalculated = CASE WHEN excluded.score > day_hands.score THEN 0 ELSE day_hands.recalculated END
-  `).run(
-    userId, date,
-    JSON.stringify(hand ?? []),
-    tiles ? JSON.stringify(tiles) : null,
-    JSON.stringify(mergedKans),
-    discarded,
-    Number.isFinite(score) ? score : 0,
-    complete ? 1 : 0,
-    JSON.stringify(dayCtx ?? {}),
-    new Date().toISOString(),
-  );
 }
 
 /**

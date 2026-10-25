@@ -14,9 +14,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { signSession, verifySession } from './auth.js';
 import {
-  upsertUser, getUser, upsertScore, leaderboard, insertEvent, listEvents,
-  updateEventPayload, addEventReport,
-  upsertDayHand, upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
+  upsertUser, getUser, getFixedResult, dayRank, submitDayResult, leaderboard,
+  insertEvent, listEvents, updateEventPayload, addEventReport,
+  upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
   markDayHandRecalculated, setScoreValue, reissueDayHand, listDayKans,
 } from './db.js';
 import { createDailyContext } from '../src/daily-context.js';
@@ -263,8 +263,18 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     res.json({ rows: listEvents(db, { kind: EVENT_KIND, limit, reportsOnly }) });
   });
 
-  /** POST /api/scores {date, score, discarded?, tiles?} → {score, isBest, rank} */
-  app.post('/api/scores', (req, res) => {
+  /**
+   * POST /api/scores {date, score, discarded?, tiles?} → {score, isBest, rank}
+   *
+   * Политика «1 результат в день»: результат фиксируется ОДИН раз.
+   * Повторная отправка обычного игрока (перезагрузка страницы, вторая
+   * вкладка) НЕ пишется в БД — возвращается уже зафиксированный результат,
+   * поэтому перезагрузки и двойные попытки ничего не ломают. admin/test
+   * могут пересдать (force): оба слоя (scores + day_hands) обновляются
+   * согласованно, recalculated сбрасывается — новый результат пройдёт
+   * ночной пересчёт.
+   */
+  app.post('/api/scores', async (req, res) => {
     const user = authProfile(req, db, sessionSecret);
     if (!user) return httpError(res, 401, 'нет сессии');
     const { date, score, discarded, tiles } = req.body ?? {};
@@ -300,24 +310,31 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       return httpError(res, 400, 'kans — массив id объявленных канов (до 4)');
     }
 
-    const result = upsertScore(db, {
-      userId: user.id,
-      date,
-      score,
-      discarded: discardedStr,
-      tiles: tilesJson,
-    });
+    // Политика «1 результат в день»: результат уже зафиксирован —
+    // обычный игрок пересдать не может (возвращаем записанный результат,
+    // БД не трогаем), admin/test — перезаписывают согласованно.
+    const role = await roleFor(user.email, rolesFile);
+    const force = role === 'admin' || role === 'test';
+    const existing = getFixedResult(db, user.id, date);
+    if (existing && !force) {
+      return res.json({
+        score: existing.score,
+        isBest: false,
+        rank: dayRank(db, date, existing.score, existing.createdAt),
+      });
+    }
 
-    upsertDayHand(db, {
+    const result = submitDayResult(db, {
       userId: user.id,
       date,
-      hand: hand ?? [],
-      tiles: tiles ?? null,
-      kans: kans ?? [],
-      discarded: discardedStr,
       score,
+      discarded: discardedStr,
+      tiles: tiles ?? null,
+      hand: hand ?? [],
+      kans: kans ?? [],
       complete: Boolean(complete),
       dayCtx: dayCtx && typeof dayCtx === 'object' ? dayCtx : {},
+      force,
     });
 
     res.json(result);

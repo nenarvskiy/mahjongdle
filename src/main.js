@@ -363,9 +363,13 @@ async function maybeSubmitScore(state) {
         seatWindId: dailyContext.seatWindId,
       },
     });
+    // Политика «1 результат в день»: isBest — первая запись (или пересдача
+    // admin/test); повтор той же отправки возвращает зафиксированный результат.
+    const note = r.isBest
+      ? 'личный рекорд'
+      : (r.score === state.score.total ? 'результат уже записан' : 'результат за день уже зафиксирован');
     els.scoreStatus.textContent =
-      `Сохранено: ${r.score.toLocaleString('ru-RU')} очков — ` +
-      `${r.isBest ? 'личный рекорд' : 'у вас уже был лучший результат'}, ${r.rank} место в таблице дня`;
+      `Сохранено: ${r.score.toLocaleString('ru-RU')} очков — ${note}, ${r.rank} место в таблице дня`;
     refreshLeaderboard();
   } catch (e) {
     lastSubmitKey = null; // позволить повторить
