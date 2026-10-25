@@ -181,14 +181,17 @@ test('leaderboard: порядок, ограничение, другая дата
   const { date, rows } = await res.json();
   assert.equal(date, DAY);
   assert.equal(rows.length, 2);
-  // рука сохраняется с результатом (клик по строке → просмотр): hand = исходная 14
+  // рука сохраняется с результатом (клик по строке → просмотр): hand = исходная 14,
+  // tiles = 13 после сброса (нужны для разбивки «за что» — аудит F6)
   const discarded = HAND_SHARED[13];
+  const tiles = HAND_SHARED.filter((t) => t !== discarded);
   assert.deepEqual(rows[0], {
     id: 'sub-1', name: 'Игрок sub-1', picture: null, score: dayScore(discarded), discarded,
-    hand: HAND_SHARED, kans: [], complete: false,
+    hand: HAND_SHARED, tiles, kans: [], complete: false,
   });
   assert.equal(rows[1].id, 'sub-2');
   assert.equal(rows[1].score, dayScore(discarded));
+  assert.deepEqual(rows[1].tiles, tiles, 'у второй строки тоже tiles (F6)');
 
   const one = await (await fetch(`${base}/api/scores/${DAY}?limit=1`)).json();
   assert.equal(one.rows.length, 1);
@@ -209,6 +212,17 @@ test('CORS: заголовки для фронтенда', async () => {
   });
   assert.equal(opt.status, 204);
   assert.ok(opt.headers.get('access-control-allow-headers').includes('Authorization'));
+});
+
+test('CORS: preflight PATCH разрешён (обновление блоков лога, F7)', async () => {
+  const opt = await fetch(`${base}/api/events/1`, {
+    method: 'OPTIONS',
+    headers: { origin: 'https://game.example', 'access-control-request-method': 'PATCH' },
+  });
+  assert.equal(opt.status, 204);
+  const methods = opt.headers.get('access-control-allow-methods') ?? '';
+  assert.ok(methods.split(',').map((s) => s.trim()).includes('PATCH'),
+    `в allow-methods есть PATCH: ${methods}`);
 });
 
 test('сессия: токен с другим секретом не проходит', async () => {

@@ -216,7 +216,7 @@ export function leaderboard(db, date, limit) {
   const rows = db.prepare(`
     SELECT u.id AS id, u.name AS name, u.picture AS picture,
            s.score AS score, s.discarded AS discarded,
-           dh.hand AS hand, dh.kans AS kans, dh.complete AS complete
+           dh.hand AS hand, dh.tiles AS tiles, dh.kans AS kans, dh.complete AS complete
     FROM scores s
     JOIN users u ON u.id = s.user_id
     LEFT JOIN day_hands dh ON dh.user_id = s.user_id AND dh.date = s.date
@@ -227,6 +227,10 @@ export function leaderboard(db, date, limit) {
   for (const row of rows) {
     const hand = parseJson(row.hand, []);
     row.hand = Array.isArray(hand) && hand.length ? hand : null;
+    // tiles (13 после сброса) нужны для разбивки «за что» при клике по
+    // строке таблицы дня (аудит F6).
+    const tiles = parseJson(row.tiles, []);
+    row.tiles = Array.isArray(tiles) && tiles.length ? tiles : null;
     row.kans = parseJson(row.kans, []);
     row.complete = row.complete === 1;
   }

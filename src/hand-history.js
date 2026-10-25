@@ -357,6 +357,9 @@ export function openLeaderboardHand(row) {
     discarded: row.discarded,
     score: row.score,
     complete: row.complete,
+    // 13 тайлов после сброса — без них recompute не считает разбивку
+    // «за что очки» (аудит F6).
+    tiles: row.tiles ?? null,
     today,
   });
 }

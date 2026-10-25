@@ -4,13 +4,13 @@ import { readFileSync } from 'node:fs';
 
 import { APP_VERSION } from '../src/version.js';
 
-test('версия игры: 0.6.21', () => {
-  assert.equal(APP_VERSION, '0.6.21');
+test('версия игры: 0.6.22', () => {
+  assert.equal(APP_VERSION, '0.6.22');
 });
 
 test('версия отображается в шапке и берётся из version.js', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /id="app-version"/, 'в шапке есть элемент версии');
-  assert.match(html, /v0\.6\.21/, 'есть статичный фолбэк версии');
+  assert.match(html, /v0\.6\.22/, 'есть статичный фолбэк версии');
   assert.match(html, /from '\.\/src\/version\.js'/, 'версия подставляется из общего модуля');
 });
