@@ -383,11 +383,35 @@ test('complete hand with kan: четвёртый тайл кана считае�
   const kanBlocks = withKan.breakdown.find((r) => r.label === 'Структура').blocks.filter((b) => b.label === 'Кан');
   assert.equal(kanBlocks.length, 1, 'в структуре ровно один блок «Кан»');
   assert.equal(kanBlocks[0].points, 5500);
-  // Без аргумента кана те же тайлы дают лучшую «свободную» форму
-  // (3334 = 580 + рянмен = 20 → структура 715), с каном — 5665:
-  // 5665 − 715 = 4950; плюс дора: 4-й тайл кана = 4 доры (800) вместо
-  // 3 (400) → +400. Итого 5350.
-  assert.equal(withKan.total - withoutKan.total, 5350);
+  // F4: 4-й тайл кана идёт в доры → с каном 4 доры (хан: риичи 1 + дора 4 = 5,
+  // манган, база 56 000 000), без — 3 (4 хана, Normal, база 5 400 000).
+  assert.equal(withKan.potential.han, 5, 'с каном — 4 доры-хана');
+  assert.equal(withKan.tier.label, 'Манган');
+  assert.equal(withKan.base, 56000000);
+  assert.equal(withoutKan.potential.han, 4);
+  assert.equal(withoutKan.tier.label, 'Normal');
+  // Структура с каном 5665 (без — 715), дора-строка 800 (без — 400),
+  // пара ценных 60: разница = 56 006 525 − 5 401 175.
+  assert.equal(withKan.total - withoutKan.total, 50605350);
+});
+
+test('complete hand with kan: красная пятёрка в кане — дора за 4-й тайл (F4)', () => {
+  const ctx = { roundWind: 27, seatWind: 27, doraIndicators: ['9m'], uraIndicators: [] };
+  // Пон пятёрок; остальное — саншоку доуджун (234m, 234p, 234s) + пара 9p.
+  const base14 = ['2m', '3m', '4m', '2p', '3p', '4p', '2s', '3s', '4s', '9p', '9p'];
+  // Красная — отложенный 4-й тайл кана (в 14-форме её нет), кан объявлен красным id:
+  const redKan = evaluateCompleteHand(['5m', '5m', '5m', ...base14], ctx, ['0m']);
+  const plainKan = evaluateCompleteHand(['5m', '5m', '5m', ...base14], ctx, ['5m']);
+  assert.ok(redKan && plainKan);
+  const akaRed = redKan.potential.yaku.find((y) => y.id === 'aka_dora');
+  assert.ok(akaRed, 'красная дора за 4-й тайл кана');
+  assert.equal(akaRed.han, 1, 'ровно одна (красная в стене одна)');
+  assert.equal(redKan.potential.han, plainKan.potential.han + 1);
+  // Красная в пон (в 14-форме) + красный id кана — без двойного счёта:
+  const redInPon = evaluateCompleteHand(['0m', '5m', '5m', ...base14], ctx, ['0m']);
+  const akaPon = redInPon.potential.yaku.find((y) => y.id === 'aka_dora');
+  assert.equal(akaPon.han, 1, 'красная в пон не считается дважды');
+  assert.equal(redInPon.potential.han, redKan.potential.han);
 });
 
 test('complete hand with kan: в отображении кан показывается блоком из 4 тайлов', () => {

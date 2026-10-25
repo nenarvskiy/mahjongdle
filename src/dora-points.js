@@ -14,11 +14,16 @@ import { countDora } from './daily-context.js';
 import { tileToIndex } from './tile-index.js';
 import { canonicalTileId } from './tiles.js';
 
+/** Красные пятёрки (отдельные id): '0m'/'0p'/'0s'. */
+const RED_FIVE_IDS = new Set(['0m', '0p', '0s']);
+
 /**
  * Сколько дор в руке: обычные + ура + красные пятёрки.
  * counts — счётчики видов тайлов (handToCounts), redFives — красные из руки,
  * declaredKans — объявленные каны: «пон» кана в counts несёт 3 тайла,
  * но кан — это 4, поэтому четвёртый тайл добавляется для подсчёта дор.
+ * Кан, в котором красная пятёрка — 4-й (отложенный) тайл, объявляется
+ * красным id ('0m'/'0p'/'0s'): её нет в redFives, но дора за неё считается.
  */
 export function countHandDoras(counts, ctx = {}, redFives = [], declaredKans = []) {
   const c = counts.slice();
@@ -40,6 +45,10 @@ export function countHandDoras(counts, ctx = {}, redFives = [], declaredKans = [
     for (const tile of seen) {
       const index = tileToIndex(tile);
       if (index != null && c[index] > 0) total += 1;
+    }
+    for (const kan of declaredKans ?? []) {
+      const id = typeof kan === 'string' ? kan : kan?.tile;
+      if (id && RED_FIVE_IDS.has(id) && !seen.has(id)) total += 1;
     }
   }
   return total;

@@ -1048,6 +1048,51 @@ test('F2: семантика руки — кривые id, мёртвая сте
   const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
   assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
   await p.close(); p.cleanup();
+
+  // 7. Готовая рука с каном: 14 содержит пон (3 тайла), 4-й тайл отложен
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const K3 = liveIds(DAY, 1)[0];
+  const rest3 = liveIds(DAY, 11, [K3]);
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, hand: [K3, K3, K3, K3, ...rest3.slice(0, 10)] }),
+  })).status, 200);
+  const R3 = rest3[10];
+  const full14 = [K3, K3, K3, ...rest3.slice(0, 10), R3];
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({
+      date: DAY, score: 2000, discarded: null, tiles: full14,
+      hand: full14, kans: [K3], complete: true,
+    }),
+  });
+  assert.equal(r.status, 200, `готовая рука с каном принимается: ${await r.text()}`);
+  assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, [K3]);
+  await p.close(); p.cleanup();
+
+  // 8. Красный id кана ('0m'): в выданной руке 4 пятёрки, одна красная
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const rest4 = liveIds(DAY, 10, ['5m']);
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, hand: ['0m', '5m', '5m', '5m', ...rest4] }),
+  })).status, 200);
+  const R4 = rest4[0];
+  const hand11r = [...rest4, R4];
+  const discarded4 = rest4[9];
+  const tiles10r = hand11r.filter((t) => t !== discarded4);
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({
+      date: DAY, score: 2000, discarded: discarded4, tiles: tiles10r,
+      hand: hand11r, kans: ['0m'], complete: false,
+    }),
+  });
+  assert.equal(r.status, 200, `красный id кана принимается: ${await r.text()}`);
+  assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, ['0m']);
+  await p.close(); p.cleanup();
 });
 
 test('F2: клиентский score и dayCtx не доверяются — сервер пересчитывает', async () => {

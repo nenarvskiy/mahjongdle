@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { drawHand, sortHand, tileDisplayName } from './tiles.js';
+import { drawHand, sortHand, tileDisplayName, canonicalTileId } from './tiles.js';
 import { createStore } from './state.js';
 import { renderTiles, renderScore, renderGroupedHand, createTileElement } from './ui.js';
 import { evaluateCompleteHand, evaluateHand } from './scoring.js';
@@ -342,6 +342,11 @@ async function maybeSubmitScore(state) {
   els.scoreStatus.textContent = 'Записываю результат…';
   els.scoreStatus.hidden = false;
   try {
+    // Id кана для сервера: красный ('0m'/'0p'/'0s'), если красная пятёрка —
+    // одна из 4-х тайлов кана (в т.ч. отложенная 4-я), иначе вид тайла.
+    // Нужен для красной доры за 4-й тайл кана (аудит F4).
+    const kanIds = declaredKans.map((kan) =>
+      (kan.tiles ?? []).some((t) => t[0] === '0') ? `0${kan.tile[1]}` : kan.tile);
     const r = await submitScore(dailyContext.dayKey, state.score.total, {
       discarded: state.discarded ?? undefined,
       tiles: state.phase === 'complete' ? state.hand : state.remaining,
@@ -353,7 +358,7 @@ async function maybeSubmitScore(state) {
       hand: state.phase === 'complete'
         ? (state.hand.length === 14 ? state.hand : withKanPons(state.hand, declaredKans))
         : state.hand,
-      kans: declaredKans.map((kan) => kan.tile),
+      kans: kanIds,
       complete: state.phase === 'complete',
       dayCtx: {
         dayKey: dailyContext.dayKey,
@@ -447,7 +452,10 @@ let dealing = false;
  */
 function refreshKanPrompt(state) {
   const hand = state.phase === 'choose' ? state.hand : state.remaining;
-  const candidates = findKans(hand).filter((kan) => !skippedKans.includes(kan.tile));
+  // Пропуск — по виду тайла: в старых данных skippedKans может храниться
+  // канонический id, а findKans отдаёт красный, если красная в кане.
+  const candidates = findKans(hand).filter((kan) =>
+    !skippedKans.some((skipped) => canonicalTileId(skipped) === canonicalTileId(kan.tile)));
   pendingKans = candidates;
   pendingKan = candidates[0] ?? null;
   if (!pendingKan) {

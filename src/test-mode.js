@@ -216,7 +216,8 @@ export function initTestMode() {
       els.kanPrompt.hidden = true;
       return;
     }
-    if (!pendingKan) pendingKans = findKans(hand).filter((kan) => !skippedKans.includes(kan.tile));
+    if (!pendingKan) pendingKans = findKans(hand).filter((kan) =>
+      !skippedKans.some((skipped) => canonicalTileId(skipped) === canonicalTileId(kan.tile)));
     pendingKan = pendingKans[0] ?? null;
     if (!pendingKan) {
       els.kanPrompt.hidden = true;

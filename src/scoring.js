@@ -127,7 +127,7 @@ export function evaluateCompleteHand(tiles, ctx = {}, declaredKans = []) {
     // Тот же дефолт, что в bestCompletion (potential.js): рука по умолчанию
     // считается с риичи, поэтому готовая рука получает +1 хан риичи.
     riichi: true,
-  });
+  }, declaredKans);
   const tier = tierOfHan(completed.han);
   const state = BASE_TABLE.rows.length - 1;
   const base = basePoints(state, tier.index);

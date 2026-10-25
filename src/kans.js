@@ -19,7 +19,10 @@ export const KAN_DORA_SLOTS = 5;
 /** Максимум кан-дор: одна за каждый кан, в руке не больше 4 канов. */
 export const MAX_KAN_DORA = 4;
 
-/** Все каны в наборе тайлов: [{tile, tiles, indices}]. */
+/** Все каны в наборе тайлов: [{tile, tiles, indices}].
+ *  tile — вид тайла; если красная пятёрка входит в кан, — красный id
+ *  ('0m'/'0p'/'0s'): серверу и скорингу нужна красная дора за 4-й тайл
+ *  кана (аудит F4), а все потребители (kanLock, withKanPons) канонизируют. */
 export function findKans(tiles) {
   const byKind = new Map();
   tiles.forEach((tile, index) => {
@@ -30,10 +33,12 @@ export function findKans(tiles) {
   const kans = [];
   for (const [kind, items] of byKind) {
     if (items.length >= 4) {
+      const four = items.slice(0, 4);
+      const red = four.find((item) => item.tile[0] === '0');
       kans.push({
-        tile: kind,
-        tiles: items.slice(0, 4).map((item) => item.tile),
-        indices: items.slice(0, 4).map((item) => item.index),
+        tile: red ? red.tile : kind,
+        tiles: four.map((item) => item.tile),
+        indices: four.map((item) => item.index),
       });
     }
   }

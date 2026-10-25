@@ -13,10 +13,15 @@ const ctx = { roundWindId: 'ew', seatWindId: 'sw', doraIndicators: [], uraIndica
 
 test('findKans: четыре одинаковых; красная пятёрка входит в кан пятёрок', () => {
   assert.equal(findKans(['1m', '1m', '1m', '1m', '2p']).length, 1);
+  assert.equal(findKans(['1m', '1m', '1m', '1m', '2p'])[0].tile, '1m');
+  // Если красная входит в кан — id красного ('0m'): серверу/скорингу нужна
+  // красная дора за 4-й тайл кана (аудит F4); все потребители канонизируют.
   const red = findKans(['0m', '5m', '5m', '5m', '2p']);
   assert.equal(red.length, 1);
-  assert.equal(red[0].tile, '5m');
+  assert.equal(red[0].tile, '0m');
   assert.deepEqual(red[0].tiles, ['0m', '5m', '5m', '5m']);
+  const redPlain = findKans(['5m', '5m', '5m', '5m', '2p']);
+  assert.equal(redPlain[0].tile, '5m', 'без красной — вид тайла');
   assert.equal(findKans(['1m', '1m', '1m', '2p']).length, 0);
   assert.equal(hasKan(['1m', '1m', '1m', '1m']), true);
 });

@@ -79,7 +79,8 @@ export function validateDaySubmission({
 
   if (!Array.isArray(tiles)) return { ok: false, error: 'tiles — массив id тайлов' };
   const kCount = Array.isArray(kans) ? kans.length : 0;
-  if (new Set(kans).size !== kCount) {
+  // Уникальность — по виду тайла: '0m' и '5m' — один и тот же кан.
+  if (new Set(kans.map((k) => canonicalTileId(k))).size !== kCount) {
     return { ok: false, error: 'один кан нельзя объявить дважды' };
   }
   if (complete) {
@@ -114,32 +115,37 @@ export function validateDaySubmission({
   }
 
   // Мультиконтр-проверка против выданной руки (если она зафиксирована).
+  // Считается по ВИДУ тайла (canonicalTileId): '0m' и '5m' — одна пятёрка.
   if (!Array.isArray(draft) || draft.length !== 14) return { ok: true };
   const countOf = (arr) => {
     const m = new Map();
-    for (const t of arr) m.set(t, (m.get(t) ?? 0) + 1);
+    for (const t of arr) {
+      const c = canonicalTileId(t);
+      m.set(c, (m.get(c) ?? 0) + 1);
+    }
     return m;
   };
   const draftCounts = countOf(draft);
+  // Физические тайлы отправки: текущие (tiles + сброшенный) + тайлы канов —
+  // у неготовой руки 4 тайла каждого кана (пон не входит в tiles), у готовой
+  // 14 уже содержит пон (3 тайла), добавляем только отложенную 4-ю.
   const sent = [
     ...tiles,
     ...(discarded != null ? [discarded] : []),
-    ...kans.flatMap((k) => [k, k, k, k]),
+    ...(complete ? kans : kans.flatMap((k) => [k, k, k, k])),
   ];
   const sentCounts = countOf(sent);
   const ids = new Set([...draftCounts.keys(), ...sentCounts.keys()]);
   let excess = 0;
   for (const id of ids) {
     const diff = (sentCounts.get(id) ?? 0) - (draftCounts.get(id) ?? 0);
-    // Готовая рука с каноми: 4-й тайл каждого кана отложен (−1 на кан).
-    const minDiff = complete && kans.includes(id) ? -1 : 0;
-    if (diff < minDiff) return { ok: false, error: 'рука не совпадает с выданной' };
+    if (diff < 0) return { ok: false, error: 'рука не совпадает с выданной' };
     if (diff > 0) excess += diff;
   }
   // На каждый объявленный кан — ровно один доборный тайл из стены.
   if (excess !== kCount) return { ok: false, error: 'рука не совпадает с выданной' };
   for (const k of kans) {
-    if ((draftCounts.get(k) ?? 0) < 4) {
+    if ((draftCounts.get(canonicalTileId(k)) ?? 0) < 4) {
       return { ok: false, error: 'кан объявлен на тайлы, которых нет в руке' };
     }
   }

@@ -27,7 +27,7 @@ function bestCompletion(tenpaiStates, ctx, declaredKans = []) {
         // Хан за само цумо не даётся: rules.tsumo = false.
         tsumo: true,
         winningTile,
-      });
+      }, declaredKans);
       // В v4 тир определяется числом хан, поэтому и лучшая достройка — по хану.
       if (result.han > best.han) best = { ...result, completedCounts: completed };
     }
