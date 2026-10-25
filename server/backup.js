@@ -90,6 +90,20 @@ export function createBackup({
 
   const contentUrl = () => `/repos/${repo}/contents/${encodeURIComponent(file)}`;
 
+  /**
+   * «Момент последнего изменения» БД в WAL-режиме: максимум mtime главного
+   * файла и файлов -wal/-shm. Записи в WAL копятся в -wal, главный файл
+   * меняется только при чекпоинте, поэтому смотреть только его mtime —
+   * не видеть свежие изменения (баг: watcher пропускал push после первого).
+   */
+  function dbMtime() {
+    let m = 0;
+    for (const p of [dbPath, `${dbPath}-wal`, `${dbPath}-shm`]) {
+      try { m = Math.max(m, fs.statSync(p).mtimeMs); } catch { /* файла нет */ }
+    }
+    return m;
+  }
+
   async function remoteFile() {
     const res = await fetch(`${apiBase}${contentUrl()}`, { headers: githubHeaders(token) });
     if (res.status === 404) return null;
@@ -128,7 +142,7 @@ export function createBackup({
         throw new Error(`GitHub PUT ${res.status}: ${(await res.text()).slice(0, 300)}`);
       }
       state.lastPushAt = new Date().toISOString();
-      state.lastPushMtime = fs.statSync(dbPath).mtimeMs;
+      state.lastPushMtime = dbMtime();
       log.log?.(`[backup] БД загружена в ${repo}/${file}${reason ? ` (${reason})` : ''}`);
     } catch (err) {
       state.lastPushError = String(err?.message ?? err);
@@ -144,8 +158,9 @@ export function createBackup({
   /** Один такт наблюдения: commit только если БД менялась с прошлого push. */
   async function tick() {
     if (!fs.existsSync(dbPath)) return;
-    const mtime = fs.statSync(dbPath).mtimeMs;
-    if (mtime > state.lastPushMtime) await pushNow('watcher');
+    // Сравниваем «момент изменения» всех файлов БД (WAL!): записи копятся в
+    // -wal, главный файл меняется только при чекпоинте.
+    if (dbMtime() > state.lastPushMtime) await pushNow('watcher');
   }
 
   function status() {

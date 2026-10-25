@@ -92,12 +92,14 @@ const app = createApp({
 });
 
 // Наблюдатель: раз в минуту — если БД менялась, commit в репо.
+// BACKUP_WATCH_INTERVAL_MS — интервал проверки (для тестов).
+const BACKUP_WATCH_MS = Math.max(1000, parseInt(env.BACKUP_WATCH_INTERVAL_MS ?? '60000', 10) || 60000);
 if (backup) {
   const timer = setInterval(() => {
     backup.tick().catch(() => {});
-  }, 60_000);
+  }, BACKUP_WATCH_MS);
   timer.unref();
-  console.log(`backup: БД загружается в ${BACKUP_REPO}/${BACKUP_FILE} при каждом изменении (проверка раз в минуту)`);
+  console.log(`backup: БД загружается в ${BACKUP_REPO}/${BACKUP_FILE} при каждом изменении (проверка раз в ${BACKUP_WATCH_MS} мс)`);
 }
 
 app.listen(PORT, () => {
