@@ -111,7 +111,6 @@ const els = {
   roundWind: document.getElementById('round-wind'),
   seatWind: document.getElementById('seat-wind'),
   doraIndicator: document.getElementById('dora-indicator'),
-  doraTile: document.getElementById('dora-tile'),
   dailyDate: document.getElementById('daily-date'),
   dailyClock: document.getElementById('daily-clock'),
   potentialPreview: document.getElementById('potential-preview'),
@@ -142,16 +141,41 @@ const els = {
  *  - иначе — фаза 'waiting': 14 тайлов рубашкой вверх, ждём нажатия
  *    «Сгенерировать руку» (кнопка активна один раз в день).
  */
+/** Удалить ровно ОДНО вхождение тайла (копий одного тайла в руке может быть несколько). */
+function removeOne(arr, tile) {
+  const idx = arr.indexOf(tile);
+  return idx === -1 ? arr.slice() : arr.filter((_, i) => i !== idx);
+}
+
 /**
- * Состояние по руке дня: готовая — сразу со счётом, иначе фаза выбора сброса.
+ * Состояние по руке дня и её прогрессу:
+ *  - discarded (тайл сброшен, рука посчитана) — фаза 'result' со счётом:
+ *    повторный сброс невозможен, на любом устройстве показывается тот же
+ *    результат (счёт пересчитывается детерминированно: та же рука и те же
+ *    условия дня);
+ *  - готовая рука — фаза 'complete' сразу со счётом;
+ *  - иначе — фаза выбора сброса.
  * kans — объявленные каны дня (из localStorage или сервера): рука из
  * завершённой с каном сессии хранится в «пон-форме» (14 тайлов + кан),
  * поэтому для корректного счёта и UI каны восстанавливаются вместе с рукой.
  */
-function stateFromHand(hand, kans = []) {
+function stateFromHandData({ hand, kans = [], discarded = null, tiles = null }) {
   const sorted = sortHand(hand);
-  declaredKans = kans.map((tile) => ({ tile }));
-  const completed = evaluateCompleteHand(sorted, scoreContextFor(declaredKans), declaredKans);
+  const kanList = kans.map((tile) => ({ tile }));
+  declaredKans = kanList;
+  if (discarded) {
+    const remaining = sortHand(Array.isArray(tiles) && tiles.length ? tiles : removeOne(sorted, discarded));
+    const score = evaluateHand(withKanPons(remaining, kanList), scoreContextFor(kanList), kanList);
+    return {
+      phase: 'result',
+      hand: sorted,
+      discarded,
+      remaining,
+      score,
+      daily: true,
+    };
+  }
+  const completed = evaluateCompleteHand(sorted, scoreContextFor(kanList), kanList);
   return {
     phase: completed ? 'complete' : 'choose',
     hand: sorted,
@@ -238,17 +262,21 @@ async function syncDailyHandFromServerInner() {
   // Пока запрос шёл, пользователь сам сгенерировал руку (на чистом
   // устройстве) — её рука новее нашего ответа, не затираем.
   if (localKey === null && curKey !== null && curKey !== newKey) return;
-  // Показанная рука совпадает с серверной (мультимножество тайлов не
-  // зависит от того, объявлены каны или ещё лежат в руке) — ничего не
-  // трогаем: локальный кэш может содержать более точное состояние
-  // (объявленные каны, пропущенные каны), а серверная строка обновляется
-  // только при отправке счёта.
-  if (curKey === newKey) return;
-  // Серверная рука ДРУГАЯ (ре-ишю с другого устройства) — сервер выигрывает:
-  // заменяем руку на экране и обновляем кэш (пропущенные каны сбрасываются).
-  writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? [], []);
-  skippedKans = [];
-  store.setState(stateFromHand(data.hand, data.kans ?? []));
+  // Прогресс дня: сброшенный тайл (+ пометка готовой руки). Сброс,
+  // сделанный на другом устройстве, должен появиться здесь.
+  const curProgress = `${cur.discarded ?? ''}|${cur.phase === 'complete' ? 'c' : ''}`;
+  const newProgress = `${data.discarded ?? ''}|${data.complete ? 'c' : ''}`;
+  // Рука и прогресс совпадают с серверными — ничего не трогаем: локальный
+  // кэш может содержать более точное состояние (пропущенные каны), а
+  // повторный setState лишний раз перерисует.
+  if (curKey === newKey && curProgress === newProgress) return;
+  // Иначе сервер — источник правды: новая рука (ре-ишю с другого
+  // устройства) и/или сделанный где-то сброс. Заменяем состояние и
+  // обновляем кэш; пропущенные каны сохраняем, только если рука та же.
+  const sameHand = curKey === newKey;
+  skippedKans = sameHand && localOk ? (local.skipped ?? []) : [];
+  writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? [], skippedKans, data.discarded ?? null);
+  store.setState(stateFromHandData({ hand: data.hand, kans: data.kans ?? [], discarded: data.discarded ?? null, tiles: data.tiles }));
 }
 
 void (async () => {
@@ -258,10 +286,12 @@ void (async () => {
   const local = stored?.dayKey === dailyContext.dayKey ? stored : null;
   booting = false;
   if (local) {
-    // Каны дня восстанавливаются вместе с рукой: иначе при следующей
-    // отправке счёта они были бы затёрты пустым списком (см. maybeSubmitScore).
+    // Каны дня и сброшенный тайл восстанавливаются вместе с рукой:
+    // иначе при следующей отправке счёта каны были бы затёрты пустым
+    // списком (см. maybeSubmitScore), а посчитанная рука снова
+    // предлагала бы сброс.
     skippedKans = local.skipped ?? [];
-    store.setState(stateFromHand(local.hand, local.kans ?? []));
+    store.setState(stateFromHandData({ hand: local.hand, kans: local.kans ?? [], discarded: local.discarded }));
   } else {
     store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
   }
@@ -449,6 +479,7 @@ function declareKan() {
     completed ? full : hand,
     declaredKans.map((kan) => kan.tile),
     skippedKans,
+    state.discarded, // кан объявляется только в фазе выбора — сброса ещё нет
   );
   if (completed) {
     void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed }) }).then((res) => {
@@ -498,6 +529,7 @@ function persistSkippedKans() {
     state.hand,
     declaredKans.map((kan) => kan.tile),
     skippedKans,
+    state.discarded,
   );
 }
 
@@ -657,6 +689,16 @@ function discardAt(index) {
     remaining,
     score,
   });
+  // Фиксируем сброс локально: рука посчитана — после перезагрузки на этом
+  // устройстве повторный сброс невозможен (а на других устройствах сброс
+  // придёт с сервера при синхронизации).
+  writeStoredDailyHand(
+    dailyContext.dayKey,
+    hand,
+    declaredKans.map((kan) => kan.tile),
+    skippedKans,
+    discarded,
+  );
   // лог: одна рука = один блок; первый счёт создаёт блок, повторный — обновляет
   const payload = scorePayload(dailyContext, { hand, discarded, remaining, score });
   if (dailyBlockId) {
@@ -790,7 +832,6 @@ store.subscribe(render);
 renderTiles(els.roundWind, [dailyContext.roundWindId], { disabled: true });
 renderTiles(els.seatWind, [dailyContext.seatWindId], { disabled: true });
 renderTiles(els.doraIndicator, dailyContext.doraIndicators, { disabled: true });
-renderTiles(els.doraTile, dailyContext.doraTiles, { disabled: true });
 els.dailyDate.textContent = dailyContext.dayKey;
 
 // Таймер до полуночи МСК: тикает каждую секунду.

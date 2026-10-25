@@ -419,7 +419,6 @@ footer button:disabled { opacity: .45; cursor: default; }
 .context-tile .tile:hover { transform: none; }
 .dora-item { grid-column: span 2; }
 .dora-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
-.dora-arrow { color: var(--gold); font-size: 18px; font-weight: 700; }
 .dora-wall { display: flex; align-items: flex-start; gap: 5px; }
 .tile-back {
   position: relative;

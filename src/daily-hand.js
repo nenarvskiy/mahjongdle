@@ -3,15 +3,16 @@
  * (кнопка «Сгенерировать руку»), после этого кнопка неактивна до следующего
  * дня, а повторное открытие страницы в тот же день восстанавливает ту же
  * руку. Условия дня (ветра/дора) всё равно берутся из даты, поэтому
- * сохраняем только саму руку, dayKey, объявленные каны и пропущенные каны
- * (если рука восстановлена с сервера вместе с счётом — пара hand+kans
- * согласована; пропущенные каны хранятся только локально).
+ * сохраняем только саму руку, dayKey, объявленные каны, пропущенные каны
+ * и сброшенный тайл (если рука восстановлена с сервера вместе с счётом —
+ * четверка hand+kans+discarded+tiles согласована; пропущенные каны хранятся
+ * только локально).
  *
  * Функции чистые (storage инжектится) — тесты в test/daily-hand.test.js.
  */
 const STORAGE_KEY = 'mh_daily_hand_v1';
 
-/** @returns {{dayKey: string, hand: string[], kans: string[], skipped: string[]}|null} */
+/** @returns {{dayKey: string, hand: string[], kans: string[], skipped: string[], discarded: (string|null)}|null} */
 export function readStoredDailyHand(storage = localStorage) {
   try {
     const raw = storage?.getItem(STORAGE_KEY);
@@ -38,7 +39,11 @@ export function readStoredDailyHand(storage = localStorage) {
         data.skipped.every((t) => typeof t === 'string')
           ? data.skipped
           : [];
-      return { dayKey: data.dayKey, hand: data.hand, kans, skipped };
+      // Сброшенный тайл дня: рука уже посчитана — повторный сброс
+      // невозможен (сброс также зафиксирован на сервере и подтягивается
+      // с него на любом устройстве).
+      const discarded = typeof data.discarded === 'string' ? data.discarded : null;
+      return { dayKey: data.dayKey, hand: data.hand, kans, skipped, discarded };
     }
     return null;
   } catch {
@@ -46,12 +51,21 @@ export function readStoredDailyHand(storage = localStorage) {
   }
 }
 
-/** Записать руку дня — закреплена за этим днём (кнопка неактивна до следующего). */
-export function writeStoredDailyHand(dayKey, hand, kans = [], skipped = [], storage = localStorage) {
+/**
+ * Записать руку дня — закреплена за этим днём (кнопка неактивна до
+ * следующего). discarded — тайл сброса или null (рука ещё не посчитана).
+ */
+export function writeStoredDailyHand(dayKey, hand, kans = [], skipped = [], discarded = null, storage = localStorage) {
   try {
     storage?.setItem(
       STORAGE_KEY,
-      JSON.stringify({ dayKey, hand, kans: kans ?? [], skipped: skipped ?? [] }),
+      JSON.stringify({
+        dayKey,
+        hand,
+        kans: kans ?? [],
+        skipped: skipped ?? [],
+        discarded: discarded ?? null,
+      }),
     );
   } catch {
     /* localStorage недоступен (приватный режим и т.п.) — играем без закрепления */
