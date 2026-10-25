@@ -63,8 +63,9 @@ export function createDailyContext(date = new Date()) {
   const seatWindId = WINDS[hash32(`seat:${dayKey}`) % WINDS.length];
   const ids = allTileIds();
   const doraIndicator = ids[hash32(`dora:${dayKey}`) % ids.length];
-  // Ура-индикатор — второй тайл мёртвой стены. Открывается только после сброса:
-  // до этого момента очки считаются без урадор (см. rules.uraDora).
+  // Ура-индикатор — отдельный независимый хэш дня (аналог дора-индикатора,
+  // `ura:${dayKey}`), а НЕ второй тайл мёртвой стены. Открывается только
+  // после сброса: до этого момента очки считаются без урадор (см. rules.uraDora).
   const uraIndicator = RULES.uraDora ? ids[hash32(`ura:${dayKey}`) % ids.length] : null;
   const uraIndicators = uraIndicator ? [uraIndicator] : [];
   const deadWall = createDeadWall(dayKey);

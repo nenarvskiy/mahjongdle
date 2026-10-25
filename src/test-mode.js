@@ -346,12 +346,15 @@ export function initTestMode() {
     void syncHandBlock();
   }
 
+  /** «Отменить сброс»: возвращает сброшенный тайл в руку (13 → 14) и даёт
+   *  выбрать другой сброс (F12). Каны, объявленные до сброса, сохраняются. */
   function resetChoice() {
-    scored = false;
-    phase = 'edit';
-    discarded = null;
+    if (!discarded) return; // готовая рука (F9) — отменять нечего
+    hand = sortHand([...remaining, discarded]);
     remaining = [];
+    discarded = null;
     score = null;
+    phase = 'choose';
     render();
   }
 
@@ -482,7 +485,9 @@ export function initTestMode() {
       else els.hint.textContent = `Сброшен ${tileDisplayName(discarded)}.`;
     }
     if (els.hand) els.hand.classList.toggle('await-discard', scored && phase === 'choose' && !pendingKan);
-    if (els.reset) els.reset.hidden = !scored;
+    // «Отменить сброс» показываем только когда есть что отменять (F12):
+    // в фазе «complete» (готовая рука без сброса) кнопка скрыта.
+    if (els.reset) els.reset.hidden = !(scored && discarded);
   }
 
   async function syncHandBlock() {
@@ -573,4 +578,12 @@ export function initTestMode() {
   render();
 
   return showGame;
+}
+
+/** F13: вкладка «Тест» зеркалит кнопку входа — вызывается при каждом
+ *  изменении роли (поздний логин admin/test после инициализации вкладки). */
+export function syncTestTabVisibility() {
+  const tab = document.getElementById('tab-test');
+  const entry = document.getElementById('btn-test-mode');
+  if (tab && entry) tab.hidden = entry.hidden;
 }

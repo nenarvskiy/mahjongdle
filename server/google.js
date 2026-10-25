@@ -20,9 +20,18 @@ export function createGoogleVerifier(clientId) {
     if (!p.sub) {
       throw new Error('в токене нет sub');
     }
+    // F18: без email пользователь не идентифицируется (роли и профиль
+    // завязаны на почту) — такой токен отклоняем, а не пускаем «null».
+    // email_verified = false (явно) — почта не подтверждена в Google.
+    if (!p.email) {
+      throw new Error('в токене нет email');
+    }
+    if (p.email_verified === false) {
+      throw new Error('email не подтверждён в Google');
+    }
     return {
       id: p.sub,
-      email: p.email ?? null,
+      email: p.email,
       name: p.name || p.email || 'Игрок',
       picture: p.picture ?? null,
     };

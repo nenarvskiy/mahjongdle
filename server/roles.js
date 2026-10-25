@@ -26,18 +26,21 @@ export const DEFAULT_ROLES_FILE = path.join(HERE, 'config', 'roles.json');
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLES = new Set(['admin', 'test', 'player']);
 
-/** Прочитать и нормализовать файл ролей. Не найден/битый -> пустые списки. */
-export async function readRolesFile(file = DEFAULT_ROLES_FILE) {
+/** Прочитать и нормализовать файл ролей. Не найден -> пустые списки (норма
+ *  для свежего запуска); битый JSON -> пустые списки + ЛОГ (F14: раньше было
+ *  молча — все роли «слетали» незаметно). */
+export async function readRolesFile(file = DEFAULT_ROLES_FILE, log = console) {
   let raw = null;
   try {
     raw = await fs.readFile(file, 'utf8');
   } catch {
     return { admin: [], test: [] };
   }
-  let data = null;
+  let data;
   try {
     data = JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    log.error?.(`[roles] файл ролей ${file} содержит битый JSON — списки считаются пустыми: ${err.message}`);
     return { admin: [], test: [] };
   }
   const list = (value) =>
@@ -47,11 +50,14 @@ export async function readRolesFile(file = DEFAULT_ROLES_FILE) {
   return { admin: list(data?.admin), test: list(data?.test) };
 }
 
-/** Записать файл ролей (красиво, UTF-8). */
+/** Записать файл ролей (красиво, UTF-8). Атомарно: tmp + rename (F14),
+ *  чтобы при падении посреди записи файл не остался обрезанным. */
 export async function writeRolesFile(roles, file = DEFAULT_ROLES_FILE) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   const text = `${JSON.stringify({ admin: roles.admin, test: roles.test }, null, 2)}\n`;
-  await fs.writeFile(file, text, 'utf8');
+  const tmp = `${file}.tmp`;
+  await fs.writeFile(tmp, text, 'utf8');
+  await fs.rename(tmp, file);
 }
 
 /** Роль пользователя по email: admin > test > player. */
@@ -73,6 +79,11 @@ export async function setRole(email, role, file = DEFAULT_ROLES_FILE) {
   if (!EMAIL_RE.test(e)) throw new Error('Некорректный email');
   if (!ROLES.has(role)) throw new Error('Роль должна быть admin, test или player');
   const roles = await readRolesFile(file);
+  // F14: нельзя убрать последнего админа — иначе lockout (панель ролей
+  // требует admin, и восстановить список будет некому).
+  if (role !== 'admin' && roles.admin.length === 1 && roles.admin[0] === e) {
+    throw new Error('Нельзя убрать последнего админа: сначала назначьте другого');
+  }
   roles.admin = roles.admin.filter((x) => x !== e);
   roles.test = roles.test.filter((x) => x !== e);
   if (role === 'admin') roles.admin.push(e);

@@ -86,6 +86,7 @@ export function upsertUser(db, { id, email, name, picture }) {
     INSERT INTO users (id, email, name, picture, created_at)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      email = excluded.email,
       name = excluded.name,
       picture = excluded.picture
   `).run(id, email, name, picture, new Date().toISOString());

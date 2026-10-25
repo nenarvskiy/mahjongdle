@@ -23,11 +23,11 @@ export async function initLeaderboard({ listEl, panelEl, dateLabel, dayKey, limi
       listEl.append(li);
       return;
     }
-    const me = getAuth()?.user;
     rows.forEach((row, i) => {
       const li = document.createElement('li');
       li.className = 'lb-row';
-      if (me && row.id === me.id) li.classList.add('lb-me');
+      // F18: подсветку «это я» даёт серверный флаг mine (id в ответе нет).
+      if (row.mine) li.classList.add('lb-me');
 
       const rank = document.createElement('span');
       rank.className = 'lb-rank';

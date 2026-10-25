@@ -8,7 +8,7 @@ import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
 import { findKans, withKanPons, MAX_KAN_DORA } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initAuthButton, onAuthChange, getAuth, getRole, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand, fetchDayKans, reissueDailyHand } from './auth.js';
-import { initTestMode } from './test-mode.js';
+import { initTestMode, syncTestTabVisibility } from './test-mode.js';
 import { initRolesPanel } from './roles-panel.js';
 import { initBugViewer } from './bug-viewer.js';
 import { logHand, updateHandBlock, scorePayload } from './event-log.js';
@@ -62,7 +62,9 @@ function kanDoraPending() {
     MAX_KAN_DORA,
     Math.max(declaredKans.length, dayKans.reduce((sum, k) => sum + (k.kanCount || 0), 0)),
   );
-  const names = dayKans.map((k) => k.name).slice(0, total);
+  // F17: имя повторяется на КАЖДЫЙ кан игрока (kanCount), а не один раз на
+  // запись — при 2 канах одного игрока атрибуция слотов не сдвигалась.
+  const names = dayKans.flatMap((k) => Array(k.kanCount || 0).fill(k.name)).slice(0, total);
   const me = getAuth()?.user?.name;
   const pending = [];
   for (let i = 0; i < total; i++) {
@@ -86,7 +88,9 @@ function msUntilMidnightMoscow(now = new Date()) {
   return 86400000 - ((now.getTime() + MSK_OFFSET) % 86400000);
 }
 function formatCountdown(ms) {
-  const total = Math.max(0, Math.floor(ms / 1000));
+  // F17: ровно в полночь остаток = 86 400 000 мс → было «24:00:00»;
+  // ограничиваем суточной длительностью (нулевой счётчик новой руки).
+  const total = Math.max(0, Math.min(86399, Math.floor(ms / 1000)));
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
@@ -231,9 +235,11 @@ function handKey(handTiles, kanList = []) {
  *    деплоем, сервер недоступен, гостевая рука).
  */
 let syncPromise = null; // защита от параллельных синхронизаций
+let lastHandSync = 0; // F22: дроссель фокус-ресинка (не чаще раза в 30 с)
 function syncDailyHandFromServer() {
   if (!getAuth() || booting || dealing || reissuing) return;
   if (syncPromise) return syncPromise;
+  lastHandSync = Date.now();
   syncPromise = (async () => {
     try {
       await syncDailyHandFromServerInner();
@@ -424,6 +430,7 @@ function renderAuthUser() {
     els.btnRoles.hidden = a.user.role !== 'admin';
     els.btnBugs.hidden = a.user.role !== 'admin';
     els.btnReissue.hidden = a.user.role !== 'admin';
+    syncTestTabVisibility(); // F13: поздний логин admin/test — вкладка «Тест»
     // Вход после того, как результат дня уже есть — отправляем его.
     maybeSubmitScore(store.getState());
   } else {
@@ -433,6 +440,7 @@ function renderAuthUser() {
     els.btnRoles.hidden = true;
     els.btnBugs.hidden = true;
     els.btnReissue.hidden = true;
+    syncTestTabVisibility(); // F13: выход — вкладка «Тест» прячется
   }
   refreshDayKans();
 }
@@ -746,7 +754,14 @@ function render(state) {
     els.handStatus.hidden = true;
     els.subtitle.textContent = 'Нажмите «Сгенерировать руку» — рука дня выдаётся один раз в день.';
   } else {
-    const visibleHand = state.phase === 'choose' ? state.hand : state.remaining;
+    let visibleHand = state.phase === 'choose' ? state.hand : state.remaining;
+    // F23: готовая рука хранится в «пон-форме» (14 тайлов, включая пон
+    // объявленного кана), а сам кан рисуется отдельно закрытым блоком —
+    // убираем поны из руки, чтобы тайлы кана не дублировались на экране.
+    if (state.phase === 'complete') {
+      visibleHand = visibleHand.filter((tile) =>
+        !declaredKans.some((kan) => canonicalTileId(tile) === canonicalTileId(kan.tile)));
+    }
     renderTiles(els.hand, visibleHand, {
       disabled: state.phase !== 'choose',
       onTileClick: discardAt,
@@ -865,12 +880,19 @@ initAuthButton(els.authSlot).then(renderAuthUser);
 onAuthChange(renderAuthUser);
 renderAuthUser();
 // Логин ПОСЛЕ загрузки страницы (новое устройство / повторный вход):
-// boot уже отработал без сессии — тянем руку дня с сервера. В UI ничего
-// не меняем, если рука уже показана (она сверится при следующей перезагрузке).
+// boot уже отработал без сессии — тянем руку дня с сервера.
+// F22: синхронизируем ДАЖЕ если рука уже показана (гостевая): сервер —
+// источник правды, и гостевая рука не должна заслонять серверную. Внутренняя
+// логика консервативна: совпало — не трогаем, сервер пуст — не трогаем.
 onAuthChange((auth) => {
   if (!auth) return;
-  const st = store.getState();
-  if (st.daily) return; // рука уже на экране — не трогаем
+  void syncDailyHandFromServer();
+});
+// F22: в ходе сессии — ресинк при возврате на вкладку: сброс, сделанный на
+// другом устройстве, появляется без перезагрузки (дроссель 30 с).
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (Date.now() - lastHandSync < 30_000) return;
   void syncDailyHandFromServer();
 });
 // Роль на сервере может измениться без повторного логина (hot-reload файла

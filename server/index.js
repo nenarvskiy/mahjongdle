@@ -20,6 +20,7 @@ import { createApp } from './app.js';
 import { createBackup, pullBackupFile } from './backup.js';
 import { openDb, dbRowCount } from './db.js';
 import { createGoogleVerifier } from './google.js';
+import { DEFAULT_ROLES_FILE } from './roles.js';
 
 const env = process.env;
 
@@ -94,6 +95,10 @@ const backup = BACKUP_ON
     })
   : null;
 
+// ROLES_FILE — путь к файлу ролей (F18: можно вынести файл с реальными
+// admin-email из публичного репозитория, например, на постоянный диск).
+const ROLES_FILE = env.ROLES_FILE || DEFAULT_ROLES_FILE;
+
 const app = createApp({
   db,
   verifyIdToken: createGoogleVerifier(env.GOOGLE_CLIENT_ID),
@@ -101,6 +106,7 @@ const app = createApp({
   googleClientId: env.GOOGLE_CLIENT_ID,
   corsOrigins: CORS_ORIGINS,
   staticRoot: STATIC_DIR,
+  rolesFile: ROLES_FILE,
   backup,
 });
 

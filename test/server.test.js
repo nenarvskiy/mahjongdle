@@ -169,10 +169,15 @@ test('scores: 1 результат в день — повтор игрока н�
   const r2 = (await postScore(t2, { date: DAY, score: 2, discarded, tiles, hand: HAND_SHARED })).body;
   assert.deepEqual(r2, { score: S, isBest: false, rank: 2 });
 
-  // в БД ровно зафиксированные результаты, таблица согласована
+  // в БД ровно зафиксированные результаты, таблица согласована.
+  // F18: в публичной таблице нет Google id (sub) — аноним видит mine: false.
   const lb = (await (await fetch(`${base}/api/scores/${DAY}`)).json()).rows;
-  assert.deepEqual(lb.map((row) => row.id), ['sub-1', 'sub-2']);
+  assert.deepEqual(lb.map((row) => row.name), ['Игрок sub-1', 'Игрок sub-2']);
   assert.deepEqual(lb.map((row) => row.score), [S, S]);
+  for (const row of lb) {
+    assert.ok(!('id' in row), 'id (Google sub) не отдаётся в публичной таблице');
+    assert.equal(row.mine, false);
+  }
 });
 
 test('leaderboard: порядок, ограничение, другая дата пуста', async () => {
@@ -185,11 +190,12 @@ test('leaderboard: порядок, ограничение, другая дата
   // tiles = 13 после сброса (нужны для разбивки «за что» — аудит F6)
   const discarded = HAND_SHARED[13];
   const tiles = HAND_SHARED.filter((t) => t !== discarded);
+  // F18: вместо id — серверный флаг mine (для анонима — везде false)
   assert.deepEqual(rows[0], {
-    id: 'sub-1', name: 'Игрок sub-1', picture: null, score: dayScore(discarded), discarded,
-    hand: HAND_SHARED, tiles, kans: [], complete: false,
+    name: 'Игрок sub-1', picture: null, score: dayScore(discarded), discarded,
+    hand: HAND_SHARED, tiles, kans: [], complete: false, mine: false,
   });
-  assert.equal(rows[1].id, 'sub-2');
+  assert.equal(rows[1].mine, false);
   assert.equal(rows[1].score, dayScore(discarded));
   assert.deepEqual(rows[1].tiles, tiles, 'у второй строки тоже tiles (F6)');
 
@@ -223,6 +229,68 @@ test('CORS: preflight PATCH разрешён (обновление блоков 
   const methods = opt.headers.get('access-control-allow-methods') ?? '';
   assert.ok(methods.split(',').map((s) => s.trim()).includes('PATCH'),
     `в allow-methods есть PATCH: ${methods}`);
+});
+
+test('CORS: в production пустой список = same-origin, явный «*» уважается (F19)', async () => {
+  const prev = process.env.NODE_ENV;
+  const listen = (app) => new Promise((resolve) => {
+    const s = app.listen(0, '127.0.0.1', () => resolve(s));
+  });
+  try {
+    process.env.NODE_ENV = 'production';
+    // Пустой CORS_ORIGINS в проде — CORS-заголовков нет вообще.
+    const prodApp = createApp({
+      db: openDb(':memory:'),
+      verifyIdToken: verifyStub,
+      sessionSecret: SECRET,
+      googleClientId: 'test-client',
+      corsOrigins: [],
+    });
+    const s1 = await listen(prodApp);
+    const b1 = `http://127.0.0.1:${s1.address().port}`;
+    const r1 = await fetch(`${b1}/health`, { headers: { origin: 'https://game.example' } });
+    assert.equal(r1.headers.get('access-control-allow-origin'), null,
+      'prod без CORS_ORIGINS — без ACAO (same-origin)');
+    await new Promise((resolve) => s1.close(resolve));
+    // Явный «*» в проде — открытый режим как в dev (эхо origin + Vary).
+    const starApp = createApp({
+      db: openDb(':memory:'),
+      verifyIdToken: verifyStub,
+      sessionSecret: SECRET,
+      googleClientId: 'test-client',
+      corsOrigins: ['*'],
+    });
+    const s2 = await listen(starApp);
+    const b2 = `http://127.0.0.1:${s2.address().port}`;
+    const r2 = await fetch(`${b2}/health`, { headers: { origin: 'https://game.example' } });
+    assert.equal(r2.headers.get('access-control-allow-origin'), 'https://game.example');
+    assert.equal(r2.headers.get('vary'), 'Origin');
+    await new Promise((resolve) => s2.close(resolve));
+  } finally {
+    if (prev === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = prev;
+  }
+});
+
+test('F18: строка сессионного игрока помечена mine=true, id в ответе нет', async () => {
+  const token = (await login('good-token-1-abcdefghijklmnopqrstuvwxyz')).body.token;
+  const { rows } = await (await fetch(`${base}/api/scores/${DAY}`, {
+    headers: { authorization: `Bearer ${token}` },
+  })).json();
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].mine, true, 'своя строка помечена');
+  assert.equal(rows[1].mine, false);
+  for (const row of rows) assert.ok(!('id' in row), 'id не отдаётся');
+});
+
+test('F20: битый JSON тела → 400, как и раньше (entity.parse.failed)', async () => {
+  const res = await fetch(`${base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{"idToken": "обрезано',
+  });
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error, 'некорректный JSON');
 });
 
 test('сессия: токен с другим секретом не проходит', async () => {
@@ -637,7 +705,7 @@ test('me/hands: история рук; строки таблицы несут р
 
   // строка таблицы дня несёт руку и каны (клик по строке → просмотр)
   const lb = await (await fetch(`${base}/api/scores/${HDATE}`)).json();
-  const mine = lb.rows.find((r) => r.id === 'sub-3');
+  const mine = lb.rows.find((r) => r.name === 'Игрок sub-3'); // F18: id в таблице нет
   assert.ok(mine, 'строка sub-3 в таблице дня');
   assert.deepEqual(mine.hand, HAND14);
   assert.deepEqual(mine.kans, []);
@@ -1085,13 +1153,21 @@ test('F2: семантика руки — кривые id, мёртвая сте
   assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, [K3]);
   await p.close(); p.cleanup();
 
-  // 8. Красный id кана ('0m'): в выданной руке 4 пятёрки, одна красная
+  // 8. Красный id кана ('0m'): в выданной руке 4 пятёрки, одна красная.
+  // Масть выбирается из мёртвой стены дня (детерминированно): все 4 копии
+  // вида + красная должны быть в обороте — иначе 4 копии физически
+  // невозможны (на 2026-10-26 в стене 5m — сценарий на 5m невалиден).
   p = await makePolicyApp({ admin: [], test: [] });
   h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
-  const rest4 = liveIds(DAY, 10, ['5m']);
+  const deadDay = new Set(createDailyContext(new Date(`${DAY}T12:00:00Z`)).deadTiles);
+  const RED = { m: '0m', p: '0p', s: '0s' };
+  const suit8 = ['m', 'p', 's'].find((s) => !deadDay.has(`5${s}`) && !deadDay.has(RED[s]));
+  assert.ok(suit8, 'день, когда все 4 пятёрки трёх мастей в мёртвой стене — сценарий невозможен');
+  const red8 = RED[suit8];
+  const rest4 = liveIds(DAY, 10, [`5${suit8}`, red8]);
   assert.equal((await fetch(`${p.base}/api/me/hand`, {
     method: 'POST', headers: h,
-    body: JSON.stringify({ date: DAY, hand: ['0m', '5m', '5m', '5m', ...rest4] }),
+    body: JSON.stringify({ date: DAY, hand: [red8, `5${suit8}`, `5${suit8}`, `5${suit8}`, ...rest4] }),
   })).status, 200);
   const R4 = rest4[0];
   const hand11r = [...rest4, R4];
@@ -1101,11 +1177,11 @@ test('F2: семантика руки — кривые id, мёртвая сте
     method: 'POST', headers: h,
     body: JSON.stringify({
       date: DAY, score: 2000, discarded: discarded4, tiles: tiles10r,
-      hand: hand11r, kans: ['0m'], complete: false,
+      hand: hand11r, kans: [red8], complete: false,
     }),
   });
   assert.equal(r.status, 200, `красный id кана принимается: ${await r.text()}`);
-  assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, ['0m']);
+  assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, [red8]);
   await p.close(); p.cleanup();
 });
 
@@ -1169,8 +1245,8 @@ test('F2: битая строка в ночном пересчёте не рон
   // таблица дня: обе строки на месте, у битой — старый счёт
   const lb = (await (await fetch(`${p.base}/api/scores/${YDAY}`)).json()).rows;
   assert.equal(lb.length, 2);
-  assert.equal(lb.find((x) => x.id === 'sub-3').score, 200);
-  assert.equal(lb.find((x) => x.id === 'sub-2').score, y.newScore);
+  assert.equal(lb.find((x) => x.name === 'Игрок sub-3').score, 200); // F18: id в таблице нет
+  assert.equal(lb.find((x) => x.name === 'Игрок sub-2').score, y.newScore);
 
   await p.close();
   p.cleanup();

@@ -51,18 +51,36 @@ const EVENT_MODES = new Set(['daily', 'test']);
 // В лог пишутся ТОЛЬКО посчитанные руки: один блок = одна рука + счёт.
 const EVENT_KIND = 'hand';
 
-// Простой in-memory ограничитель /api/events: 60 событий в минуту на IP
+// Простой in-memory ограничитель /api/events: 60 событий в минуту на КЛЮЧ
 // (защита от спама логов; при рестарте счётчик сбрасывается — для этого
-// масштаба достаточно).
+// масштаба достаточно). F15: ключ — пользователь (сессия), а не IP: за
+// прокси Render у всех req.ip один и лимит 60/мин становился общим;
+// анонимы — по клиентскому IP из X-Forwarded-For (Render его ставит).
 const EVENT_LIMIT_MS = 60_000;
 const EVENT_LIMIT_MAX = 60;
 const eventHits = new Map();
-function eventRateLimited(ip) {
+function eventRateLimited(key) {
   const now = Date.now();
-  const hits = (eventHits.get(ip) ?? []).filter((t) => now - t < EVENT_LIMIT_MS);
+  const hits = (eventHits.get(key) ?? []).filter((t) => now - t < EVENT_LIMIT_MS);
   hits.push(now);
-  eventHits.set(ip, hits);
+  eventHits.set(key, hits);
   return hits.length > EVENT_LIMIT_MAX;
+}
+// F15: ключи (особенно анонимные IP) не должны копиться вечно.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, hits] of eventHits) {
+    const fresh = hits.filter((t) => now - t < EVENT_LIMIT_MS);
+    if (fresh.length) eventHits.set(key, fresh);
+    else eventHits.delete(key);
+  }
+}, 5 * 60_000).unref();
+/** Ключ лимитера: сессия — id пользователя, аноним — IP (XFF → req.ip). */
+function eventRateKey(req, user) {
+  if (user?.id) return `u:${user.id}`;
+  const xff = req.headers['x-forwarded-for'];
+  const ip = typeof xff === 'string' && xff.trim() ? xff.split(',')[0].trim() : req.ip;
+  return `ip:${ip}`;
 }
 
 /** YYYY-MM-DD — и форма, и реальная дата (не 2026-13-99). */
@@ -91,16 +109,29 @@ function httpError(res, status, message) {
   res.status(status).json({ error: message });
 }
 
-/** CORS без зависимостей: точный список origin либо '*' (dev). */
+/**
+ * CORS без зависимостей: точный список origin либо '*'.
+ * F19: «всем (*)» по умолчанию только для dev; в production пустой
+ * CORS_ORIGINS = same-origin (CORS-заголовков нет — игра и API на одном
+ * origin). Явный '*' в списке в любом случае уважается.
+ */
 function makeCors(allowed) {
-  const allowAll = allowed.length === 0 || allowed.includes('*');
+  const explicitStar = allowed.includes('*');
+  const production = process.env.NODE_ENV === 'production';
+  const allowAll = explicitStar || (!production && allowed.length === 0);
   const setHeaders = (res, origin) => {
+    let allowedFor = false;
     if (allowAll) {
       res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      // Ответ зависит от Origin (эхо) — кэшировать по URL нельзя.
+      res.setHeader('Vary', 'Origin');
+      allowedFor = true;
     } else if (origin && allowed.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
+      allowedFor = true;
     }
+    if (!allowedFor) return; // никто не разрешён — CORS-заголовков нет
     // PATCH — обновление блоков лога (/api/events/:id, src/event-log.js):
     // без него кросс-доменный preflight падает (аудит F7).
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
@@ -167,7 +198,9 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       res.json({ token, user: { ...user, role: await roleFor(user.email, rolesFile) } });
     } catch (e) {
       // «плохой токен» не детализируем — только причину, которую можно показать
-      const msg = /недопустимый issuer|нет sub/.test(e.message) ? e.message : 'недействительный ID-токен';
+      const msg = /недопустимый issuer|нет sub|нет email|не подтверждён/.test(e.message)
+        ? e.message
+        : 'недействительный ID-токен';
       httpError(res, 401, msg);
     }
   });
@@ -218,8 +251,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     }
     const payloadJson = JSON.stringify(payload);
     if (payloadJson.length > MAX_EVENT_PAYLOAD) return httpError(res, 400, 'payload слишком большой');
-    if (eventRateLimited(req.ip)) return httpError(res, 429, 'слишком много событий, замедлитесь');
     const user = authProfile(req, db, sessionSecret); // null — аноним
+    if (eventRateLimited(eventRateKey(req, user))) {
+      return httpError(res, 429, 'слишком много событий, замедлитесь');
+    }
     const id = insertEvent(db, {
       userId: user?.id ?? null,
       userEmail: user?.email ?? null,
@@ -592,14 +627,22 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     res.json(backup.status());
   });
 
-  /** GET /api/scores/:date?limit=N → {date, rows:[{name, picture, score, discarded}]} */
+  /** GET /api/scores/:date?limit=N → {date, rows:[{name, picture, score, discarded, mine}]} */
   app.get('/api/scores/:date', (req, res) => {
     const { date } = req.params;
     if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
     let limit = parseInt(req.query.limit ?? '20', 10);
     if (!Number.isFinite(limit) || limit < 1) limit = 20;
     limit = Math.min(limit, 100);
-    res.json({ date, rows: leaderboard(db, date, limit) });
+    const rows = leaderboard(db, date, limit);
+    // F18: публичная таблица не отдаёт Google id (sub) — строку сессионного
+    // игрока сервер сам помечает mine (подсветка «это я» в клиенте).
+    const me = authProfile(req, db, sessionSecret);
+    for (const row of rows) {
+      row.mine = Boolean(me && me.id === row.id);
+      delete row.id;
+    }
+    res.json({ date, rows });
   });
 
   // Фронтенд (статика) — на том же origin, что и API: один порт на всё
@@ -622,10 +665,13 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     }));
   }
 
-  // 404 и обёртка ошибок (express.json может кидать SyntaxError на кривом JSON)
+  // 404 и обёртка ошибок
   app.use((req, res) => httpError(res, 404, 'не найдено'));
   app.use((err, req, res, next) => {
-    if (err?.type === 'entity.parse.failed' || err instanceof SyntaxError) {
+    // F20: 400 «некорректный JSON» — ТОЛЬКО для ошибок express.json
+    // (body-parser метит их entity.parse.failed). Любой другой SyntaxError —
+    // баг сервера: 500 + лог, а не маскировка ошибкой клиента.
+    if (err?.type === 'entity.parse.failed') {
       return httpError(res, 400, 'некорректный JSON');
     }
     console.error(err);
