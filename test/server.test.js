@@ -8,20 +8,46 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createApp } from '../server/app.js';
+import { createApp, mskToday } from '../server/app.js';
 import { openDb } from '../server/db.js';
 import { signSession } from '../server/auth.js';
 import { readRolesFile } from '../server/roles.js';
-import { createDeadWall, doraFromIndicator } from '../src/daily-context.js';
+import { createDeadWall, createDailyContext, doraFromIndicator } from '../src/daily-context.js';
+import { allTileIds } from '../src/tiles.js';
+import { computeDayScore, recalcScore } from '../server/recalc.js';
 
 const SECRET = 'test-secret-0123456789';
-const DAY = '2026-10-20';
+// «Сегодня»/«вчера»/«завтра» — серверные (МСК): сервер принимает только
+// сегодняшний день (аудит F2a/F2c), поэтому тесты работают с реальными датами.
+const DAY = mskToday();
+const YDAY = (() => {
+  const [y, m, d] = DAY.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - 1);
+  return dt.toISOString().slice(0, 10);
+})();
+const TOMORROW = (() => {
+  const [y, m, d] = DAY.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
+})();
+/** Тайлы НЕ из мёртвой стены дня (детерминированные руки без тайлов стены). */
+function liveIds(dateKey, n, except = []) {
+  const dead = new Set(createDailyContext(new Date(`${dateKey}T12:00:00Z`)).deadTiles);
+  return allTileIds().filter((t) => !dead.has(t) && !except.includes(t)).slice(0, n);
+}
+// Рука, общая для тестов scores/leaderboard: 14 тайлов, ≤1 копия каждого id
+// (по 1 копии тайлов мёртвой стены — физически допустимо).
+const HAND_SHARED = ['1m', '2m', '3m', '4m', '5m', '6p', '7p', '8p', '9p', '1s', '2s', '3s', 'ew', 'sw'];
 
 const profile = (id) => ({ id, email: `${id}@example.com`, name: `Игрок ${id}`, picture: null });
 const verifyStub = async (idToken) => {
   // «токены» длиннее 20 символов — как у реальных Google ID-токенов
   if (idToken === 'good-token-1-abcdefghijklmnopqrstuvwxyz') return profile('sub-1');
   if (idToken === 'good-token-2-abcdefghijklmnopqrstuvwxyz') return profile('sub-2');
+  if (idToken === 'good-token-3-abcdefghijklmnopqrstuvwxyz') return profile('sub-3');
+  if (idToken === 'good-token-4-abcdefghijklmnopqrstuvwxyz') return profile('sub-4');
   throw new Error('bad token');
 };
 
@@ -110,33 +136,43 @@ test('scores: без токена → 401, кривые данные → 400', a
   assert.equal((await postScore(token, { date: DAY, score: 1, tiles: 'не массив' })).status, 400);
 });
 
+// Счёт пересчитывается сервером (F2a): в тестах ждём значение из
+// computeDayScore — то же правило, что на сервере.
+function dayScore(discarded) {
+  return computeDayScore({
+    tiles: HAND_SHARED.filter((t) => t !== discarded),
+    hand: HAND_SHARED, kans: [], complete: false, dayKey: DAY,
+  });
+}
+
 test('scores: 1 результат в день — повтор игрока не пишется, ранги считаются', async () => {
   const t1 = (await login('good-token-1-abcdefghijklmnopqrstuvwxyz')).body.token;
   const t2 = (await login('good-token-2-abcdefghijklmnopqrstuvwxyz')).body.token;
+  // Оба игрока — одна и та же рука и сброс: сервер посчитает один и тот же счёт.
+  const discarded = HAND_SHARED[13];
+  const tiles = HAND_SHARED.filter((t) => t !== discarded);
+  const S = dayScore(discarded);
 
-  let r = (await postScore(t1, { date: DAY, score: 100, discarded: '5m', tiles: ['1m', '2m'] })).body;
-  assert.deepEqual(r, { score: 100, isBest: true, rank: 1 });
+  let r = (await postScore(t1, { date: DAY, score: 100, discarded, tiles, hand: HAND_SHARED })).body;
+  assert.deepEqual(r, { score: S, isBest: true, rank: 1 });
 
-  // повторная отправка (перезагрузка страницы, вторая вкладка) — БД не
-  // трогается: сервер возвращает зафиксированный результат
-  r = (await postScore(t1, { date: DAY, score: 50 })).body;
-  assert.deepEqual(r, { score: 100, isBest: false, rank: 1 });
+  // повторная отправка (перезагрузка страницы, вторая вкладка) с ДРУГИМ
+  // счётом — БД не трогается: сервер возвращает зафиксированный результат
+  r = (await postScore(t1, { date: DAY, score: S + 1, discarded, tiles, hand: HAND_SHARED })).body;
+  assert.deepEqual(r, { score: S, isBest: false, rank: 1 });
 
-  r = (await postScore(t2, { date: DAY, score: 250 })).body; // второй игрок
-  assert.deepEqual(r, { score: 250, isBest: true, rank: 1 });
+  // второй игрок — тот же счёт: ранг при равенстве — по времени (раньше выше)
+  r = (await postScore(t2, { date: DAY, score: 1, discarded, tiles, hand: HAND_SHARED })).body;
+  assert.deepEqual(r, { score: S, isBest: true, rank: 2 });
 
-  // «улучшение» с другим счётом — отклоняется (политика 1 результат/день),
-  // ранг зафиксированного результата сохраняется
-  r = (await postScore(t1, { date: DAY, score: 200 })).body;
-  assert.deepEqual(r, { score: 100, isBest: false, rank: 2 });
+  // повтор второго игрока — тоже не пишется
+  const r2 = (await postScore(t2, { date: DAY, score: 2, discarded, tiles, hand: HAND_SHARED })).body;
+  assert.deepEqual(r2, { score: S, isBest: false, rank: 2 });
 
-  // повтор с тем же счётом — тоже не пишется
-  const r2 = (await postScore(t2, { date: DAY, score: 250 })).body;
-  assert.deepEqual(r2, { score: 250, isBest: false, rank: 1 });
-
-  // в БД ровно зафиксированные результаты: sub-1=100, sub-2=250
+  // в БД ровно зафиксированные результаты, таблица согласована
   const lb = (await (await fetch(`${base}/api/scores/${DAY}`)).json()).rows;
-  assert.deepEqual(lb.map((row) => row.score), [250, 100]);
+  assert.deepEqual(lb.map((row) => row.id), ['sub-1', 'sub-2']);
+  assert.deepEqual(lb.map((row) => row.score), [S, S]);
 });
 
 test('leaderboard: порядок, ограничение, другая дата пуста', async () => {
@@ -145,13 +181,14 @@ test('leaderboard: порядок, ограничение, другая дата
   const { date, rows } = await res.json();
   assert.equal(date, DAY);
   assert.equal(rows.length, 2);
-  // рука не сохранялась (счёт без day_hand) — hand: null, каны [], complete false
+  // рука сохраняется с результатом (клик по строке → просмотр): hand = исходная 14
+  const discarded = HAND_SHARED[13];
   assert.deepEqual(rows[0], {
-    id: 'sub-2', name: 'Игрок sub-2', picture: null, score: 250, discarded: null,
-    hand: null, kans: [], complete: false,
+    id: 'sub-1', name: 'Игрок sub-1', picture: null, score: dayScore(discarded), discarded,
+    hand: HAND_SHARED, kans: [], complete: false,
   });
-  assert.equal(rows[1].score, 100);
-  assert.equal(rows[1].discarded, '5m');
+  assert.equal(rows[1].id, 'sub-2');
+  assert.equal(rows[1].score, dayScore(discarded));
 
   const one = await (await fetch(`${base}/api/scores/${DAY}?limit=1`)).json();
   assert.equal(one.rows.length, 1);
@@ -396,15 +433,17 @@ test('events: блок руки со счётом, PATCH, жалоба, admin-п
 
 test('вчерашняя рука: day_hands, пересчёт с ура-дорами, таблица дня меняется', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'mj-yday-'));
+  const testDb = openDb(':memory:');
   let srv;
   const app = createApp({
-    db: openDb(':memory:'),
+    db: testDb,
     verifyIdToken: verifyStub,
     sessionSecret: SECRET,
     googleClientId: 'test-client',
     rolesFile: path.join(dir, 'roles.json'),
   });
   await new Promise((resolve) => { srv = app.listen(0, '127.0.0.1', resolve); });
+  srv.unref();
   const b = `http://127.0.0.1:${srv.address().port}`;
 
   const login = async (idToken) => {
@@ -418,44 +457,37 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
   const token = await login('good-token-1-abcdefghijklmnopqrstuvwxyz');
   const auth = { 'content-type': 'application/json', authorization: `Bearer ${token}` };
 
-  const TODAY = '2026-10-23';
-  const YDAY = '2026-10-22';
-
   // без сессии — 401
-  assert.equal((await fetch(`${b}/api/me/yesterday?date=${TODAY}`)).status, 401);
+  assert.equal((await fetch(`${b}/api/me/yesterday?date=${DAY}`)).status, 401);
   // кривая дата — 400
   assert.equal((await fetch(`${b}/api/me/yesterday?date=2026-13-99`, { headers: auth })).status, 400);
-  // до первой сдачи — руки нет
-  let r = await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth });
+  // до «вчерашней» сдачи — руки нет
+  let r = await fetch(`${b}/api/me/yesterday?date=${DAY}`, { headers: auth });
   assert.equal(r.status, 200);
   assert.equal((await r.json()).hand, null);
-  assert.equal((await (await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth })).json()).dayKanCount, 0);
+  assert.equal((await (await fetch(`${b}/api/me/yesterday?date=${DAY}`, { headers: auth })).json()).dayKanCount, 0);
 
-  // сдача вчерашней готовой руки с каном
-  const hand = ['1m','2m','3m','4m','5m','6m','7m','8m','9m','1p','2p','3p','5s','5s'];
-  const post = await fetch(`${b}/api/scores`, {
-    method: 'POST',
-    headers: auth,
-    body: JSON.stringify({
-      date: YDAY,
-      score: 1234,
-      discarded: null,
-      tiles: hand,
-      hand,
-      kans: ['9s'],
-      complete: true,
-      dayCtx: { dayKey: YDAY, doraIndicators: [], uraIndicators: [] },
-    }),
-  });
-  assert.equal(post.status, 200);
+  // «Вчерашняя» готовая рука с каном — прямо в БД (сдана вчера, сегодня
+  // её уже не отправить: сервер принимает только сегодняшний день — F2a).
+  const K = liveIds(YDAY, 1)[0]; // кан — вне мёртвой стены
+  const rest = liveIds(YDAY, 11, [K]);
+  const draft14 = [K, K, K, K, ...rest.slice(0, 10)]; // исходная 14
+  const R = rest[10];                                  // добор после кана
+  const hand14 = [K, K, K, ...rest.slice(0, 10), R];   // готовая 14 (пон кана)
+  const ctx = createDailyContext(new Date(`${YDAY}T12:00:00Z`));
+  const nowIso = new Date().toISOString();
+  testDb.prepare(`INSERT INTO scores (user_id, date, score, discarded, tiles, created_at) VALUES (?,?,?,?,?,?)`)
+    .run('sub-1', YDAY, 1234, null, JSON.stringify(hand14), nowIso);
+  testDb.prepare(`INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run('sub-1', YDAY, JSON.stringify(draft14), JSON.stringify(hand14), JSON.stringify([K]), null, 1234, 1, JSON.stringify(ctx), 0, nowIso);
 
-  // вчерашняя рука: возвращает руку и каны, пересчёт уже произошёл
-  r = await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth });
+  // вчерашняя рука: пересчёт уже произошёл при первом запросе
+  r = await fetch(`${b}/api/me/yesterday?date=${DAY}`, { headers: auth });
   assert.equal(r.status, 200);
   const y = await r.json();
   assert.equal(y.date, YDAY);
   assert.equal(y.hand.length, 14);
-  assert.deepEqual(y.kans, ['9s']);
+  assert.deepEqual(y.kans, [K]);
   assert.equal(y.recalculated, true);
   assert.equal(typeof y.newScore, 'number');
   assert.equal(typeof y.changed, 'boolean');
@@ -463,8 +495,13 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
   assert.equal(y.dayKanCount, 1);
 
   // повторный запрос — без нового пересчёта (флаг), счёт тот же
-  const again = await (await fetch(`${b}/api/me/yesterday?date=${TODAY}`, { headers: auth })).json();
+  const again = await (await fetch(`${b}/api/me/yesterday?date=${DAY}`, { headers: auth })).json();
   assert.equal(again.newScore, y.newScore);
+
+  // «завтра» по часам клиента (F2c) — не триггер: возвращается реальный вчерашний
+  const skew = await (await fetch(`${b}/api/me/yesterday?date=${TOMORROW}`, { headers: auth })).json();
+  assert.equal(skew.date, YDAY);
+  assert.equal(skew.newScore, y.newScore);
 
   // таблица дня вчера: очки обновлены после пересчёта
   const lb = await (await fetch(`${b}/api/scores/${YDAY}`)).json();
@@ -476,7 +513,9 @@ test('вчерашняя рука: day_hands, пересчёт с ура-дор�
 });
 
 // ── Рука дня на сервере: черновик при генерации, восстановление, защита ──
-const HDATE = '2026-11-01';
+// Сервер фиксирует руку только за сегодняшний день (F2a) — тест на реальную дату.
+const HDATE = DAY;
+// ≤2 копии каждого id: физически безопасно для любой мёртвой стены (лимит 3).
 const HAND14 = ['1m','1m','2m','3m','4m','5p','5p','6p','7s','8s','9s','ew','ew','1s'];
 
 test('me/hand: без сессии → 401', async () => {
@@ -491,12 +530,13 @@ test('me/hand: без сессии → 401', async () => {
 });
 
 test('me/hand: черновик при генерации и восстановление', async () => {
-  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const { body } = await login('good-token-3-abcdefghijklmnopqrstuvwxyz');
   const auth = { authorization: `Bearer ${body.token}` };
 
   const post = await fetch(`${base}/api/me/hand`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...auth },
+    // dayCtx от клиента игнорируется (F2b) — сервер выводит из dayKey.
     body: JSON.stringify({ date: HDATE, hand: HAND14, dayCtx: { dayKey: HDATE } }),
   });
   assert.equal(post.status, 200);
@@ -517,38 +557,46 @@ test('me/hand: черновик при генерации и восстанов�
   });
   assert.equal(bad.status, 400);
 
-  // другой день без руки → hand: null
+  // другой день без руки → hand: null (GET любой даты доступен)
   const empty = await fetch(`${base}/api/me/hand/2026-11-02`, { headers: auth });
   assert.equal(empty.status, 200);
   assert.equal((await empty.json()).hand, null);
 });
 
 test('me/hand: черновик не затирает руку со счётом (после сброса)', async () => {
-  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const { body } = await login('good-token-3-abcdefghijklmnopqrstuvwxyz');
   const auth = { authorization: `Bearer ${body.token}` };
 
-  // игрок сбросил: счёт + tiles записаны через /api/scores
+  // игрок сбросил: tiles + hand записаны через /api/scores (счёт — серверный)
+  const tiles = HAND14.filter((t) => t !== '1s');
+  const S2 = computeDayScore({ tiles, hand: HAND14, kans: [], complete: false, dayKey: HDATE });
   const post = await postScore(body.token, {
     date: HDATE,
     score: 5000,
     discarded: '1s',
-    tiles: HAND14.filter((t) => t !== '1s'),
+    tiles,
     hand: HAND14,
     complete: false,
     dayCtx: { dayKey: HDATE },
   });
   assert.equal(post.status, 200);
+  assert.equal(post.body.score, S2); // клиентское 5000 не доверяется (F2a)
 
   // повторная синхронизация «черновика» не затирает данные со счётом
+  // (4 копии тайла — вне мёртвой стены, чтобы не попасть на лимит)
+  const safe = liveIds(HDATE, 1)[0];
   const sync = await fetch(`${base}/api/me/hand`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...auth },
-    body: JSON.stringify({ date: HDATE, hand: ['9m','9m','9m','9m','1p','1p','1p','2p','3p','4p','5p','6p','7p','8p'] }),
+    body: JSON.stringify({
+      date: HDATE,
+      hand: [safe, safe, safe, safe, '1p','1p','1p','2p','3p','4p','5p','6p','7p','8p'],
+    }),
   });
   assert.equal(sync.status, 200);
 
   const row = await (await fetch(`${base}/api/me/hand/${HDATE}`, { headers: auth })).json();
-  assert.equal(row.score, 5000);
+  assert.equal(row.score, S2);
   assert.equal(row.discarded, '1s');
   assert.equal(row.tiles.length, 13);
   assert.deepEqual(row.hand, HAND14);
@@ -559,25 +607,27 @@ test('me/hands: история рук; строки таблицы несут р
   const anon = await fetch(`${base}/api/me/hands`);
   assert.equal(anon.status, 401);
 
-  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
+  const { body } = await login('good-token-3-abcdefghijklmnopqrstuvwxyz');
   const auth = { authorization: `Bearer ${body.token}` };
 
-  // история sub-2: день HDATE (черновик + счёт 5000 из предыдущего теста)
+  // история sub-3: день HDATE (черновик + результат из предыдущего теста)
   const list = await (await fetch(`${base}/api/me/hands`, { headers: auth })).json();
   assert.ok(Array.isArray(list.rows));
   assert.ok(list.rows.length >= 1);
   assert.equal(list.rows[0].date, HDATE); // новые даты первыми
   const row = list.rows.find((r) => r.date === HDATE);
   assert.deepEqual(row.hand, HAND14);
-  assert.equal(row.score, 5000);
+  const tiles = HAND14.filter((t) => t !== '1s');
+  assert.equal(row.score, computeDayScore({ tiles, hand: HAND14, kans: [], complete: false, dayKey: HDATE }));
   assert.equal(row.complete, false);
 
   // строка таблицы дня несёт руку и каны (клик по строке → просмотр)
   const lb = await (await fetch(`${base}/api/scores/${HDATE}`)).json();
-  assert.equal(lb.rows.length, 1);
-  assert.deepEqual(lb.rows[0].hand, HAND14);
-  assert.deepEqual(lb.rows[0].kans, []);
-  assert.equal(lb.rows[0].complete, false);
+  const mine = lb.rows.find((r) => r.id === 'sub-3');
+  assert.ok(mine, 'строка sub-3 в таблице дня');
+  assert.deepEqual(mine.hand, HAND14);
+  assert.deepEqual(mine.kans, []);
+  assert.equal(mine.complete, false);
 });
 
 // ── Админ-реиздус руки дня + публичные каны дня ──
@@ -610,7 +660,8 @@ test('admin reissue: новая рука заменяет старую, счёт
   const authP = { 'content-type': 'application/json', authorization: `Bearer ${playerTok}` };
   const reissue = (headers, body) =>
     fetch(`${b}/api/admin/hand/reissue`, { method: 'POST', headers, body: JSON.stringify(body ?? {}) });
-  const RDATE = '2026-10-25';
+  // Результаты принимаются только за сегодняшний день (F2a) — реиздус тоже.
+  const RDATE = DAY;
 
   // без сессии → 401; не admin → 403
   const anonRes = await fetch(`${b}/api/admin/hand/reissue`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ date: RDATE }) });
@@ -626,22 +677,24 @@ test('admin reissue: новая рука заменяет старую, счёт
   assert.equal(first.date, RDATE);
   assert.equal(first.hand.length, 14);
 
-  // игрок сыграл: сброс + счёт + кан
+  // игрок сыграл: сброс + счёт (сервер пересчитывает — F2a)
   const post = await fetch(`${b}/api/scores`, {
     method: 'POST',
     headers: authA,
     body: JSON.stringify({
       date: RDATE, score: 12345, discarded: first.hand[13], tiles: first.hand.slice(0, 13),
-      hand: first.hand, kans: ['5m'], complete: false,
+      hand: first.hand, kans: [], complete: false,
       dayCtx: { dayKey: RDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' },
     }),
   });
   assert.equal(post.status, 200);
-  // кан виден публично
-  let k = await (await fetch(`${b}/api/daily/kans?date=${RDATE}`)).json();
-  assert.deepEqual(k.kans, [{ name: 'Игрок sub-1', kanCount: 1 }]);
+  assert.equal(
+    (await post.clone().json()).score,
+    computeDayScore({ tiles: first.hand.slice(0, 13), hand: first.hand, kans: [], complete: false, dayKey: RDATE }),
+  );
+  // каны дня — публичная точка: кривая дата 400, пустой день — пусто
   assert.equal((await fetch(`${b}/api/daily/kans?date=2026-13-99`)).status, 400);
-  assert.equal((await (await fetch(`${b}/api/daily/kans?date=2026-10-26`)).json()).kans.length, 0);
+  assert.equal((await (await fetch(`${b}/api/daily/kans?date=${TOMORROW}`)).json()).kans.length, 0);
 
   // реиздус: НОВАЯ рука, старые счёт/кан/сброс удалены
   r = await reissue(authA, { date: RDATE });
@@ -658,50 +711,60 @@ test('admin reissue: новая рука заменяет старую, счёт
   const lb = await (await fetch(`${b}/api/scores/${RDATE}`)).json();
   assert.equal(lb.rows.length, 0);
   // каны дня после реиздуса — пустые
-  k = await (await fetch(`${b}/api/daily/kans?date=${RDATE}`)).json();
-  assert.deepEqual(k.kans, []);
+  const k2 = await (await fetch(`${b}/api/daily/kans?date=${RDATE}`)).json();
+  assert.deepEqual(k2.kans, []);
 
   await new Promise((resolve) => srv.close(resolve));
   rmSync(dir, { recursive: true, force: true });
 });
 
 test('kans: повторная отправка счёта с пустыми kans не стирает объявленные каны', async () => {
-  const { body } = await login('good-token-2-abcdefghijklmnopqrstuvwxyz');
-  const headers = { 'content-type': 'application/json', authorization: `Bearer ${body.token}` };
-  const KDATE = '2026-10-21';
-  const HAND = ['1m', '1m', '1m', '1m', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', 'sw', 'nw'];
-  const dayCtx = { dayKey: KDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' };
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const headers = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  // Валидная рука с каном: черновик 4×кан (вне мёртвой стены) + 10 остальных.
+  const K = liveIds(DAY, 1)[0];
+  const others = liveIds(DAY, 10, [K]);
+  const draft14 = [K, K, K, K, ...others];
+  const save = await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ date: DAY, hand: draft14 }),
+  });
+  assert.equal(save.status, 200);
+  // добор после кана, рука 11, сброс → 10 тайлов
+  const drawn = others[0];
+  const hand11 = [...others, drawn];
+  const discarded = others[9];
+  const tiles10 = hand11.filter((t) => t !== discarded); // 10: 9 других + добор
+  const S = computeDayScore({ tiles: tiles10, hand: hand11, kans: [K], complete: false, dayKey: DAY });
 
   // 1-я отправка: игрок объявил кан
-  let r = await fetch(`${base}/api/scores`, {
-    method: 'POST', headers,
-    body: JSON.stringify({
-      date: KDATE, score: 2000, discarded: '4p', tiles: HAND.slice(0, 13),
-      hand: HAND, kans: ['1m'], complete: false, dayCtx,
-    }),
+  let r = await p.post(p.playerTok, {
+    date: DAY, score: 2000, discarded, tiles: tiles10,
+    hand: hand11, kans: [K], complete: false,
   });
   assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { score: S, isBest: true, rank: 1 });
 
   // 2-я отправка — эмуляция перезагрузки страницы старым клиентом
   // (declaredKans не восстановлен → kans: []): счёт хуже, каны пустые.
   // Политика «1 результат в день»: повтор НЕ пишется (зафиксированный
-  // результат 2000 возвращается), каны не могут стёрться.
-  r = await fetch(`${base}/api/scores`, {
-    method: 'POST', headers,
-    body: JSON.stringify({
-      date: KDATE, score: 1000, discarded: '4p', tiles: HAND.slice(0, 13),
-      hand: HAND, kans: [], complete: false, dayCtx,
-    }),
+  // результат возвращается), каны не могут стёрться.
+  r = await p.post(p.playerTok, {
+    date: DAY, score: 1000, discarded, tiles: tiles10,
+    hand: hand11, kans: [], complete: false,
   });
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { score: 2000, isBest: false, rank: 1 });
+  assert.deepEqual(await r.json(), { score: S, isBest: false, rank: 1 });
 
   // зафиксированный результат и кан дня на месте
-  const row = await (await fetch(`${base}/api/me/hand/${KDATE}`, { headers })).json();
-  assert.deepEqual(row.kans, ['1m']);
-  assert.equal(row.score, 2000);
-  const k = await (await fetch(`${base}/api/daily/kans?date=${KDATE}`)).json();
+  const row = await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers })).json();
+  assert.deepEqual(row.kans, [K]);
+  assert.equal(row.score, S);
+  const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
   assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
+
+  await p.close();
+  p.cleanup();
 });
 
 // ── Политика «1 результат в день»: force admin/test, защита пересчёта ──
@@ -710,9 +773,10 @@ function makePolicyApp(roles) {
   const dir = mkdtempSync(path.join(tmpdir(), 'mj-policy-'));
   const rolesFile = path.join(dir, 'roles.json');
   writeFileSync(rolesFile, JSON.stringify(roles), 'utf8');
+  const db = openDb(':memory:');
   let srv;
   const app = createApp({
-    db: openDb(':memory:'),
+    db,
     verifyIdToken: verifyStub,
     sessionSecret: SECRET,
     googleClientId: 'test-client',
@@ -738,6 +802,7 @@ function makePolicyApp(roles) {
       });
     return {
       base: b,
+      db,
       post,
       adminTok: await loginAt('good-token-1-abcdefghijklmnopqrstuvwxyz'),
       playerTok: await loginAt('good-token-2-abcdefghijklmnopqrstuvwxyz'),
@@ -749,86 +814,304 @@ function makePolicyApp(roles) {
 
 test('policy: admin пересдаёт — оба слоя обновляются согласованно', async () => {
   const p = await makePolicyApp({ admin: ['sub-1@example.com'], test: [] });
-  const PDATE = '2026-10-25';
+  const PDATE = DAY; // сервер принимает только сегодняшний день (F2a)
+  // ≤3 копии каждого id — безопасно для любой мёртвой стены.
   const HAND = ['1m', '1m', '1m', '2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p', 'sw', 'nw', 'rd'];
-  const ctx = { dayKey: PDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' };
+  const sAdmin = computeDayScore({ tiles: HAND.filter((t) => t !== 'rd'), hand: HAND, kans: [], complete: false, dayKey: PDATE });
+  const sPlayer = computeDayScore({ tiles: HAND.filter((t) => t !== 'nw'), hand: HAND, kans: [], complete: false, dayKey: PDATE });
   const body = (score) => ({
-    date: PDATE, score, discarded: 'rd', tiles: HAND.slice(0, 13),
-    hand: HAND, kans: [], complete: false, dayCtx: ctx,
+    date: PDATE, score, discarded: 'rd', tiles: HAND.filter((t) => t !== 'rd'),
+    hand: HAND, kans: [], complete: false,
   });
 
-  // первая запись
+  // первая запись (счёт — серверный, клиентский 1000 не доверяется)
   let r = await (await p.post(p.adminTok, body(1000))).json();
-  assert.deepEqual(r, { score: 1000, isBest: true, rank: 1 });
+  assert.deepEqual(r, { score: sAdmin, isBest: true, rank: 1 });
 
-  // admin пересдаёт ХУДШИЙ счёт (force): scores и day_hands — оба новые
+  // admin пересдаёт (force): scores и day_hands — оба перезаписаны
   r = await (await p.post(p.adminTok, body(500))).json();
-  assert.deepEqual(r, { score: 500, isBest: true, rank: 1 });
+  assert.deepEqual(r, { score: sAdmin, isBest: true, rank: 1 });
   const row = await (await fetch(`${p.base}/api/me/hand/${PDATE}`, {
     headers: { authorization: `Bearer ${p.adminTok}` },
   })).json();
-  assert.equal(row.score, 500);
+  assert.equal(row.score, sAdmin);
   assert.equal(row.discarded, 'rd');
-  assert.deepEqual((await (await fetch(`${p.base}/api/scores/${PDATE}`)).json()).rows.map((x) => x.score), [500]);
+  assert.deepEqual((await (await fetch(`${p.base}/api/scores/${PDATE}`)).json()).rows.map((x) => x.score), [sAdmin]);
 
-  // игрок: первая запись проходит, повтор — нет
+  // игрок: первая запись проходит, повтор — нет (политика 1 результат/день)
   const pbody = (score) => ({ ...body(score), discarded: 'nw', tiles: HAND.filter((t) => t !== 'nw') });
   let pr = await (await p.post(p.playerTok, pbody(900))).json();
-  assert.deepEqual(pr, { score: 900, isBest: true, rank: 1 });
+  assert.equal(pr.score, sPlayer);
+  assert.equal(pr.isBest, true);
+  const playerRank = pr.rank; // 1 или 2 — зависит от сравнения с sAdmin
+  assert.ok(playerRank >= 1 && playerRank <= 2);
   pr = await (await p.post(p.playerTok, pbody(300))).json();
-  assert.deepEqual(pr, { score: 900, isBest: false, rank: 1 });
+  assert.deepEqual(pr, { score: sPlayer, isBest: false, rank: playerRank });
   const lb = (await (await fetch(`${p.base}/api/scores/${PDATE}`)).json()).rows;
-  assert.deepEqual(lb.map((x) => x.score), [900, 500]);
-  assert.deepEqual(lb.map((x) => x.discarded), ['nw', 'rd']);
+  assert.equal(lb.length, 2);
+  assert.equal(lb.find((x) => x.discarded === 'rd').score, sAdmin);
+  assert.equal(lb.find((x) => x.discarded === 'nw').score, sPlayer);
 
   await p.close();
   p.cleanup();
 });
 
-test('policy: после пересчёта понижение не пишется (F1.3)', async () => {
+test('policy: пересдаться «за вчера» после ночного пересчёта нельзя (F1.3 + F2c)', async () => {
   const p = await makePolicyApp({ admin: [], test: [] });
-  const YDATE = '2026-10-24'; // «вчера»
-  const TDATE = '2026-10-25'; // «сегодня»
-  // Рука с каном, где ВРУЧНУЮ заложена открывающаяся в «полночный»
+  // «Вчерашняя» рука с каном ВРУЧНУЮ в БД (сегодня сервер принимает только
+  // сегодняшний день — F2a), где заложена открывающаяся в «полночный»
   // пересчёт дора (кан-дора дня) — счёт гарантированно изменится.
-  const wall = createDeadWall(YDATE);
+  const wall = createDeadWall(YDAY);
   const kanDoraTile = doraFromIndicator(wall.kanDora[0]);
-  const filler = ['2p', '3p', '4p', '5p', '6p', '7p', '8p', '9p'];
-  const others = [kanDoraTile, kanDoraTile, ...filler]; // 10 тайлов не-кана
-  const drawn = '5s';                                    // добор после кана
-  const hand11 = [...others, drawn];                     // рука после кана (11)
-  const discarded = drawn;                               // сброшен добраный тайл
-  const tiles = others;                                  // 10 после сброса (+3 пон = 13)
-  const ctx = { dayKey: YDATE, doraIndicators: [], uraIndicators: [], roundWindId: 'ew', seatWindId: 'ew' };
-  const body = (score) => ({
-    date: YDATE, score, discarded, tiles,
-    hand: hand11, kans: ['1m'], complete: false, dayCtx: ctx,
-  });
-
-  // первый результат
-  const first = await (await p.post(p.playerTok, body(1000))).json();
-  assert.equal(first.score, 1000);
+  const dead = new Set(createDailyContext(new Date(`${YDAY}T12:00:00Z`)).deadTiles);
+  const K = allTileIds().find((t) => !dead.has(t) && t !== kanDoraTile);
+  const rest = allTileIds().filter((t) => !dead.has(t) && t !== K && t !== kanDoraTile);
+  const others = [kanDoraTile, kanDoraTile, ...rest.slice(0, 8)]; // 10 не-кана
+  const R = rest[8];
+  const draft14 = [K, K, K, K, ...others];
+  const hand11 = [...others, R];
+  const discarded = R;
+  const tiles10 = others;
+  const ctx = createDailyContext(new Date(`${YDAY}T12:00:00Z`));
+  const dayScoreVal = computeDayScore({ tiles: tiles10, hand: hand11, kans: [K], complete: false, dayKey: YDAY });
+  const expected = recalcScore({
+    hand: hand11, tiles: tiles10, kans: [K], oldScore: dayScoreVal,
+    complete: false, ctx, dayKey: YDAY, dayKanCount: 1,
+  }).newScore;
+  assert.notEqual(expected, dayScoreVal, `пересчёт должен изменить счёт (получилось ${expected})`);
+  const nowIso = new Date().toISOString();
+  p.db.prepare(`INSERT INTO scores (user_id, date, score, discarded, tiles, created_at) VALUES (?,?,?,?,?,?)`)
+    .run('sub-2', YDAY, dayScoreVal, discarded, JSON.stringify(tiles10), nowIso);
+  p.db.prepare(`INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run('sub-2', YDAY, JSON.stringify(draft14), JSON.stringify(tiles10), JSON.stringify([K]), discarded, dayScoreVal, 0, JSON.stringify(ctx), 0, nowIso);
 
   // «полночь»: клиент спрашивает вчерашний день → пересчёт (флаг recalculated)
-  const y = await (await fetch(`${p.base}/api/me/yesterday?date=${TDATE}`, {
+  const y = await (await fetch(`${p.base}/api/me/yesterday?date=${DAY}`, {
     headers: { authorization: `Bearer ${p.playerTok}` },
   })).json();
   assert.equal(y.recalculated, true);
-  assert.notEqual(y.newScore, 1000, `пересчёт должен изменить счёт (получилось ${y.newScore})`);
-  const recalculated = y.newScore;
+  assert.equal(y.newScore, expected);
 
-  // вкладка, открытая через полночь, отправляет СТАРЫЙ (меньший) счёт —
-  // отклоняется: зафиксирован пересчитанный результат
-  const r = await (await p.post(p.playerTok, body(10))).json();
-  assert.deepEqual(r, { score: recalculated, isBest: false, rank: 1 });
+  // вкладка, открытая через полночь, отправляет СТАРЫЙ счёт «за вчера» —
+  // дата уже не «сегодня» (сервер, МСК) → 400, запись не пишется
+  const r = await p.post(p.playerTok, {
+    date: YDAY, score: 10, discarded, tiles: tiles10,
+    hand: hand11, kans: [K], complete: false,
+  });
+  assert.equal(r.status, 400);
 
   // БД согласована: в таблице и в day_hands пересчитанный счёт
-  const lb = (await (await fetch(`${p.base}/api/scores/${YDATE}`)).json()).rows;
-  assert.deepEqual(lb.map((x) => x.score), [recalculated]);
-  const row = await (await fetch(`${p.base}/api/me/hand/${YDATE}`, {
+  const lb = (await (await fetch(`${p.base}/api/scores/${YDAY}`)).json()).rows;
+  assert.deepEqual(lb.map((x) => x.score), [expected]);
+  const row = await (await fetch(`${p.base}/api/me/hand/${YDAY}`, {
     headers: { authorization: `Bearer ${p.playerTok}` },
   })).json();
-  assert.equal(row.score, recalculated);
+  assert.equal(row.score, expected);
+
+  await p.close();
+  p.cleanup();
+});
+
+// ── F2: сервер не доверяет клиенту в делах дня ──
+
+test('F2: только сегодняшний день (сервер, МСК); «завтра» клиента — не триггер', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const headers = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const discarded = HAND_SHARED[13];
+  const tiles = HAND_SHARED.filter((t) => t !== discarded);
+  const submit = (date) => fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ date, score: 100, discarded, tiles, hand: HAND_SHARED }),
+  });
+  // вчера → 400
+  assert.equal((await submit(YDAY)).status, 400);
+  // завтра → 400
+  assert.equal((await submit(TOMORROW)).status, 400);
+  // черновик руки — тоже только за сегодня
+  const draftPost = await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ date: YDAY, hand: HAND_SHARED }),
+  });
+  assert.equal(draftPost.status, 400);
+  // «завтра» по часам клиента (F2c) не запускает досрочный пересчёт:
+  // возвращается реальный вчерашний
+  const y = await (await fetch(`${p.base}/api/me/yesterday?date=${TOMORROW}`, { headers })).json();
+  assert.equal(y.date, YDAY);
+
+  await p.close();
+  p.cleanup();
+});
+
+test('F2: семантика руки — кривые id, мёртвая стена, численность, черновик, каны', async () => {
+  // 1. Некорректный id тайла
+  let p = await makePolicyApp({ admin: [], test: [] });
+  let h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  let r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, score: 100, discarded: '1m', tiles: ['9999', ...HAND_SHARED.slice(0, 12)], hand: HAND_SHARED }),
+  });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /id тайла/);
+  await p.close(); p.cleanup();
+
+  // 2. Больше 3 копий тайла мёртвой стены — физически невозможно
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const deadId = createDailyContext(new Date(`${DAY}T12:00:00Z`)).deadTiles[0];
+  const live = liveIds(DAY, 10);
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({
+      date: DAY, score: 100, discarded: live[0],
+      tiles: [deadId, deadId, deadId, deadId, ...live.slice(0, 9)], hand: [],
+    }),
+  });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /мёртвой стены/);
+  await p.close(); p.cleanup();
+
+  // 3. Неправильная численность: 12 тайлов вместо 13
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, score: 100, discarded: '1m', tiles: HAND_SHARED.slice(0, 12), hand: HAND_SHARED }),
+  });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /13 тайлов/);
+  await p.close(); p.cleanup();
+
+  // 4. Рука не совпадает с выданной (черновик зафиксирован)
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const K = liveIds(DAY, 1)[0];
+  const rest = liveIds(DAY, 10, [K]);
+  const draft14 = [K, K, K, K, ...rest];
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, hand: draft14 }),
+  })).status, 200);
+  const fake = liveIds(DAY, 14, [K]);
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, score: 100, discarded: fake[13], tiles: fake.slice(0, 13), hand: fake }),
+  });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /не совпадает/);
+  await p.close(); p.cleanup();
+
+  // 5. Кан на тайлы, которых нет в выданной руке
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const D = liveIds(DAY, 14);
+  const FK = liveIds(DAY, 15, [])[14]; // 15-й живого тайла — не входит в D
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, hand: D }),
+  })).status, 200);
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({
+      date: DAY, score: 100, discarded: D[13], tiles: D.slice(0, 10),
+      hand: [...D.slice(0, 10), FK], kans: [FK], complete: false,
+    }),
+  });
+  assert.equal(r.status, 400);
+  assert.match((await r.json()).error, /не совпадает|нет в руке/);
+  await p.close(); p.cleanup();
+
+  // 6. Валидный кан проходит: черновик 4×кан, добор, сброс, 10 тайлов
+  p = await makePolicyApp({ admin: [], test: [] });
+  h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const K2 = liveIds(DAY, 1)[0];
+  const rest2 = liveIds(DAY, 10, [K2]);
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({ date: DAY, hand: [K2, K2, K2, K2, ...rest2] }),
+  })).status, 200);
+  const R2 = rest2[0];
+  const hand11 = [...rest2, R2];
+  const discarded2 = rest2[9];
+  const tiles10 = hand11.filter((t) => t !== discarded2); // 10: 9 других + добор
+  const S2 = computeDayScore({ tiles: tiles10, hand: hand11, kans: [K2], complete: false, dayKey: DAY });
+  r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers: h,
+    body: JSON.stringify({
+      date: DAY, score: 2000, discarded: discarded2, tiles: tiles10,
+      hand: hand11, kans: [K2], complete: false,
+    }),
+  });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).score, S2);
+  const row = await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json();
+  assert.deepEqual(row.kans, [K2]);
+  const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
+  assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
+  await p.close(); p.cleanup();
+});
+
+test('F2: клиентский score и dayCtx не доверяются — сервер пересчитывает', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const headers = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  const discarded = HAND_SHARED[13];
+  const tiles = HAND_SHARED.filter((t) => t !== discarded);
+  const S = computeDayScore({ tiles, hand: HAND_SHARED, kans: [], complete: false, dayKey: DAY });
+  // мусорный score + мусорный dayCtx (F2b: null-индикаторы должны были
+  // ронять ночной пересчёт — теперь ctx вообще не принимается от клиента)
+  const r = await (await fetch(`${p.base}/api/scores`, {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      date: DAY, score: 999999999, discarded, tiles, hand: HAND_SHARED,
+      dayCtx: { doraIndicators: [null], uraIndicators: [null] },
+    }),
+  })).json();
+  assert.equal(r.score, S);
+  assert.notEqual(r.score, 999999999);
+  // в day_hands сохранён серверный контекст (dora-индикатор дня на месте)
+  const saved = p.db.prepare(`SELECT day_ctx FROM day_hands WHERE user_id = 'sub-2' AND date = ?`).get(DAY);
+  const ctx = JSON.parse(saved.day_ctx);
+  assert.deepEqual(ctx.doraIndicators, createDailyContext(new Date(`${DAY}T12:00:00Z`)).doraIndicators);
+
+  await p.close();
+  p.cleanup();
+});
+
+test('F2: битая строка в ночном пересчёте не роняет день для всех', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const ctx = createDailyContext(new Date(`${YDAY}T12:00:00Z`));
+  const nowIso = new Date().toISOString();
+  // sub-2 — нормальная готовая рука; sub-3 — битые tiles (null в JSON-массиве:
+  // tileToIndex(null) бросает — тот же класс падения, что в F2b)
+  const tilesB = [...HAND_SHARED.slice(0, 12), null]; // 13 элементов
+  // sub-3 существует в users (FK): логиним только ради строки
+  await fetch(`${p.base}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ idToken: 'good-token-3-abcdefghijklmnopqrstuvwxyz' }),
+  });
+  p.db.prepare(`INSERT INTO scores (user_id, date, score, discarded, tiles, created_at) VALUES (?,?,?,?,?,?)`)
+    .run('sub-2', YDAY, 100, null, JSON.stringify(HAND_SHARED), nowIso);
+  p.db.prepare(`INSERT INTO scores (user_id, date, score, discarded, tiles, created_at) VALUES (?,?,?,?,?,?)`)
+    .run('sub-3', YDAY, 200, '1s', JSON.stringify(tilesB), nowIso);
+  p.db.prepare(`INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run('sub-2', YDAY, JSON.stringify(HAND_SHARED), JSON.stringify(HAND_SHARED), '[]', null, 100, 1, JSON.stringify(ctx), 0, nowIso);
+  p.db.prepare(`INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run('sub-3', YDAY, JSON.stringify(HAND_SHARED), JSON.stringify(tilesB), '[]', '1s', 200, 0, JSON.stringify(ctx), 0, nowIso);
+
+  const headers = { authorization: `Bearer ${p.playerTok}` }; // sub-2
+  const r = await fetch(`${p.base}/api/me/yesterday?date=${TOMORROW}`, { headers });
+  assert.equal(r.status, 200);
+  const y = await r.json();
+  assert.equal(y.recalculated, true); // нормальная строка пересчитана
+  // битая строка: помечена пересчитанной, старый счёт сохранён
+  const bad = p.db.prepare(`SELECT score, recalculated FROM day_hands WHERE user_id = 'sub-3'`).get();
+  assert.equal(bad.recalculated, 1);
+  assert.equal(bad.score, 200);
+  // таблица дня: обе строки на месте, у битой — старый счёт
+  const lb = (await (await fetch(`${p.base}/api/scores/${YDAY}`)).json()).rows;
+  assert.equal(lb.length, 2);
+  assert.equal(lb.find((x) => x.id === 'sub-3').score, 200);
+  assert.equal(lb.find((x) => x.id === 'sub-2').score, y.newScore);
 
   await p.close();
   p.cleanup();

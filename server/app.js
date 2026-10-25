@@ -21,7 +21,7 @@ import {
 } from './db.js';
 import { createDailyContext } from '../src/daily-context.js';
 import { drawHand } from '../src/tiles.js';
-import { recalcScore } from './recalc.js';
+import { recalcScore, computeDayScore, validateDaySubmission } from './recalc.js';
 import { DEFAULT_ROLES_FILE, readRolesFile, roleFor, setRole } from './roles.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -72,6 +72,19 @@ function isValidDate(s) {
   if (m < 1 || m > 12) return false;
   const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return d >= 1 && d <= daysInMonth;
+}
+
+/**
+ * «Сегодня» на сервере (Europe/Moscow) — единый источник правды для дня
+ * (аудит F2c): клиентская дата не управляет ни отчётностью, ни ночным
+ * пересчётом — неверные часы устройства не запускают полночь заранее.
+ */
+export function mskToday() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date()).filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]);
+  const t = Object.fromEntries(parts);
+  return `${t.year}-${t.month}-${t.day}`;
 }
 
 function httpError(res, status, message) {
@@ -281,6 +294,11 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (!isValidDate(date)) {
       return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
     }
+    // День — только сегодняшний (сервер, МСК): вчерашнюю/будущую дату
+    // принимать нельзя (аудит F2a/F2c) — ни результат, ни пересчёт.
+    if (date !== mskToday()) {
+      return httpError(res, 400, 'результат можно отправить только за сегодняшний день');
+    }
     if (typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > MAX_SCORE) {
       return httpError(res, 400, 'score — целое число от 0');
     }
@@ -299,8 +317,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       discardedStr = discarded;
     }
 
-    // Рука дня для ночного пересчёта: 14 исходных тайлов, каны, контекст дня.
-    const { hand, kans, complete, dayCtx } = req.body ?? {};
+    // Рука дня для ночного пересчёта: исходные тайлы, каны, готовность.
+    // dayCtx от клиента НЕ принимается — контекст дня выводится из dayKey
+    // (аудит F2b: битый клиентский контекст ронял ночной пересчёт для всех).
+    const { hand, kans, complete } = req.body ?? {};
     const isTileArray = (arr, max) =>
       Array.isArray(arr) && arr.length <= max && arr.every((t) => typeof t === 'string' && t.length <= 4);
     if (hand !== undefined && !isTileArray(hand, 14)) {
@@ -324,16 +344,46 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       });
     }
 
+    // Семантика руки (аудит F2a): корректные id, нет тайлов мёртвой стены,
+    // численность с учётом канов, каны — на выданную руку, рука совпадает
+    // с зафиксированным черновиком (если тот есть).
+    const dayRow = getDayHand(db, user.id, date);
+    const check = validateDaySubmission({
+      tiles: tiles ?? [],
+      hand: hand ?? [],
+      kans: kans ?? [],
+      discarded: discardedStr,
+      complete: Boolean(complete),
+      dayKey: date,
+      draft: dayRow?.hand ?? null,
+    });
+    if (!check.ok) return httpError(res, 400, check.error);
+
+    // Счёт пересчитывается НА СЕРВЕРЕ из tiles/hand/kans + контекста дня
+    // (аудит F2a): клиентское значение не доверяется, при расхождении —
+    // серверный (разные версии клиента могут считать иначе).
+    const finalScore = computeDayScore({
+      tiles: tiles ?? [],
+      hand: hand ?? [],
+      kans: kans ?? [],
+      complete: Boolean(complete),
+      dayKey: date,
+    });
+    if (finalScore !== score) {
+      console.warn(`счёт ${user.id} за ${date}: клиент ${score}, сервер ${finalScore} — записан серверный`);
+    }
+
     const result = submitDayResult(db, {
       userId: user.id,
       date,
-      score,
+      score: finalScore,
       discarded: discardedStr,
       tiles: tiles ?? null,
       hand: hand ?? [],
       kans: kans ?? [],
       complete: Boolean(complete),
-      dayCtx: dayCtx && typeof dayCtx === 'object' ? dayCtx : {},
+      // Контекст дня — серверный, из dayKey (F2b).
+      dayCtx: createDailyContext(new Date(`${date}T12:00:00Z`)),
       force,
     });
 
@@ -343,7 +393,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
   /**
    * GET /api/me/yesterday?date=YYYY-MM-DD → вчерашняя рука игрока.
    *
-   * date — СЕГОДНЯШНИЙ день (клиентский dayKey); вчера вычисляется на сервере.
+   * date — СЕГОДНЯШНИЙ день по клиенту (dayKey): на сервере только
+   * сверяется по формату, «сегодня»/«вчера» считаются по серверному МСК
+   * (аудит F2c): неверные часы устройства не запускают ночной пересчёт
+   * досрочно и не пропускают поздние каны.
    * При первом обращении за день вчерашние руки пересчитываются с учётом
    * открывшихся в полночь дор: ура — 1 базовая + по одной за каждый кан дня,
    * кан-доры — по одной за каждый кан дня (каны дня = все игроки); один раз,
@@ -356,9 +409,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
   app.get('/api/me/yesterday', (req, res) => {
     const user = authProfile(req, db, sessionSecret);
     if (!user) return httpError(res, 401, 'нет сессии');
-    const today = req.query.date;
-    if (!isValidDate(today)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
-    const yesterday = dayBefore(today);
+    if (req.query.date != null && !isValidDate(req.query.date)) {
+      return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    }
+    const yesterday = dayBefore(mskToday());
 
     const mine = getDayHand(db, user.id, yesterday);
     if (!mine) return res.json({ date: yesterday, hand: null, dayKanCount: 0 });
@@ -369,23 +423,38 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       .reduce((sum, k) => sum + (k.kanCount || 0), 0);
 
     // Ленивый ночной пересчёт: один раз на дату (и на игрока).
+    // Пачка — в транзакции; одна битая строка (битый JSON руки/тайлов,
+    // неизвестный id) не роняет пересчёт дня для всех (аудит F2b): она
+    // логируется, помечается пересчитанной (со старым счётом) и пропускается.
     if (!mine.recalculated) {
-      for (const row of listDayHands(db, yesterday)) {
-        if (row.recalculated) continue;
-        const r = recalcScore({
-          hand: row.hand,
-          tiles: row.tiles,
-          kans: row.kans,
-          oldScore: row.score,
-          complete: row.complete,
-          ctx: row.day_ctx,
-          dayKey: yesterday,
-          dayKanCount,
-        });
-        markDayHandRecalculated(db, row.user_id, yesterday, r.newScore);
-        // Таблицу дня обновляем всегда: после ночного пересчёта очки могли
-        // измениться, а старый счёт остался бы с момента сдачи.
-        setScoreValue(db, row.user_id, yesterday, r.newScore);
+      db.exec('BEGIN');
+      try {
+        for (const row of listDayHands(db, yesterday)) {
+          if (row.recalculated) continue;
+          try {
+            const r = recalcScore({
+              hand: row.hand,
+              tiles: row.tiles,
+              kans: row.kans,
+              oldScore: row.score,
+              complete: row.complete,
+              ctx: row.day_ctx,
+              dayKey: yesterday,
+              dayKanCount,
+            });
+            markDayHandRecalculated(db, row.user_id, yesterday, r.newScore);
+            // Таблицу дня обновляем всегда: после ночного пересчёта очки
+            // могли измениться, а старый счёт остался бы с момента сдачи.
+            setScoreValue(db, row.user_id, yesterday, r.newScore);
+          } catch (e) {
+            console.error(`ночной пересчёт ${yesterday}: строка user=${row.user_id} битая, пропускаю: ${e.message}`);
+            markDayHandRecalculated(db, row.user_id, yesterday, row.score);
+          }
+        }
+        db.exec('COMMIT');
+      } catch (e) {
+        try { db.exec('ROLLBACK'); } catch { /* уже откатилось */ }
+        throw e;
       }
     }
 
@@ -422,20 +491,36 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
   app.post('/api/me/hand', (req, res) => {
     const user = authProfile(req, db, sessionSecret);
     if (!user) return httpError(res, 401, 'нет сессии');
-    const { date, hand, dayCtx } = req.body ?? {};
+    const { date, hand } = req.body ?? {};
     if (!isValidDate(date)) {
       return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    }
+    // Рука дня фиксируется только за сегодняшний день (сервер, МСК) — F2a.
+    if (date !== mskToday()) {
+      return httpError(res, 400, 'рука можно зафиксировать только за сегодняшний день');
     }
     const isTileArray = (arr) =>
       Array.isArray(arr) && arr.length <= 14 && arr.every((t) => typeof t === 'string' && t.length <= 4);
     if (!isTileArray(hand) || hand.length !== 14) {
       return httpError(res, 400, 'hand — массив из 14 id тайлов');
     }
+    // Формат id и мёртвая стена (F2a): черновик — будущая проверка результата.
+    const check = validateDaySubmission({
+      tiles: hand,
+      hand: [],
+      kans: [],
+      discarded: null,
+      complete: true,
+      dayKey: date,
+      draft: null,
+    });
+    if (!check.ok) return httpError(res, 400, check.error);
     upsertDayHandDraft(db, {
       userId: user.id,
       date,
       hand,
-      dayCtx: dayCtx && typeof dayCtx === 'object' ? dayCtx : {},
+      // dayCtx — серверный, из dayKey (F2b): клиентский не доверяется.
+      dayCtx: createDailyContext(new Date(`${date}T12:00:00Z`)),
     });
     res.json({ date, hand });
   });
@@ -484,26 +569,12 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     const user = authProfile(req, db, sessionSecret);
     if (!user) return httpError(res, 401, 'нет сессии');
     if (await roleFor(user.email, rolesFile) !== 'admin') return httpError(res, 403, 'только admin');
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit',
-    }).formatToParts(new Date()).filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]);
-    const t = Object.fromEntries(parts);
-    const date = req.body?.date ?? `${t.year}-${t.month}-${t.day}`;
+    const date = req.body?.date ?? mskToday();
     if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
     const ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
     const hand = drawHand(14, { deadTiles: ctx.deadTiles });
-    reissueDayHand(db, {
-      userId: user.id,
-      date,
-      hand,
-      dayCtx: {
-        dayKey: date,
-        doraIndicators: ctx.doraIndicators,
-        uraIndicators: [],
-        roundWindId: ctx.roundWindId,
-        seatWindId: ctx.seatWindId,
-      },
-    });
+    // day_ctx — серверный (из dayKey), клиентский не доверяется (F2b).
+    reissueDayHand(db, { userId: user.id, date, hand, dayCtx: ctx });
     res.json({ date, hand });
   });
 

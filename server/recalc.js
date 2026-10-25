@@ -17,6 +17,134 @@ import { evaluateHand, evaluateCompleteHand } from '../src/scoring.js';
 import { createDailyContext, createDeadWall } from '../src/daily-context.js';
 import { openKanDoraCount, withKanPons } from '../src/kans.js';
 import { tileToIndex } from '../src/tile-index.js';
+import { allTileIds, canonicalTileId } from '../src/tiles.js';
+
+const ALL_TILE_IDS = allTileIds();
+const RED_FIVES = new Set(['0m', '0p', '0s']);
+
+/** Корректный id тайла: 34 канонических + красные пятёрки ('0m'/'0p'/'0s'). */
+export function isValidTileId(id) {
+  return typeof id === 'string' && (ALL_TILE_IDS.includes(id) || RED_FIVES.has(id));
+}
+
+/**
+ * Серверный пересчёт счёта дня из tiles/hand/kans + контекста дня (аудит F2a):
+ * клиентский `score` не доверяется. Дневной контекст — createDailyContext
+ * БЕЗ ура-дор (они открываются только в полночный пересчёт) — та же формула,
+ * что у клиента. Возвращает число очков.
+ */
+export function computeDayScore({ tiles, hand, kans = [], complete = false, dayKey }) {
+  const ctx = createDailyContext(new Date(`${dayKey}T12:00:00Z`));
+  const scoringCtx = { ...ctx, uraIndicators: [], uraTiles: [] };
+  if (complete && Array.isArray(hand) && hand.length === 14) {
+    const r = evaluateCompleteHand(hand, scoringCtx, kans);
+    return r?.total ?? 0;
+  }
+  const kanCount = Array.isArray(kans) ? kans.length : 0;
+  if (Array.isArray(tiles) && (tiles.length === 13 || tiles.length + 3 * kanCount === 13)) {
+    return evaluateHand(withKanPons(tiles, kans), scoringCtx, kans).total;
+  }
+  return 0;
+}
+
+/**
+ * Семантическая проверка отправки результата дня (аудит F2a): сервер больше
+ * не доверяет клиенту «во всём».
+ *  - все id тайлов корректны (34 + красные пятёрки);
+ *  - тайлы мёртвой стены: из них в руке максимум 3 копии (одна копия каждого
+ *    индикатора отложена в стену и не участвует в раздаче/доборе — модель
+ *    drawHand: из 4 копий в обороте 3);
+ *  - численность: после сброса tiles = 13 − 3×каны, готовая рука = 14;
+ *  - каны: без повторов, объявлены на 4 тайла выданной руки;
+ *  - если выданная рука известна (черновик draft, 14 тайлов) — проверка
+ *    мультиконтура: отправка не может содержать МЕНЬШЕ выданных тайлов;
+ *    на каждый кан допускается ровно один доборный тайл (complete-рука с
+ *    каноми несёт 3-й тайл кана вместо 4-го — он отложен).
+ * draft — массив 14 выданных тайлов или null (рука не фиксировалась до
+ * отправки — мультиконтр-проверка не применяется, остальные — да).
+ * Возвращает {ok:true} или {ok:false, error}.
+ */
+export function validateDaySubmission({
+  tiles, hand, kans = [], discarded = null, complete = false, dayKey, draft = null,
+}) {
+  const all = [
+    ...(Array.isArray(tiles) ? tiles : []),
+    ...(Array.isArray(hand) ? hand : []),
+    ...(Array.isArray(kans) ? kans : []),
+    ...(discarded != null ? [discarded] : []),
+  ];
+  for (const id of all) {
+    if (!isValidTileId(id)) return { ok: false, error: 'некорректный id тайла' };
+  }
+
+  if (!Array.isArray(tiles)) return { ok: false, error: 'tiles — массив id тайлов' };
+  const kCount = Array.isArray(kans) ? kans.length : 0;
+  if (new Set(kans).size !== kCount) {
+    return { ok: false, error: 'один кан нельзя объявить дважды' };
+  }
+  if (complete) {
+    if (tiles.length !== 14) return { ok: false, error: 'готовая рука — 14 тайлов' };
+    if (discarded != null) return { ok: false, error: 'у готовой руки нет сброшенного тайла' };
+  } else {
+    if (discarded == null) return { ok: false, error: 'нужен сброшенный тайл' };
+    if (tiles.length + 3 * kCount !== 13) {
+      return { ok: false, error: 'после сброса — 13 тайлов с учётом канов' };
+    }
+  }
+
+  // Мёртвая стена дня: индикаторы (дора, ура + 10 тайлов стены) — по одной
+  // копии отложенные, остальные 3 копии каждого id в обороте. Игрок физически
+  // не может держать больше 3 копий такого id (раздача + доборы идут из
+  // оборота), поэтому и в отправе больше 3 быть не может.
+  const deadIds = new Set(createDailyContext(new Date(`${dayKey}T12:00:00Z`)).deadTiles);
+  // Физические тайлы отправки: текущие 14 (tiles + сброшенный; у готовой —
+  // tiles) + тайлы канов (у готовой руки 4-й тайл кана отложен — добавляем).
+  const physical = [
+    ...tiles,
+    ...(discarded != null ? [discarded] : []),
+    ...(complete ? kans : kans.flatMap((k) => [k, k, k, k])),
+  ];
+  const deadCounts = new Map();
+  for (const id of physical) {
+    const c = canonicalTileId(id);
+    if (deadIds.has(c)) deadCounts.set(c, (deadCounts.get(c) ?? 0) + 1);
+  }
+  for (const [, n] of deadCounts) {
+    if (n > 3) return { ok: false, error: 'слишком много копий тайла мёртвой стены' };
+  }
+
+  // Мультиконтр-проверка против выданной руки (если она зафиксирована).
+  if (!Array.isArray(draft) || draft.length !== 14) return { ok: true };
+  const countOf = (arr) => {
+    const m = new Map();
+    for (const t of arr) m.set(t, (m.get(t) ?? 0) + 1);
+    return m;
+  };
+  const draftCounts = countOf(draft);
+  const sent = [
+    ...tiles,
+    ...(discarded != null ? [discarded] : []),
+    ...kans.flatMap((k) => [k, k, k, k]),
+  ];
+  const sentCounts = countOf(sent);
+  const ids = new Set([...draftCounts.keys(), ...sentCounts.keys()]);
+  let excess = 0;
+  for (const id of ids) {
+    const diff = (sentCounts.get(id) ?? 0) - (draftCounts.get(id) ?? 0);
+    // Готовая рука с каноми: 4-й тайл каждого кана отложен (−1 на кан).
+    const minDiff = complete && kans.includes(id) ? -1 : 0;
+    if (diff < minDiff) return { ok: false, error: 'рука не совпадает с выданной' };
+    if (diff > 0) excess += diff;
+  }
+  // На каждый объявленный кан — ровно один доборный тайл из стены.
+  if (excess !== kCount) return { ok: false, error: 'рука не совпадает с выданной' };
+  for (const k of kans) {
+    if ((draftCounts.get(k) ?? 0) < 4) {
+      return { ok: false, error: 'кан объявлен на тайлы, которых нет в руке' };
+    }
+  }
+  return { ok: true };
+}
 
 /**
  * Пересчитать одну руку.
