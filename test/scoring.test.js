@@ -9,7 +9,6 @@ import { withKanPons } from '../src/kans.js';
 import { detectV4Yaku, detectV4YakuCounts, detectV4YakuIds } from '../src/yaku-v4.js';
 import { PATTERNS, addCustomPattern } from '../src/patterns.js';
 import { bestPartition, clearPartitionCache } from '../src/partition.js';
-import { parseStructureNotation } from '../src/structure-editor.js';
 import { buildWall, tileDisplayName } from '../src/tiles.js';
 import { countDora, createDailyContext, doraFromIndicator } from '../src/daily-context.js';
 import {
@@ -194,11 +193,7 @@ test('a complete starting hand gets the "Готовая рука" base row of it
   assert.equal(result.display.flatMap((group) => group.tiles).length, 14);
 });
 
-test('custom structure notation is validated and participates in partitioning', () => {
-  assert.equal(parseStructureNotation(' 135 '), '135');
-  assert.throws(() => parseStructureNotation('531'), /возрастанию/);
-  assert.throws(() => parseStructureNotation('10'), /от 1 до 9/);
-
+test('custom structure participates in partitioning', () => {
   const custom = addCustomPattern({
     id: 'custom-test-13', label: 'Тестовая форма 13', notation: '13', points: 99,
   });

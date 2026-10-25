@@ -47,8 +47,11 @@ export function validateHandTiles(tiles) {
   return null;
 }
 
-/** Контекст оценки — та же форма, что у createDailyContext. */
+/** Контекст оценки — та же форма, что у createDailyContext.
+ *  F10: doraIndicator может быть пустым (поле доры очищено) — тогда доры
+ *  нет вообще (doraIndicators: []), а не краш в doraFromIndicator(null). */
 export function buildTestContext(roundWindId, seatWindId, doraIndicator, uraIndicator = null) {
+  const doraIndicators = doraIndicator ? [doraIndicator] : [];
   const uraIndicators = uraIndicator ? [uraIndicator] : [];
   return {
     dayKey: 'test',
@@ -56,11 +59,11 @@ export function buildTestContext(roundWindId, seatWindId, doraIndicator, uraIndi
     seatWindId,
     roundWind: tileToIndex(roundWindId),
     seatWind: tileToIndex(seatWindId),
-    doraIndicators: [doraIndicator],
+    doraIndicators,
     uraIndicators,
-    doraTiles: [doraFromIndicator(doraIndicator)],
+    doraTiles: doraIndicators.map(doraFromIndicator),
     uraTiles: uraIndicators.map(doraFromIndicator),
-    deadTiles: [doraIndicator, ...uraIndicators],
+    deadTiles: [...doraIndicators, ...uraIndicators],
   };
 }
 
@@ -278,6 +281,16 @@ export function initTestMode() {
     }
     const full = fullTiles();
     if (full.length === 14) {
+      // F9: готовая стартовая рука оценивается сразу — без обязательного
+      // сброса (как в основной игре: complete → рука 14, сброса нет).
+      const complete = evaluateCompleteHand(full, scoringContext(), declaredKans);
+      if (complete) {
+        phase = 'complete';
+        score = complete;
+        remaining = full;
+        discarded = null;
+        return;
+      }
       phase = 'choose';
       score = null;
       remaining = [];

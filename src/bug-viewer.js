@@ -70,10 +70,19 @@ export function initBugViewer() {
     for (const row of rows) listEl.append(renderBlock(row));
   }
 
+  // F8: payload анонимного события — произвольный JSON (POST /api/events
+  // принимает любой с конечным total). Рендерим дефensively: каждое поле
+  // проверяем типами, а весь блок — try/catch с пометкой «битый блок»,
+  // чтобы одно мусорное событие не ломало вкладку «Все руки».
+  const asStringArray = (value) =>
+    Array.isArray(value) ? value.filter((t) => typeof t === 'string') : [];
+  const asString = (value) => (typeof value === 'string' ? value : '');
+
   /** Карточка одного блока: рука + счёт + (если есть) жалоба. */
   function renderBlock(row) {
     const item = document.createElement('article');
-    const hasReport = Boolean(row.payload?.report);
+    const payload0 = (row.payload && typeof row.payload === 'object') ? row.payload : {};
+    const hasReport = Boolean(payload0.report);
     item.className = `bug-item kind-hand${hasReport ? ' has-report' : ''}`;
 
     const head = document.createElement('div');
@@ -83,8 +92,8 @@ export function initBugViewer() {
     modeSpan.textContent = row.mode === 'test' ? 'тест' : 'день';
     const userSpan = document.createElement('span');
     userSpan.className = 'bug-user';
-    userSpan.textContent = row.user_name
-      ? `${row.user_name}${row.user_email ? ` <${row.user_email}>` : ''}`
+    userSpan.textContent = asString(row.user_name)
+      ? `${row.user_name}${asString(row.user_email) ? ` <${row.user_email}>` : ''}`
       : 'аноним';
     const timeSpan = document.createElement('span');
     timeSpan.className = 'bug-time';
@@ -92,42 +101,59 @@ export function initBugViewer() {
     head.append(modeSpan, userSpan, timeSpan);
     item.append(head);
 
-    const payload = row.payload ?? {};
+    try {
+      if (hasReport) {
+        const quote = document.createElement('div');
+        quote.className = 'bug-text';
+        const report = payload0.report;
+        quote.textContent = `Жалоба: ${typeof report === 'string' ? report : asString(report.text) || '(текст отсутствует)'}`;
+        item.append(quote);
+      }
 
-    if (hasReport) {
-      const quote = document.createElement('div');
-      quote.className = 'bug-text';
-      quote.textContent = `Жалоба: ${payload.report.text}`;
-      item.append(quote);
+      renderHand(item, payload0);
+      renderScore(item, payload0);
+      renderContext(item, (payload0.ctx && typeof payload0.ctx === 'object') ? payload0.ctx : null);
+    } catch {
+      // Последний рубеж: блок отрисовали частично — помечаем и показываем
+      // исходный JSON, чтобы блок оставался видимым и удаляемым.
+      const broken = document.createElement('div');
+      broken.className = 'bug-broken';
+      broken.textContent = 'Битый блок: payload несовместим с этой версией (показан исходный JSON).';
+      const pre = document.createElement('pre');
+      pre.className = 'bug-broken-json';
+      try { pre.textContent = JSON.stringify(row.payload, null, 2)?.slice(0, 4000) ?? ''; }
+      catch { pre.textContent = '(payload не сериализуется)'; }
+      broken.append(pre);
+      item.append(broken);
     }
-
-    renderHand(item, payload);
-    renderScore(item, payload);
-    renderContext(item, payload.ctx);
     return item;
   }
 
   /** Рука: оставшиеся тайлы + отдельно сброшенный. */
   function renderHand(item, payload) {
-    const tiles = payload.remaining?.length ? payload.remaining : payload.hand;
-    if (!tiles?.length) return;
+    const raw = Array.isArray(payload.remaining) && payload.remaining.length
+      ? payload.remaining
+      : payload.hand;
+    const tiles = asStringArray(raw);
+    if (!tiles.length) return;
+    const discarded = asString(payload.discarded);
     const block = document.createElement('div');
     block.className = 'bug-hand';
     const label = document.createElement('span');
     label.className = 'bug-hand-label';
-    label.textContent = payload.discarded ? `рука ${tiles.length} + сброшен` : `рука ${tiles.length}`;
+    label.textContent = discarded ? `рука ${tiles.length} + сброшен` : `рука ${tiles.length}`;
     block.append(label);
 
     const handEl = document.createElement('div');
     handEl.className = 'hand bug-hand-tiles';
-    const doraTiles = (payload.ctx?.doraIndicators ?? []).map(doraFromIndicator);
+    const doraTiles = asStringArray(payload.ctx?.doraIndicators).map(doraFromIndicator);
     renderTiles(handEl, tiles, { disabled: true, doraTiles });
     block.append(handEl);
 
-    if (payload.discarded) {
+    if (discarded) {
       const discEl = document.createElement('div');
       discEl.className = 'hand bug-hand-tiles';
-      renderTiles(discEl, [payload.discarded], { disabled: true, doraTiles });
+      renderTiles(discEl, [discarded], { disabled: true, doraTiles });
       block.append(discEl);
     }
     item.append(block);
@@ -135,25 +161,33 @@ export function initBugViewer() {
 
   /** Счёт: итог + разбивка «что за что». */
   function renderScore(item, payload) {
-    if (payload.total == null && !(payload.breakdown?.length)) return;
+    const total = Number.isFinite(payload.total) ? payload.total : null;
+    const breakdown = Array.isArray(payload.breakdown) ? payload.breakdown : [];
+    if (total == null && !breakdown.length) return;
     const scoreEl = document.createElement('div');
     scoreEl.className = 'bug-score';
-    if (payload.total != null) {
-      const total = document.createElement('div');
-      total.className = 'bug-total';
+    if (total != null) {
+      const totalEl = document.createElement('div');
+      totalEl.className = 'bug-total';
       const details = [];
-      if (payload.shanten != null) details.push(`шантен ${payload.shanten}`);
-      if (payload.tier) details.push(payload.tier);
-      total.textContent = `${payload.total.toLocaleString('ru-RU')} очков` +
+      if (Number.isFinite(payload.shanten)) details.push(`шантен ${payload.shanten}`);
+      const tier = asString(payload.tier);
+      if (tier) details.push(tier);
+      totalEl.textContent = `${total.toLocaleString('ru-RU')} очков` +
         (details.length ? ` (${details.join(', ')})` : '');
-      scoreEl.append(total);
+      scoreEl.append(totalEl);
     }
-    if (payload.breakdown?.length) {
+    if (breakdown.length) {
       const ul = document.createElement('ul');
-      for (const row of payload.breakdown) {
+      for (const row of breakdown) {
         const li = document.createElement('li');
-        li.className = row.yaku ? 'score-yaku' : row.potential ? 'score-potential' : '';
-        li.textContent = `${row.label}: +${row.points.toLocaleString('ru-RU')}`;
+        if (!row || typeof row !== 'object' || typeof row.label !== 'string' || !Number.isFinite(row.points)) {
+          li.className = 'score-broken';
+          li.textContent = '(битая строка разбивки)';
+        } else {
+          li.className = row.yaku ? 'score-yaku' : row.potential ? 'score-potential' : '';
+          li.textContent = `${row.label}: +${row.points.toLocaleString('ru-RU')}`;
+        }
         ul.append(li);
       }
       scoreEl.append(ul);
@@ -167,11 +201,16 @@ export function initBugViewer() {
     const line = document.createElement('div');
     line.className = 'bug-context';
     const parts = [];
-    if (ctx.roundWindId) parts.push(`раунд ${ctx.roundWindId.toUpperCase()}`);
-    if (ctx.seatWindId) parts.push(`место ${ctx.seatWindId.toUpperCase()}`);
-    if (ctx.doraIndicators?.length) parts.push(`дора ${ctx.doraIndicators.join(' ')}`);
-    if (ctx.uraIndicators?.length) parts.push(`ура ${ctx.uraIndicators.join(' ')}`);
-    if (ctx.dayKey) parts.push(ctx.dayKey);
+    const roundWind = asString(ctx.roundWindId);
+    if (roundWind) parts.push(`раунд ${roundWind.toUpperCase()}`);
+    const seatWind = asString(ctx.seatWindId);
+    if (seatWind) parts.push(`место ${seatWind.toUpperCase()}`);
+    const doraIndicators = asStringArray(ctx.doraIndicators);
+    if (doraIndicators.length) parts.push(`дора ${doraIndicators.join(' ')}`);
+    const uraIndicators = asStringArray(ctx.uraIndicators);
+    if (uraIndicators.length) parts.push(`ура ${uraIndicators.join(' ')}`);
+    const dayKey = asString(ctx.dayKey);
+    if (dayKey) parts.push(dayKey);
     line.textContent = parts.join(' · ');
     item.append(line);
   }

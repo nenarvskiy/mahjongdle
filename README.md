@@ -28,7 +28,7 @@ src/                                — логика игры (ESM, без за�
   evaluate.js                       — готовая рука (чиитоицу ∪ стандарт — лучшее)
   scoring.js, potential.js          — итоговый счёт и потенциал/тир
   daily-context.js                  — доры, красные пятёрки, ветра дня
-  structure-editor.js, state.js, ui.js, main.js — интерфейс
+  state.js, ui.js, main.js                  — интерфейс
   auth.js                           — вход через Google (GIS), сессия, роли, API
   leaderboard.js                    — панель «Таблица дня»
   test-mode.js                      — тестовый режим (admin/test): руки без рейтинга
@@ -79,9 +79,7 @@ py stats/scorestat.py --mode yaku -n 20000000 --quick      # только яку
 `src/` и `config/` связаны через JSON-импорт
 (`import cfg from '../config/scoring.json' with { type: 'json' }`) — нужен
 Node 22+ и браузер с поддержкой import attributes (Chrome/Edge 123+,
-Firefox 138+, Safari 17.5+). Очки структур дополнительно правятся в браузере
-через диалог «Стоимость структур» (сохраняются в localStorage поверх конфига;
-кнопка «Вернуть стандартные значения» возвращает числа из конфига).
+Firefox 138+, Safari 17.5+).
 
 ## Запуск и проверки
 

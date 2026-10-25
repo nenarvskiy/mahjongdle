@@ -62,6 +62,20 @@ test('buildTestContext: формат как у createDailyContext (индекс�
   assert.equal(noUra.deadTiles.length, 1);
 });
 
+test('F10: buildTestContext без доры — пусто, а не краш (поле доры очищено)', () => {
+  const ctx = buildTestContext('ew', 'sw', null, 'rd');
+  assert.deepEqual(ctx.doraIndicators, []);
+  assert.deepEqual(ctx.doraTiles, []);
+  assert.deepEqual(ctx.uraIndicators, ['rd']);
+  assert.deepEqual(ctx.deadTiles, ['rd']);
+
+  // скоринг с нулевыми дорами не падает и считает без дора
+  const tiles = ['1m', '2m', '3m', '1p', '2p', '3p', '1s', '2s', '3s', '4s', '5s', '9s', 'rd'];
+  const score = evaluateHand(tiles, ctx);
+  assert.ok(score, 'оценка есть');
+  assert.ok(!score.breakdown.some((row) => /дор/i.test(row.label)), 'дор без индикатора нет');
+});
+
 test('randomTestContext: ветра — ветра, индикаторы — существующие тайлы', () => {
   for (let i = 0; i < 50; i++) {
     const ctx = randomTestContext();

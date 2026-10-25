@@ -817,6 +817,27 @@ footer button:disabled { opacity: .45; cursor: default; }
 .bug-score li { color: var(--muted); font-size: 13px; }
 .bug-score li.score-yaku { color: var(--gold); }
 .bug-score li.score-potential { color: #8ed7ff; }
+.bug-score li.score-broken { color: #ff9d9d; font-style: italic; }
+/* F8: блок с payload, который не удалось разобрать (анонимное событие). */
+.bug-broken {
+  padding: 10px 12px;
+  border-left: 3px solid rgba(255, 120, 120, .6);
+  border-radius: 6px;
+  background: rgba(255, 120, 120, .07);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.bug-broken-json {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, .25);
+  border-radius: 6px;
+  font-size: 11px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 @media (max-width: 700px) {
   :root { --tile-size: 48px; --tile-gap: 5px; }
