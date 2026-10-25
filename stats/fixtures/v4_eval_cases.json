@@ -72,14 +72,14 @@
    "structures": {
     "pair": 1,
     "pon": 1,
-    "s334": 1
+    "chi": 1
    },
-   "structurePoints": 200,
+   "structurePoints": 190,
    "yaku": {
     "yakuhai_pon": 870
    },
    "yakuPoints": 870,
-   "total": 1070,
+   "total": 1060,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -282,10 +282,10 @@
     "chi": 1,
     "seq5": 1
    },
-   "structurePoints": 390,
+   "structurePoints": 400,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 790,
+   "total": 800,
    "doraCount": 3,
    "doraPoints": true
   }
@@ -319,16 +319,16 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "ryanmen": 1,
-    "s334": 1,
-    "s246": 1
+    "chi": 1,
+    "kanchan": 1,
+    "s334": 1
    },
-   "structurePoints": 145,
+   "structurePoints": 120,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 160,
+   "total": 135,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -366,10 +366,10 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 125,
+   "structurePoints": 115,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 225,
+   "total": 215,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -443,9 +443,8 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "chi": 1,
-    "kanchan": 1,
-    "s334": 1
+    "chi": 2,
+    "kanchan": 1
    },
    "structurePoints": 115,
    "yaku": {
@@ -528,14 +527,17 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "s246": 2
+    "pair": 1,
+    "ryanmen": 1,
+    "penchan": 1,
+    "s246": 1
    },
-   "structurePoints": 100,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 115,
+   "total": 100,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -652,12 +654,12 @@
     "pair": 1,
     "chi": 2
    },
-   "structurePoints": 95,
+   "structurePoints": 115,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 210,
+   "total": 230,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -690,8 +692,8 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "ryanmen": 2,
-    "s246": 1
+    "chi": 1,
+    "ryanmen": 2
    },
    "structurePoints": 90,
    "yaku": {
@@ -735,12 +737,12 @@
     "chi": 3,
     "penchan": 1
    },
-   "structurePoints": 145,
+   "structurePoints": 175,
    "yaku": {
     "valuable_pair": 60
    },
    "yakuPoints": 60,
-   "total": 22205,
+   "total": 22235,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -773,16 +775,16 @@
    "tier": 0,
    "base": 0,
    "structures": {
+    "chi": 1,
     "ryanmen": 1,
-    "kanchan": 1,
-    "s334": 1
+    "kanchan": 1
    },
-   "structurePoints": 95,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 325,
+   "total": 315,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -819,12 +821,12 @@
     "kanchan": 1,
     "s246": 1
    },
-   "structurePoints": 80,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 295,
+   "total": 285,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -899,15 +901,15 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "kanchan": 1,
-    "s334": 1
+    "chi": 1,
+    "kanchan": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 65,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 105,
+   "total": 95,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -944,12 +946,12 @@
     "ryanmen": 1,
     "s246": 1
    },
-   "structurePoints": 85,
+   "structurePoints": 75,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 230,
+   "total": 220,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -983,13 +985,14 @@
    "base": 390,
    "structures": {
     "pair": 2,
+    "chi": 1,
     "ryanmen": 1,
-    "s334": 2
+    "s334": 1
    },
-   "structurePoints": 170,
+   "structurePoints": 140,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 760,
+   "total": 730,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -1064,15 +1067,15 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "s334": 1,
+    "chi": 1,
     "s246": 1
    },
-   "structurePoints": 110,
+   "structurePoints": 90,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 225,
+   "total": 205,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1109,12 +1112,12 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 100,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 315,
+   "total": 295,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -1192,12 +1195,12 @@
     "kanchan": 1,
     "s334": 2
    },
-   "structurePoints": 135,
+   "structurePoints": 95,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 250,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1234,12 +1237,12 @@
     "kanchan": 2,
     "s334": 1
    },
-   "structurePoints": 105,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 220,
+   "total": 200,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1276,12 +1279,12 @@
     "s334": 1,
     "s246": 1
    },
-   "structurePoints": 125,
+   "structurePoints": 95,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 240,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1358,12 +1361,12 @@
     "chi": 2,
     "kanchan": 1
    },
-   "structurePoints": 110,
+   "structurePoints": 130,
    "yaku": {
     "valuable_pair": 60
    },
    "yakuPoints": 60,
-   "total": 270,
+   "total": 290,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -1442,12 +1445,12 @@
     "ryanmen": 1,
     "s334": 1
    },
-   "structurePoints": 95,
+   "structurePoints": 75,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 210,
+   "total": 190,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1523,15 +1526,15 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "ryanmen": 2,
-    "s334": 1
+    "chi": 1,
+    "ryanmen": 2
    },
-   "structurePoints": 115,
+   "structurePoints": 105,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 130,
+   "total": 120,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -1568,12 +1571,12 @@
     "ryanmen": 1,
     "s334": 1
    },
-   "structurePoints": 95,
+   "structurePoints": 75,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 110,
+   "total": 90,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -1653,10 +1656,10 @@
     "kanchan": 3,
     "s246": 1
    },
-   "structurePoints": 110,
+   "structurePoints": 100,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 210,
+   "total": 200,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1692,12 +1695,12 @@
     "ryanmen": 2,
     "s246": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 135,
+   "total": 125,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -1733,12 +1736,12 @@
     "pair": 1,
     "s334": 2
    },
-   "structurePoints": 135,
+   "structurePoints": 95,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 250,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1775,12 +1778,12 @@
     "s334": 1,
     "s246": 1
    },
-   "structurePoints": 150,
+   "structurePoints": 120,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 365,
+   "total": 335,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -1855,13 +1858,14 @@
    "tier": 0,
    "base": 0,
    "structures": {
+    "chi": 1,
     "ryanmen": 1,
-    "s334": 2
+    "s334": 1
    },
-   "structurePoints": 140,
+   "structurePoints": 110,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 240,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -1935,8 +1939,8 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "ryanmen": 2,
-    "s246": 1
+    "chi": 1,
+    "ryanmen": 2
    },
    "structurePoints": 90,
    "yaku": {
@@ -1980,10 +1984,10 @@
     "chi": 1,
     "ryanmen": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 85,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 75,
+   "total": 85,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -2021,12 +2025,12 @@
     "kanchan": 1,
     "s246": 1
    },
-   "structurePoints": 100,
+   "structurePoints": 90,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 215,
+   "total": 205,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2104,12 +2108,12 @@
     "s246": 1,
     "s3334": 1
    },
-   "structurePoints": 645,
+   "structurePoints": 635,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 660,
+   "total": 650,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -2146,10 +2150,10 @@
     "chi": 1,
     "s1122": 1
    },
-   "structurePoints": 330,
+   "structurePoints": 340,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 430,
+   "total": 440,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -2225,12 +2229,12 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 120,
+   "total": 100,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -2308,12 +2312,12 @@
     "ryanmen": 1,
     "penchan": 1
    },
-   "structurePoints": 70,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 185,
+   "total": 195,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2389,16 +2393,15 @@
    "base": 100,
    "structures": {
     "pair": 1,
-    "chi": 1,
-    "s334": 1,
-    "s246": 1
+    "chi": 2,
+    "s334": 1
    },
-   "structurePoints": 165,
+   "structurePoints": 155,
    "yaku": {
     "valuable_pair": 60
    },
    "yakuPoints": 60,
-   "total": 425,
+   "total": 415,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2435,12 +2438,12 @@
     "ryanmen": 1,
     "penchan": 1
    },
-   "structurePoints": 70,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 200,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2520,13 +2523,13 @@
     "chi": 1,
     "kanchan": 1
    },
-   "structurePoints": 70,
+   "structurePoints": 80,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 30
    },
    "yakuPoints": 90,
-   "total": 260,
+   "total": 270,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2559,14 +2562,14 @@
    "tier": 0,
    "base": 0,
    "structures": {
+    "chi": 1,
     "ryanmen": 2,
-    "kanchan": 1,
-    "s334": 1
+    "kanchan": 1
    },
-   "structurePoints": 115,
+   "structurePoints": 105,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 215,
+   "total": 205,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2643,12 +2646,12 @@
     "chi": 1,
     "ryanmen": 2
    },
-   "structurePoints": 95,
+   "structurePoints": 105,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 910,
+   "total": 920,
    "doraCount": 4,
    "doraPoints": true
   }
@@ -2681,16 +2684,15 @@
    "tier": 0,
    "base": 0,
    "structures": {
-    "kanchan": 2,
-    "penchan": 1,
-    "s246": 1
+    "chi": 1,
+    "kanchan": 2
    },
-   "structurePoints": 90,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 205,
+   "total": 195,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2728,12 +2730,12 @@
     "ryanmen": 1,
     "kanchan": 1
    },
-   "structurePoints": 120,
+   "structurePoints": 130,
    "yaku": {
     "valuable_pair": 60
    },
    "yakuPoints": 60,
-   "total": 380,
+   "total": 390,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2769,10 +2771,10 @@
     "chi": 1,
     "ryanmen": 2
    },
-   "structurePoints": 80,
+   "structurePoints": 90,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 180,
+   "total": 190,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2810,10 +2812,10 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 105,
+   "structurePoints": 85,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 205,
+   "total": 185,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -2972,14 +2974,14 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "s334": 1
+    "chi": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 65,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 220,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3016,12 +3018,12 @@
     "kanchan": 1,
     "s246": 1
    },
-   "structurePoints": 190,
+   "structurePoints": 180,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 205,
+   "total": 195,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -3058,12 +3060,12 @@
     "kanchan": 1,
     "s246": 1
    },
-   "structurePoints": 5565,
+   "structurePoints": 5555,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 5580,
+   "total": 5570,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -3183,10 +3185,10 @@
     "s334": 1,
     "s246": 1
    },
-   "structurePoints": 125,
+   "structurePoints": 95,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 225,
+   "total": 195,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3223,13 +3225,13 @@
     "chi": 1,
     "ryanmen": 2
    },
-   "structurePoints": 95,
+   "structurePoints": 105,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 30
    },
    "yakuPoints": 90,
-   "total": 385,
+   "total": 395,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3265,12 +3267,12 @@
     "ryanmen": 2,
     "s246": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 205,
+   "total": 195,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3307,10 +3309,10 @@
     "ryanmen": 3,
     "kanchan": 1
    },
-   "structurePoints": 115,
+   "structurePoints": 125,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 215,
+   "total": 225,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3344,8 +3346,7 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "chi": 1,
-    "s334": 1
+    "chi": 2
    },
    "structurePoints": 115,
    "yaku": {},
@@ -3387,12 +3388,12 @@
     "ryanmen": 1,
     "kanchan": 2
    },
-   "structurePoints": 90,
+   "structurePoints": 100,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 205,
+   "total": 215,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3512,12 +3513,12 @@
     "chi": 1,
     "ryanmen": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 90,
+   "total": 100,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -3553,13 +3554,13 @@
     "pair": 1,
     "chi": 1
    },
-   "structurePoints": 55,
+   "structurePoints": 65,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 45
    },
    "yakuPoints": 105,
-   "total": 360,
+   "total": 370,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3596,12 +3597,12 @@
     "nobetan": 1,
     "s246": 1
    },
-   "structurePoints": 165,
+   "structurePoints": 155,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 180,
+   "total": 170,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -3638,12 +3639,12 @@
     "kanchan": 1,
     "s334": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 320,
+   "total": 300,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3681,13 +3682,13 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 120,
+   "structurePoints": 100,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 15
    },
    "yakuPoints": 75,
-   "total": 295,
+   "total": 275,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3724,12 +3725,12 @@
     "penchan": 1,
     "s246": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 80,
    "yaku": {
     "valuable_pair": 60
    },
    "yakuPoints": 60,
-   "total": 350,
+   "total": 340,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3803,12 +3804,12 @@
    "structures": {
     "s334": 1
    },
-   "structurePoints": 60,
+   "structurePoints": 40,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 275,
+   "total": 255,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3886,12 +3887,12 @@
     "ryanmen": 2,
     "s246": 1
    },
-   "structurePoints": 105,
+   "structurePoints": 95,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 220,
+   "total": 210,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -3927,13 +3928,13 @@
     "pair": 2,
     "chi": 1
    },
-   "structurePoints": 70,
+   "structurePoints": 80,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 15
    },
    "yakuPoints": 75,
-   "total": 345,
+   "total": 355,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -3970,12 +3971,12 @@
     "chi": 1,
     "penchan": 1
    },
-   "structurePoints": 65,
+   "structurePoints": 75,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 280,
+   "total": 290,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -4012,12 +4013,12 @@
     "kanchan": 1,
     "s334": 1
    },
-   "structurePoints": 95,
+   "structurePoints": 75,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 310,
+   "total": 290,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -4096,12 +4097,12 @@
     "kanchan": 2,
     "s334": 1
    },
-   "structurePoints": 110,
+   "structurePoints": 90,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 325,
+   "total": 305,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -4136,12 +4137,12 @@
    "structures": {
     "s246": 1
    },
-   "structurePoints": 50,
+   "structurePoints": 40,
    "yaku": {
     "valuable_tile": 75
    },
    "yakuPoints": 75,
-   "total": 225,
+   "total": 215,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -4175,15 +4176,15 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "penchan": 1,
-    "s246": 1
+    "chi": 1,
+    "kanchan": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 80,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 120,
+   "total": 125,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -4219,12 +4220,12 @@
     "pair": 2,
     "s334": 1
    },
-   "structurePoints": 90,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 105,
+   "total": 85,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -4301,12 +4302,12 @@
     "chi": 1,
     "ryanmen": 1
    },
-   "structurePoints": 60,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 205,
+   "total": 215,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -4426,13 +4427,13 @@
     "pair": 2,
     "s246": 1
    },
-   "structurePoints": 80,
+   "structurePoints": 70,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 15
    },
    "yakuPoints": 75,
-   "total": 155,
+   "total": 145,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -4588,12 +4589,12 @@
     "kanchan": 2,
     "s246": 1
    },
-   "structurePoints": 80,
+   "structurePoints": 70,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 225,
+   "total": 215,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -4631,12 +4632,12 @@
     "kanchan": 1,
     "s334": 1
    },
-   "structurePoints": 110,
+   "structurePoints": 90,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 225,
+   "total": 205,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -4714,12 +4715,12 @@
     "pair": 1,
     "s334": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 55,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 120,
+   "total": 100,
    "doraCount": 0,
    "doraPoints": true
   }
@@ -4753,8 +4754,8 @@
    "base": 0,
    "structures": {
     "pair": 1,
-    "kanchan": 1,
-    "s246": 1
+    "chi": 1,
+    "kanchan": 1
    },
    "structurePoints": 80,
    "yaku": {},
@@ -4798,10 +4799,10 @@
     "penchan": 1,
     "s334": 1
    },
-   "structurePoints": 140,
+   "structurePoints": 130,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 930,
+   "total": 920,
    "doraCount": 3,
    "doraPoints": true
   }
@@ -4837,12 +4838,12 @@
     "chi": 1,
     "ryanmen": 3
    },
-   "structurePoints": 100,
+   "structurePoints": 110,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 215,
+   "total": 225,
    "doraCount": 1,
    "doraPoints": true
   }
@@ -4879,12 +4880,12 @@
     "ryanmen": 1,
     "kanchan": 1
    },
-   "structurePoints": 75,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 45
    },
    "yakuPoints": 45,
-   "total": 320,
+   "total": 330,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -4917,16 +4918,16 @@
    "tier": 0,
    "base": 0,
    "structures": {
+    "chi": 1,
     "ryanmen": 1,
-    "kanchan": 1,
-    "s334": 1
+    "kanchan": 1
    },
-   "structurePoints": 95,
+   "structurePoints": 85,
    "yaku": {
     "valuable_tile": 30
    },
    "yakuPoints": 30,
-   "total": 325,
+   "total": 315,
    "doraCount": 2,
    "doraPoints": true
   }
@@ -5004,12 +5005,12 @@
    "structures": {
     "chi": 4
    },
-   "structurePoints": 160,
+   "structurePoints": 200,
    "yaku": {
     "sanshoku_dojun": 220000
    },
    "yakuPoints": 220000,
-   "total": 410360,
+   "total": 410400,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -5216,13 +5217,13 @@
     "penchan": 1,
     "s246": 1
    },
-   "structurePoints": 115,
+   "structurePoints": 105,
    "yaku": {
     "valuable_pair": 60,
     "valuable_tile": 15
    },
    "yakuPoints": 75,
-   "total": 390,
+   "total": 380,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -5257,15 +5258,14 @@
    "base": 190000,
    "structures": {
     "pon": 1,
-    "chi": 2,
-    "s246": 1
+    "chi": 3
    },
-   "structurePoints": 255,
+   "structurePoints": 275,
    "yaku": {
     "yakuhai_pon": 870
    },
    "yakuPoints": 870,
-   "total": 191525,
+   "total": 191545,
    "doraCount": 3,
    "doraPoints": true
   },
@@ -5299,7 +5299,7 @@
    "tier": 3,
    "base": 2500,
    "structures": {
-    "s246": 3
+    "chi": 3
    },
    "structurePoints": 150,
    "yaku": {
@@ -5345,10 +5345,10 @@
     "chi": 1,
     "seq5": 1
    },
-   "structurePoints": 5890,
+   "structurePoints": 5900,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 27990,
+   "total": 28000,
    "doraCount": 1,
    "doraPoints": true
   },
@@ -5383,10 +5383,10 @@
    "base": 3300000,
    "structures": {
     "pon": 1,
-    "seq5": 1,
-    "s334": 1
+    "chi": 1,
+    "seq5": 1
    },
-   "structurePoints": 535,
+   "structurePoints": 525,
    "yaku": {
     "honitsu": 19600,
     "iipeikou": 10400,
@@ -5394,7 +5394,7 @@
     "valuable_tile": 15
    },
    "yakuPoints": 30885,
-   "total": 3331620,
+   "total": 3331610,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -5431,12 +5431,12 @@
     "kan": 1,
     "chi": 3
    },
-   "structurePoints": 5620,
+   "structurePoints": 5650,
    "yaku": {
     "sanshoku_dojun": 220000
    },
    "yakuPoints": 220000,
-   "total": 247720,
+   "total": 247750,
    "doraCount": 1,
    "doraPoints": true
   },
@@ -5517,10 +5517,10 @@
     "seq5": 1,
     "s246": 2
    },
-   "structurePoints": 465,
+   "structurePoints": 445,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 955,
+   "total": 935,
    "doraCount": 1,
    "doraPoints": true
   },
@@ -5600,12 +5600,12 @@
     "seq5": 1,
     "s3334": 1
    },
-   "structurePoints": 970,
+   "structurePoints": 980,
    "yaku": {
     "valuable_tile": 15
    },
    "yakuPoints": 15,
-   "total": 1905,
+   "total": 1915,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -5726,15 +5726,14 @@
    "tier": 2,
    "base": 350000,
    "structures": {
-    "chi": 3,
-    "s334": 1
+    "chi": 4
    },
-   "structurePoints": 180,
+   "structurePoints": 200,
    "yaku": {
     "sanshoku_dojun": 220000
    },
    "yakuPoints": 220000,
-   "total": 570180,
+   "total": 570200,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -5811,18 +5810,18 @@
    "tier": 4,
    "base": 100000000,
    "structures": {
+    "chi": 1,
     "seq5": 1,
-    "s334": 1,
     "s3334": 1
    },
-   "structurePoints": 990,
+   "structurePoints": 980,
    "yaku": {
     "chinitsu": 83000000,
     "ittsu": 510000,
     "iipeikou": 10400
    },
    "yakuPoints": 83520400,
-   "total": 183521390,
+   "total": 183521380,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -5860,10 +5859,10 @@
     "s1122": 1,
     "s3334": 1
    },
-   "structurePoints": 895,
+   "structurePoints": 905,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 1200895,
+   "total": 1200905,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -6243,13 +6242,13 @@
     "kan": 2,
     "s334": 1
    },
-   "structurePoints": 11075,
+   "structurePoints": 11055,
    "yaku": {
     "ryanpeikou": 770000000,
     "chinitsu": 83000000
    },
    "yakuPoints": 853000000,
-   "total": 953011075,
+   "total": 953011055,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -6286,13 +6285,13 @@
     "pon": 3,
     "chi": 1
    },
-   "structurePoints": 415,
+   "structurePoints": 425,
    "yaku": {
     "daisangen": 3000000000,
     "yakuhai_pon": 2610
    },
    "yakuPoints": 3000002610,
-   "total": 3120003025,
+   "total": 3120003035,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -6555,7 +6554,7 @@
     "s246": 2,
     "s3334": 1
    },
-   "structurePoints": 695,
+   "structurePoints": 675,
    "yaku": {
     "ryuuiisou": 150000000000,
     "honitsu": 19600,
@@ -6563,7 +6562,7 @@
     "valuable_pair": 60
    },
    "yakuPoints": 150000030060,
-   "total": 150001430955,
+   "total": 150001430935,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -6601,14 +6600,14 @@
     "s1122": 1,
     "s246": 2
    },
-   "structurePoints": 390,
+   "structurePoints": 370,
    "yaku": {
     "honitsu": 19600,
     "iipeikou": 10400,
     "valuable_pair": 60
    },
    "yakuPoints": 30060,
-   "total": 3330650,
+   "total": 3330630,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -6645,12 +6644,12 @@
     "pon": 3,
     "chi": 1
    },
-   "structurePoints": 415,
+   "structurePoints": 425,
    "yaku": {
     "sanshoku_doko": 430000000
    },
    "yakuPoints": 430000000,
-   "total": 430190415,
+   "total": 430190425,
    "doraCount": 0,
    "doraPoints": true
   },
@@ -6687,12 +6686,12 @@
     "pair": 2,
     "chi": 3
    },
-   "structurePoints": 150,
+   "structurePoints": 180,
    "yaku": {
     "valuable_pair": 120
    },
    "yakuPoints": 120,
-   "total": 350670,
+   "total": 350700,
    "doraCount": 3,
    "doraPoints": true
   },
@@ -6731,14 +6730,14 @@
     "chi": 1,
     "ryanmen": 1
    },
-   "structurePoints": 325,
+   "structurePoints": 335,
    "yaku": {
     "shousangen": 44000000,
     "yakuhai_pon": 1740,
     "valuable_pair": 60
    },
    "yakuPoints": 44001800,
-   "total": 47302525,
+   "total": 47302535,
    "doraCount": 3,
    "doraPoints": true
   },
@@ -6776,14 +6775,14 @@
     "pon": 1,
     "chi": 2
    },
-   "structurePoints": 220,
+   "structurePoints": 240,
    "yaku": {
     "yakuhai_pon": 870,
     "valuable_pair": 60,
     "valuable_tile": 15
    },
    "yakuPoints": 945,
-   "total": 46265,
+   "total": 46285,
    "doraCount": 1,
    "doraPoints": true
   },
@@ -6819,12 +6818,12 @@
    "structures": {
     "chi": 3
    },
-   "structurePoints": 120,
+   "structurePoints": 150,
    "yaku": {
     "valuable_tile": 60
    },
    "yakuPoints": 60,
-   "total": 900,
+   "total": 930,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -6861,12 +6860,12 @@
     "pair": 2,
     "chi": 3
    },
-   "structurePoints": 150,
+   "structurePoints": 180,
    "yaku": {
     "sanshoku_dojun": 220000
    },
    "yakuPoints": 220000,
-   "total": 570350,
+   "total": 570380,
    "doraCount": 2,
    "doraPoints": true
   },
@@ -6945,15 +6944,14 @@
    "base": 190000,
    "structures": {
     "pon": 1,
-    "chi": 2,
-    "s246": 1
+    "chi": 3
    },
-   "structurePoints": 255,
+   "structurePoints": 275,
    "yaku": {
     "yakuhai_pon": 870
    },
    "yakuPoints": 870,
-   "total": 191525,
+   "total": 191545,
    "doraCount": 3,
    "doraPoints": true
   },
@@ -6991,10 +6989,10 @@
     "chi": 1,
     "seq5": 1
    },
-   "structurePoints": 5890,
+   "structurePoints": 5900,
    "yaku": {},
    "yakuPoints": 0,
-   "total": 27990,
+   "total": 28000,
    "doraCount": 1,
    "doraPoints": true
   },
@@ -7076,12 +7074,12 @@
     "pair": 2,
     "chi": 3
    },
-   "structurePoints": 150,
+   "structurePoints": 180,
    "yaku": {
     "sanshoku_dojun": 220000
    },
    "yakuPoints": 220000,
-   "total": 3520950,
+   "total": 3520980,
    "doraCount": 4,
    "doraPoints": true
   },

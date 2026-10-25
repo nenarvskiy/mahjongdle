@@ -69,8 +69,8 @@ docs/                               — исходные PDF-материалы
 
 ```powershell
 node --test                              # игра: тесты + оба паритета должны пройти
-node --test test/v4-parity.test.js       # паритет игра <-> статистика (165 рук)
-node --test test/v4-complete-parity.test.js  # паритет готовых рук (619 рук)
+node --test test/v4-parity.test.js       # паритет игра <-> статистика (169 рук)
+node --test test/v4-complete-parity.test.js  # паритет готовых рук (622 руки)
 py stats/scorestat.py -n 20000 --quick   # статистика: отчёт на 20k рук
 py stats/scorestat.py --mode complete -n 20000000 --quick  # режим 2: готовые руки
 py stats/scorestat.py --mode yaku -n 20000000 --quick      # только яку, без шантенов (быстро)
@@ -150,8 +150,8 @@ Tailscale Funnel без домена, Render/VPS/Docker, настройка `con
 структуры, яку) они не входят, а в финальный хан и очки входят; якуман
 урадоры (как и дору) не получает. Готовая 14-тайловая рука оценивается по
 строке «Готовая рука» своего тира (2× строки «Тенпай»). Совпадение двух
-реализаций контролируют паритетные тесты `test/v4-parity.test.js` (153 руки,
+реализаций контролируют паритетные тесты `test/v4-parity.test.js` (169 рук,
 эталон из `stats/tools/gen_v4_reference.py`) и
-`test/v4-complete-parity.test.js` (619 готовых рук, эталон из
+`test/v4-complete-parity.test.js` (622 готовые руки, эталон из
 `stats/tools/gen_complete_reference.py`). Старая модель сохранена в конфиге
 как `legacyGame` и не используется.

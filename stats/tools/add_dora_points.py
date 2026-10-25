@@ -3,7 +3,10 @@
 Формула (та же, что в игре, src/dora-points.js):
 
     2^(n-1) * 100, где n — суммарное количество дор в руке:
-    обычные доры (по индикатору), ура-доры (по индикатору ура) и красные пятёрки.
+    обычные доры (по индикатору), ура-доры (по индикатору ура) и красные
+    пятёрки — по ОДНОЙ на масть (в игре красная дора считается за вид,
+    redFives идёт через Set; в стене по одному красному тайлу на масть,
+    поэтому и в руке их не может быть больше одной).
 
 Доры продолжают давать и хан (он влияет на тир базы), поэтому очки добавляются
 к expected.total поверх уже посчитанного эталона.
@@ -52,20 +55,20 @@ def tile_to_index(tile):
 
 def count_doras(tiles, indicator, ura):
     counts = [0] * 34
-    reds = 0
+    reds = set()  # красные по видам: '0m'/'0p'/'0s' (в игре — Set redFives)
     for tile in tiles:
         idx = tile_to_index(tile)
         if idx is None:
             continue
         counts[idx] += 1
         if tile[0] == "0":
-            reds += 1
+            reds.add(tile)
     n = 0
     if indicator is not None and int(indicator) >= 0:
         n += counts[int(S.DORA_NEXT[int(indicator)])]
     if ura is not None and int(ura) >= 0:
         n += counts[int(S.DORA_NEXT[int(ura)])]
-    n += reds
+    n += len(reds)
     return n
 
 

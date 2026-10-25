@@ -461,11 +461,12 @@ py stats/tools/gen_v4_reference.py
 ```
 
 Режим 2 (готовые руки) контролирует второй тест — `test/v4-complete-parity.test.js`:
-619 рук из `stats/fixtures/v4_complete_cases.json` (600 случайных готовых +
-16 указанных: нулевой хан, таняо+дора без пинфу, чиитоицу с ака и без,
+622 руки из `stats/fixtures/v4_complete_cases.json` (600 случайных готовых +
+19 указанных: нулевой хан, таняо+дора без пинфу, чиитоицу с ака и без,
 кокуши, двойная рука, суанко-против-чиницу (макс. разложение), рюисо, дайсанген,
 суанко, **чинрото-чиитоицу** (зафиксировано: в игре нет яку-мана у чиитоицу),
-дорогая пара, ака в поне, итцу+дора, сансёку додзюн, чиитоицу+2 доры +
+дорогая пара, ака в поне, итцу+дора, сансёку додзюн, чиитоицу+2 доры,
+ценный пон + ценная пара, 2 × ценный пон, кокуши с ценными тайлами +
 3 указанных с ура-дорой, в том числе чистые девять врат с ура-дорой 1m —
 проверка, что якуман урадоры не получает) — сверяются хан, тир, база,
 структуры, плоские яку и итог `evaluateCompleteHand(tiles, ctx)`. Фикстура
@@ -514,8 +515,8 @@ py stats/tools/check_shanten.py        # shanten_fast против analyze + э�
 py stats/tools/profile_kernels.py      # скорость analyze / bp+recon / yaku
 py stats/tools/gen_hands.py            # 3000 случайных рук + эталонные очки DP
 py stats/tools/gen_hard_hands.py       # 812 жёстких рук + эталон + сверка DP vs bp
-py stats/tools/gen_v4_reference.py     # эталонные оценки 165 рук (паритет с игрой)
-py stats/tools/gen_complete_reference.py  # 619 готовых рук (паритет режима 2)
+py stats/tools/gen_v4_reference.py     # эталонные оценки 169 рук (паритет с игрой)
+py stats/tools/gen_complete_reference.py  # 622 готовые руки (паритет режима 2)
 node --test test/v4-parity.test.js     # паритет игра (JS) ↔ статистика (Python)
 node --test test/v4-complete-parity.test.js  # паритет готовых рук
 node --test                              # все тесты
