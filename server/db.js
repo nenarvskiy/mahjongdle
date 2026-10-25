@@ -68,6 +68,18 @@ export function openDb(file) {
   return db;
 }
 
+/** Число записей по всем таблицам: 0 — «пустая» БД (свежая схема, данных нет).
+ *  Для бэкапа: пустую БД нельзя пушить поверх удалённой копии (аудит F5). */
+export function dbRowCount(db) {
+  let n = 0;
+  for (const table of ['users', 'scores', 'events', 'day_hands']) {
+    try {
+      n += db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+    } catch { /* таблицы нет — считаем 0 */ }
+  }
+  return n;
+}
+
 /** Создать пользователя или обновить профиль (имя/аватар меняются в Google). */
 export function upsertUser(db, { id, email, name, picture }) {
   db.prepare(`

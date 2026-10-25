@@ -18,8 +18,25 @@ let server;
 let apiBase;
 let remote; // { sha, content(base64), message }
 let putCount;
+let remoteError; // true — GET отвечает 500 (сбой GitHub)
 let tmpDir;
 const silentLog = { log() {}, warn() {}, error() {} };
+const warned = [];
+const logCapture = { log() {}, warn(m) { warned.push(m); }, error() {} };
+
+/** Пустая БД (только схема, 0 строк) — как у свежего инстанса после openDb. */
+function makeEmptyDb(file) {
+  const db = new DatabaseSync(file);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL, name TEXT NOT NULL, picture TEXT, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS scores (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date TEXT NOT NULL, score INTEGER NOT NULL, discarded TEXT, tiles TEXT,
+      created_at TEXT NOT NULL, PRIMARY KEY (user_id, date)
+    );
+  `);
+  db.close();
+}
 
 function makeDbWithRows(file, rows = 3) {
   const db = new DatabaseSync(file);
@@ -44,6 +61,7 @@ before(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mj-backup-test-'));
   remote = null;
   putCount = 0;
+  remoteError = false;
   server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const expectPath = `/repos/${REPO}/contents/${encodeURIComponent(FILE)}`;
@@ -53,6 +71,11 @@ before(async () => {
       return;
     }
     if (req.method === 'GET') {
+      if (remoteError) {
+        res.writeHead(500, { 'content-type': 'application/json' });
+        res.end('{"message":"Internal Server Error"}');
+        return;
+      }
       if (!remote) {
         res.writeHead(404, { 'content-type': 'application/json' });
         res.end('{"message":"Not Found"}');
@@ -105,8 +128,8 @@ test('pullBackupFile: восстанавливает БД, когда локал
     message: 'seed',
   };
 
-  const ok = await pullBackupFile(dst, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
-  assert.equal(ok, true);
+  const status = await pullBackupFile(dst, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
+  assert.equal(status, 'restored');
   assert.ok(fs.existsSync(dst));
 
   const db = new DatabaseSync(dst);
@@ -115,12 +138,79 @@ test('pullBackupFile: восстанавливает БД, когда локал
   assert.equal(rows.n, 3, 'восстановленная БД содержит строки');
 });
 
-test('pullBackupFile: пустой репо (404) → false, файл не создаётся', async () => {
+test('pullBackupFile: пустой репо (404) → no-copy, файл не создаётся', async () => {
   remote = null;
   const dst = path.join(tmpDir, 'empty.db');
-  const ok = await pullBackupFile(dst, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
-  assert.equal(ok, false);
+  const status = await pullBackupFile(dst, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
+  assert.equal(status, 'no-copy');
   assert.equal(fs.existsSync(dst), false);
+});
+
+test('pullBackupFile: сбой GitHub (500) → error', async () => {
+  remote = { sha: 'sha-x', content: 'Zm9v', message: 'x' };
+  remoteError = true;
+  const dst = path.join(tmpDir, 'err.db');
+  const status = await pullBackupFile(dst, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
+  remoteError = false;
+  assert.equal(status, 'error');
+  assert.equal(fs.existsSync(dst), false, 'файл не создаётся при сбое');
+});
+
+// --- F5: пуш пустой БД при неизвестном удалённом состоянии запрещён ---
+
+test('F5: pull упал + пустая БД → push пустой не уходит', async () => {
+  const dbPath = path.join(tmpDir, 'f5-empty.db');
+  makeEmptyDb(dbPath);
+  const db = new DatabaseSync(dbPath);
+  remote = { sha: 'sha-f5', content: 'Z29vZA==', message: 'good copy' };
+  remoteError = true;
+  // Сценарий аудита: GET 500 — pull не восстановил БД.
+  const status = await pullBackupFile(dbPath, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
+  remoteError = false;
+  assert.equal(status, 'error');
+
+  putCount = 0;
+  warned.length = 0;
+  const bak = createBackup({ db, dbPath, repo: REPO, token: 't', file: FILE, apiBase, log: logCapture, remoteKnown: false });
+  await bak.tick(); // mtime > 0 — но БД пуста и remoteKnown = false
+  assert.equal(putCount, 0, 'пустая БД не должна уходить в репо');
+  assert.ok(remote.content === 'Z29vZA==', 'удалённая копия не тронута');
+  assert.match(warned.join(' '), /push отменён|пусто/i, 'есть предупреждение');
+  assert.equal(bak.status().remoteKnown, false);
+  db.close();
+});
+
+test('F5: пустая БД + remoteKnown=false, но появились записи → пуш идёт', async () => {
+  const dbPath = path.join(tmpDir, 'f5-fill.db');
+  makeEmptyDb(dbPath);
+  const db = new DatabaseSync(dbPath);
+  remote = { sha: 'sha-f5b', content: 'Z29vZA==', message: 'good copy' };
+  putCount = 0;
+  const bak = createBackup({ db, dbPath, repo: REPO, token: 't', file: FILE, apiBase, log: silentLog, remoteKnown: false });
+  await bak.tick();
+  assert.equal(putCount, 0, 'пока пусто — не пушим');
+  db.prepare('INSERT OR REPLACE INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)')
+    .run('u1', 'u1@x.com', 'U1', new Date().toISOString());
+  db.prepare('INSERT OR REPLACE INTO scores (user_id, date, score, created_at) VALUES (?, ?, ?, ?)')
+    .run('u1', '2026-10-25', 100, new Date().toISOString());
+  await bak.tick();
+  assert.equal(putCount, 1, 'появились записи — пуш разблокирован');
+  assert.equal(bak.status().remoteKnown, true, 'после успешного push remoteKnown = true');
+  db.close();
+});
+
+test('F5: нет данных, но репо пустой (no-copy) → push разрешён', async () => {
+  const dbPath = path.join(tmpDir, 'f5-nocopy.db');
+  makeEmptyDb(dbPath);
+  const db = new DatabaseSync(dbPath);
+  remote = null; // 404 — в репо копии нет
+  putCount = 0;
+  const status = await pullBackupFile(dbPath, { repo: REPO, token: 't', file: FILE, apiBase, log: silentLog });
+  assert.equal(status, 'no-copy');
+  const bak = createBackup({ db, dbPath, repo: REPO, token: 't', file: FILE, apiBase, log: silentLog, remoteKnown: true });
+  await bak.tick();
+  assert.equal(putCount, 1, 'в репо и так пусто — перекрывать нечего');
+  db.close();
 });
 
 test('pushNow: первый commit без sha, второй — с sha (обновление)', async () => {

@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { createBackup, pullBackupFile } from './backup.js';
-import { openDb } from './db.js';
+import { openDb, dbRowCount } from './db.js';
 import { createGoogleVerifier } from './google.js';
 
 const env = process.env;
@@ -53,14 +53,27 @@ const BACKUP_ON = Boolean(BACKUP_REPO && BACKUP_TOKEN);
 
 mkdirSync(path.dirname(DB_FILE), { recursive: true });
 
-// Свежий инстанс после деплоя: локальной БД нет — восстанавливаем из репо
-// ДО открытия подключения (иначе openDb создаст пустую схему).
-if (BACKUP_ON && (!existsSync(DB_FILE) || statSync(DB_FILE).size === 0)) {
-  console.log(`backup: локальной БД нет — восстанавливаю из ${BACKUP_REPO}/${BACKUP_FILE}…`);
-  await pullBackupFile(DB_FILE, {
+// Свежий инстанс после деплоя: локальной БД нет (или она пуста — 0 строк) —
+// восстанавливаем из репо ДО открытия подключения (иначе openDb создаст
+// пустую схему, а первый push затрёт хорошую копию в репо — аудит F5).
+let db = openDb(DB_FILE);
+let pullStatus = null;
+if (BACKUP_ON && dbRowCount(db) === 0) {
+  db.close();
+  console.log(`backup: локальной БД нет (пустая) — восстанавливаю из ${BACKUP_REPO}/${BACKUP_FILE}…`);
+  pullStatus = await pullBackupFile(DB_FILE, {
     repo: BACKUP_REPO, token: BACKUP_TOKEN, file: BACKUP_FILE, branch: BACKUP_BRANCH, apiBase: BACKUP_API_BASE,
   });
+  db = openDb(DB_FILE);
+  if (pullStatus === 'error') {
+    console.warn('⚠ backup: pull не удался — пока локальная БД пуста, push в репо заблокирован (F5);'
+      + ' после первой записи данные начнут сохраняться, но удалённая история может быть старше.');
+  }
 }
+// remoteKnown: удалённое состояние известно и не новее локального —
+// pull восстановил БД, в репо и так пусто (no-copy), либо локальная БД не
+// пустая (постоянный диск: локаль новее последней успешной копии).
+const remoteKnown = !BACKUP_ON || dbRowCount(db) > 0 || pullStatus === 'no-copy';
 
 // На free-инстансе Render файл вне подключённого диска (/opt/data) стирается
 // при каждом деплое — предупреждаем, чтобы таблица/история рук не «слетали».
@@ -73,11 +86,11 @@ if (process.env.NODE_ENV === 'production' && !DB_FILE.startsWith('/opt/data/')) 
   );
 }
 
-const db = openDb(DB_FILE);
 const backup = BACKUP_ON
   ? createBackup({
       db, dbPath: DB_FILE, repo: BACKUP_REPO, token: BACKUP_TOKEN,
       file: BACKUP_FILE, branch: BACKUP_BRANCH, apiBase: BACKUP_API_BASE,
+      remoteKnown,
     })
   : null;
 
