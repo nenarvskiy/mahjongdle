@@ -13,8 +13,9 @@
  */
 import { canonicalTileId } from './tiles.js';
 
-/** Тайлов-кандор в мёртвой стене (часть 10 скрытых тайлов дня). */
-export const KAN_DORA_SLOTS = 5;
+/** Тайлов-кандор в мёртвой стене (0.6.25: в 10 тайлах стены 4 кандор —
+ *  по одной на каждый кан, максимум канов в руке 4). */
+export const KAN_DORA_SLOTS = 4;
 
 /** Максимум кан-дор: одна за каждый кан, в руке не больше 4 канов. */
 export const MAX_KAN_DORA = 4;
@@ -74,11 +75,11 @@ export function openKanDoraCount(kanCount, baseOpen = 0) {
 }
 
 /**
- * Сколько ура-дор открыто в конце дня: 1 базовая (ура индикатор дня) +
- * по одной за каждый кан (максимум 5 тайлов-ура в мёртвой стене).
+ * Сколько ура-дор открыто в конце дня: 1 базовая (ура-индикатор дня, 2-й
+ * тайл стены) + по одной кан-уре за каждый кан (максимум 1 + 4 = 5).
  */
 export function openUraCount(kanCount) {
-  return Math.min(KAN_DORA_SLOTS, 1 + Math.max(0, kanCount));
+  return 1 + Math.min(KAN_DORA_SLOTS, Math.max(0, kanCount));
 }
 
 /** Слоты кандор: [{index, tile, open}] — первые openCount открыты. */

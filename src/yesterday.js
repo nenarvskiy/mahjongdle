@@ -67,16 +67,13 @@ export function initYesterday({ dayKey }) {
     if (tabs) tabs.hidden = false;
   }
 
-  /** Тайл-индикатор со стрелкой к открывшейся доре. */
+  /** Картинка индикатора (0.6.25: без текстовой стрелки на экране —
+   *  открывшаяся дора видна в подсказке при наведении). */
   function doraCell(indicator) {
     const cell = document.createElement('div');
     cell.className = 'yesterday-kandora';
     cell.title = `Индикатор: ${indicator} → дора: ${doraFromIndicator(indicator)}`;
     renderTiles(cell, [indicator], { disabled: true });
-    const tag = document.createElement('span');
-    tag.className = 'yesterday-dora-tag';
-    tag.textContent = `→ ${doraFromIndicator(indicator)}`;
-    cell.append(tag);
     return cell;
   }
 

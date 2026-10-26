@@ -13,6 +13,7 @@
  */
 import { getAuth, fetchMyHands, fetchDayKans } from './auth.js';
 import { renderTiles, createTileElement } from './ui.js';
+import { tileDisplayName } from './tiles.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { openKanDoraCount, withKanPons } from './kans.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
@@ -157,6 +158,8 @@ function recompute({
 /**
  * Строка условий дня: ветра, дора — всегда; ура и кан-доры — только для
  * прошедших дней (до полуночи их никто не должен видеть).
+ * Все тайлы — картинками: доры показывают ИНДИКАТОРЫ (как в игре),
+ * открывшаяся дора — в подсказке (0.6.25: без текстовых «2m → 3m»).
  */
 function renderContextRow(el, dateKey, dayCtx, { isToday = false, dayKanCount = 0 } = {}) {
   el.innerHTML = '';
@@ -168,32 +171,35 @@ function renderContextRow(el, dateKey, dayCtx, { isToday = false, dayKanCount = 
   const open = openKanDoraCount(dayKanCount);
 
   const parts = [];
-  const push = (label, value, title) => {
-    if (!value) return;
+  const pushTiles = (label, indicators, title) => {
+    if (!indicators?.length) return;
     const span = document.createElement('span');
-    span.className = 'hands-ctx-part';
-    if (title) span.title = title;
+    span.className = 'hands-ctx-part hands-ctx-tiles';
+    span.title = title;
     const b = document.createElement('b');
     b.textContent = `${label}: `;
-    span.append(b, document.createTextNode(value));
+    span.append(b);
+    for (const indicator of indicators) {
+      const tile = createTileElement(indicator, { disabled: true });
+      // Подсказка: индикатор → открывшаяся дора (текст только в тултипе).
+      tile.title = `${tileDisplayName(indicator)} → дора: ${tileDisplayName(doraFromIndicator(indicator))}`;
+      span.append(tile);
+    }
     parts.push(span);
   };
-  push('Ветер раунда', ctx.roundWindId, 'Ветер раунда дня');
-  push('Ветер игрока', ctx.seatWindId, 'Ветер места дня');
-  push('Дора', `${ctx.doraIndicators.join(' ')} → ${ctx.doraTiles.join(' ')}`, 'Индикатор доры → дора');
+  pushTiles('Ветер раунда', [ctx.roundWindId], 'Ветер раунда дня');
+  pushTiles('Ветер игрока', [ctx.seatWindId], 'Ветер места дня');
+  pushTiles('Дора', ctx.doraIndicators, 'Индикатор доры; открывшаяся дора — в подсказке');
   if (!isToday) {
-    // Открытые в полночь тайлы: ура (базовая + кан-уры) и кан-доры.
-    const uraTiles = [
-      ...(ctx.uraIndicators ?? []).map(doraFromIndicator),
-      ...wall.kanUra.slice(0, open).map(doraFromIndicator),
+    // Открытые в полночь тайлы: ура (базовая + кан-уры) и кан-доры —
+    // индикаторы из мёртвой стены.
+    const uraIndicators = [
+      ...(ctx.uraIndicators ?? []),
+      ...wall.kanUra.slice(0, open),
     ];
-    if (uraTiles.length) {
-      push('Ура', uraTiles.join(' '), 'Ура-доры, открывшиеся в полночь');
-    }
-    const kanDoraTiles = wall.kanDora.slice(0, open).map(doraFromIndicator);
-    if (kanDoraTiles.length) {
-      push('Кан-доры', kanDoraTiles.join(' '), 'Кан-доры, открывшиеся в полночь: по одной за каждый кан дня');
-    }
+    pushTiles('Ура', uraIndicators, 'Ура-индикаторы, открывшиеся в полночь');
+    pushTiles('Кан-доры', wall.kanDora.slice(0, open),
+      'Кан-доры, открывшиеся в полночь: по одной за каждый кан дня');
   }
 
   if (!parts.length) return;

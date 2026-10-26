@@ -54,7 +54,7 @@ test('countKans: объявленные + оставшиеся четвёрки'
 });
 
 test('кандоры: БЕЗ базовой, по одной за кан, максимум 4', () => {
-  assert.equal(KAN_DORA_SLOTS, 5); // в мёртвой стене 5 тайлов-кандор
+  assert.equal(KAN_DORA_SLOTS, 4); // 0.6.25: в стене 4 тайла-кандора (3, 5, 7, 9 позиции)
   assert.equal(MAX_KAN_DORA, 4);
   assert.equal(openKanDoraCount(0), 0); // базовой больше нет
   assert.equal(openKanDoraCount(1), 1);

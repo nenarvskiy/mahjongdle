@@ -782,7 +782,8 @@ footer button:disabled { opacity: .45; cursor: default; }
   gap: 10px;
 }
 .bug-item.has-report { border-color: rgba(255, 200, 96, .4); background: rgba(255, 200, 96, .045); }
-.bug-context { color: var(--muted); font-size: 12px; }
+.bug-context { color: var(--muted); font-size: 12px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.bug-context .tile { --tile-size: 16px; border-radius: 3px; box-shadow: 0 1px 0 #a9a695; cursor: default; }
 .bug-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
 .bug-mode, .bug-kind {
   padding: 2px 9px;
@@ -907,14 +908,8 @@ footer button:disabled { opacity: .45; cursor: default; }
   text-transform: uppercase;
 }
 .yesterday-doras { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
-.yesterday-kandora { position: relative; display: inline-flex; align-items: flex-start; gap: 3px; }
+.yesterday-kandora { position: relative; display: inline-flex; align-items: flex-start; }
 .yesterday-kandora .tile { --tile-size: 34px; }
-.yesterday-dora-tag {
-  font-size: 12px;
-  font-weight: 600;
-  color: #ffcf70;
-  align-self: center;
-}
 .yesterday-discarded {
   margin-top: 10px;
   padding-top: 10px;
@@ -1097,6 +1092,14 @@ footer button:disabled { opacity: .45; cursor: default; }
 }
 .hands-ctx { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
 .hands-ctx-part b { color: var(--muted); font-weight: 600; }
+/* Доры в строке условий — компактные картинки индикаторов. */
+.hands-ctx-tiles { display: inline-flex; align-items: center; gap: 4px; }
+.hands-ctx-tiles .tile {
+  --tile-size: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 #a9a695, 0 3px 6px rgba(0, 0, 0, .22);
+  cursor: default;
+}
 .hands-breakdown { margin-top: 12px; }
 .hands-breakdown-list {
   display: grid;

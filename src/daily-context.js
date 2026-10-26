@@ -34,9 +34,13 @@ export function countDora(counts, indicators = []) {
 }
 
 /**
- * Мёртвая стена дня: 10 тайлов = 5 индикаторов кандор + 5 их ура-тайлов
- * (ура кандор открывается на следующий день). Детерминирована по dayKey:
- * одинакова для всех игроков, на следующий день — другая.
+ * Мёртвая стена дня — 10 тайлов, одинаковая для всех игроков, детерминирована
+ * по dayKey (на следующий день — другая). ВСЕ доры дня берутся из стены:
+ *   [0] дора-индикатор, [1] ура-индикатор,
+ *   [2] кан-дора 1, [3] кан-ура 1, [4] кан-дора 2, [5] кан-ура 2,
+ *   [6] кан-дора 3, [7] кан-ура 3, [8] кан-дора 4, [9] кан-ура 4.
+ * Один тайл каждого вида отложен (в раздачу не попадает — как индикаторы в
+ * реально риичи, лежащие в мёртвой стене), остальные 3 копии вида в обороте.
  */
 export function createDeadWall(dayKey) {
   const ids = allTileIds();
@@ -45,8 +49,10 @@ export function createDeadWall(dayKey) {
     .sort((a, b) => a.key - b.key)
     .map((item) => item.tile);
   return {
-    kanDora: shuffled.slice(0, 5),
-    kanUra: shuffled.slice(5, 10),
+    doraIndicator: shuffled[0],
+    uraIndicator: RULES.uraDora ? shuffled[1] : null,
+    kanDora: [shuffled[2], shuffled[4], shuffled[6], shuffled[8]],
+    kanUra: [shuffled[3], shuffled[5], shuffled[7], shuffled[9]],
     tiles: shuffled.slice(0, 10),
   };
 }
@@ -61,14 +67,14 @@ export function createDailyContext(date = new Date()) {
   const dayNumber = Math.floor(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) / DAY_MS);
   const roundWindId = WINDS[((dayNumber % WINDS.length) + WINDS.length) % WINDS.length];
   const seatWindId = WINDS[hash32(`seat:${dayKey}`) % WINDS.length];
-  const ids = allTileIds();
-  const doraIndicator = ids[hash32(`dora:${dayKey}`) % ids.length];
-  // Ура-индикатор — отдельный независимый хэш дня (аналог дора-индикатора,
-  // `ura:${dayKey}`), а НЕ второй тайл мёртвой стены. Открывается только
-  // после сброса: до этого момента очки считаются без урадор (см. rules.uraDora).
-  const uraIndicator = RULES.uraDora ? ids[hash32(`ura:${dayKey}`) % ids.length] : null;
-  const uraIndicators = uraIndicator ? [uraIndicator] : [];
+  // Дора- и ура-индикаторы берутся из мёртвой стены дня (первые два тайла),
+  // а не независимым хэшем (0.6.25): все доры дня — члены одной стены.
+  // Ура открывается только после сброса: до этого момента очки считаются
+  // без урадор (см. rules.uraDora).
   const deadWall = createDeadWall(dayKey);
+  const doraIndicator = deadWall.doraIndicator;
+  const uraIndicator = deadWall.uraIndicator;
+  const uraIndicators = uraIndicator ? [uraIndicator] : [];
   return {
     dayKey,
     deadWall,
@@ -81,7 +87,7 @@ export function createDailyContext(date = new Date()) {
     doraTiles: [doraFromIndicator(doraIndicator)],
     uraTiles: uraIndicators.map(doraFromIndicator),
     /** Тайлы, лежащие в мёртвой стене: их копии в добор не попадают. */
-    deadTiles: [doraIndicator, ...uraIndicators, ...deadWall.tiles],
+    deadTiles: deadWall.tiles,
   };
 }
 

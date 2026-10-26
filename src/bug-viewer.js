@@ -8,7 +8,7 @@
  * Вкладки: «Жалобы» (reports=1) и «Все руки» (все блоки).
  */
 import { fetchEvents } from './event-log.js';
-import { renderTiles } from './ui.js';
+import { renderTiles, createTileElement } from './ui.js';
 import { doraFromIndicator } from './daily-context.js';
 
 export function initBugViewer() {
@@ -195,23 +195,29 @@ export function initBugViewer() {
     item.append(scoreEl);
   }
 
-  /** Условия: ветра, дора, ура. */
+  /** Условия: ветра, дора, ура (0.6.25: доры — картинками индикаторов). */
   function renderContext(item, ctx) {
     if (!ctx) return;
     const line = document.createElement('div');
     line.className = 'bug-context';
     const parts = [];
+    const push = (node) => {
+      if (parts.length) line.append(document.createTextNode(' · '));
+      parts.push(node);
+      line.append(node);
+    };
     const roundWind = asString(ctx.roundWindId);
-    if (roundWind) parts.push(`раунд ${roundWind.toUpperCase()}`);
+    if (roundWind) push(document.createTextNode(`раунд ${roundWind.toUpperCase()}`));
     const seatWind = asString(ctx.seatWindId);
-    if (seatWind) parts.push(`место ${seatWind.toUpperCase()}`);
-    const doraIndicators = asStringArray(ctx.doraIndicators);
-    if (doraIndicators.length) parts.push(`дора ${doraIndicators.join(' ')}`);
-    const uraIndicators = asStringArray(ctx.uraIndicators);
-    if (uraIndicators.length) parts.push(`ура ${uraIndicators.join(' ')}`);
+    if (seatWind) push(document.createTextNode(`место ${seatWind.toUpperCase()}`));
+    for (const indicator of asStringArray(ctx.doraIndicators)) {
+      push(createTileElement(indicator, { disabled: true }));
+    }
+    for (const indicator of asStringArray(ctx.uraIndicators)) {
+      push(createTileElement(indicator, { disabled: true }));
+    }
     const dayKey = asString(ctx.dayKey);
-    if (dayKey) parts.push(dayKey);
-    line.textContent = parts.join(' · ');
-    item.append(line);
+    if (dayKey) push(document.createTextNode(dayKey));
+    if (parts.length) item.append(line);
   }
 }
