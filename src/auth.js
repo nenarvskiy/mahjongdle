@@ -14,6 +14,7 @@
  * (кнопка не показывается, игра работает как раньше).
  */
 import { AUTH_CONFIG } from './config.js';
+import { clearStoredDailyHand } from './daily-hand.js';
 
 const LS_KEY = 'mh_auth_v1';
 const listeners = new Set();
@@ -136,8 +137,13 @@ export async function initAuthButton(slotEl) {
   return true;
 }
 
-/** Выйти: просто чистим сессию (кнопка Google остаётся). */
+/** Выйти: чистим сессию (кнопка Google остаётся).
+ *  H5: рука дня хранится в localStorage БЕЗ привязки к пользователю —
+ *  стираем её при выходе, чтобы гостю/следующему пользователю не была
+ *  видна чужая рука и нельзя было отправить её на чужой аккаунт. */
 export function logout() {
+  clearStoredDailyHand();
+  try { localStorage.removeItem('mh_yesterday_seen_v1'); } catch { /* ignore */ }
   setAuth(null);
 }
 
@@ -198,6 +204,15 @@ export function saveDailyHand(dayKey, hand, dayCtx) {
 /** Рука игрока за дату с сервера: {date, hand: string[]|null, ...}. */
 export function fetchDailyHand(dayKey) {
   return api(`/api/me/hand/${encodeURIComponent(dayKey)}`);
+}
+
+/**
+ * Прогресс канов руки дня на сервере (аудит H2): кан объявляется до сброса,
+ * и сервер — источник правды. Ошибка «результат уже зафиксирован» (409) —
+ * не ошибка для клиента: прогресс закрывался сдачей руки.
+ */
+export function patchDayKans(dayKey, kans) {
+  return api(`/api/me/hand/${encodeURIComponent(dayKey)}`, { method: 'PATCH', body: { kans } });
 }
 
 /** Прошлое игрока: ежедневные руки за последние дни (профиль).

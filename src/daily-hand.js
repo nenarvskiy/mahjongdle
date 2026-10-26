@@ -71,3 +71,17 @@ export function writeStoredDailyHand(dayKey, hand, kans = [], skipped = [], disc
     /* localStorage недоступен (приватный режим и т.п.) — играем без закрепления */
   }
 }
+
+/**
+ * Удалить закреплённую руку дня (аудит H5): рука хранится БЕЗ привязки к
+ * пользователю, поэтому при выходе из аккаунта и при смене аккаунта её
+ * нужно стирать — иначе чужая (гостевая/прошлая) рука видна новому
+ * пользователю и может быть отправлена на его аккаунт.
+ */
+export function clearStoredDailyHand(storage = localStorage) {
+  try {
+    storage?.removeItem(STORAGE_KEY);
+  } catch {
+    /* localStorage недоступен — нечего стирать */
+  }
+}

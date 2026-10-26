@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readStoredDailyHand, writeStoredDailyHand } from '../src/daily-hand.js';
+import { readStoredDailyHand, writeStoredDailyHand, clearStoredDailyHand } from '../src/daily-hand.js';
 
 /** Мок localStorage. */
 function fakeStorage(initial = null) {
@@ -16,6 +16,7 @@ function fakeStorage(initial = null) {
   return {
     getItem: (k) => (map.has(k) ? map.get(k) : null),
     setItem: (k, v) => { map.set(k, String(v)); },
+    removeItem: (k) => { map.delete(k); },
     dump: () => Object.fromEntries(map),
   };
 }
@@ -103,4 +104,15 @@ test('writeStoredDailyHand: перезаписывает предыдущий д
 test('хранилище недоступно (null) — не падает', () => {
   assert.equal(readStoredDailyHand(null), null);
   writeStoredDailyHand('2026-10-23', ['1m'], [], [], null, null); // void
+});
+
+test('clearStoredDailyHand (H5): рука стирается — logout/смена аккаунта', () => {
+  const s = fakeStorage();
+  writeStoredDailyHand('2026-10-23', ['1m', '2m'], ['9m'], [], '3m', s);
+  assert.ok(readStoredDailyHand(s), 'рука закреплена');
+  clearStoredDailyHand(s);
+  assert.equal(readStoredDailyHand(s), null, 'после очистки руки нет');
+  // повторный вызов — не падает; null-хранилище — не падает
+  clearStoredDailyHand(s);
+  clearStoredDailyHand(null);
 });

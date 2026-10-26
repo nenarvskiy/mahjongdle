@@ -57,6 +57,10 @@ export function computeDayScore({ tiles, hand, kans = [], complete = false, dayK
  *    индикатора отложена в стену и не участвует в раздаче/доборе — модель
  *    drawHand: из 4 копий в обороте 3);
  *  - численность: после сброса tiles = 13 − 3×каны, готовая рука = 14;
+ *  - готовая рука (K2): hand — ровно 14 и мультимножеством РАВНО tiles —
+ *    счёт считается от tiles (выданных), произвольная «иная готовая рука»
+ *    с тем же tiles отклоняется;
+ *  - физический максимум: не больше 4 копий любого тайла (в обороте 4);
  *  - каны: без повторов, объявлены на 4 тайла выданной руки;
  *  - если выданная рука известна (черновик draft, 14 тайлов) — проверка
  *    мультиконтура: отправка не может содержать МЕНЬШЕ выданных тайлов;
@@ -88,6 +92,28 @@ export function validateDaySubmission({
   if (complete) {
     if (tiles.length !== 14) return { ok: false, error: 'готовая рука — 14 тайлов' };
     if (discarded != null) return { ok: false, error: 'у готовой руки нет сброшенного тайла' };
+    // K2: готовая рука — те же 14 тайлов, что в tiles (счёт считается от
+    // tiles, закреплённых черновиком). Клиент мог прислать «свою» готовую
+    // руку — отклоняем: hand обязан совпадать с tiles мультимножеством.
+    if (Array.isArray(hand) && hand.length) {
+      if (hand.length !== 14) return { ok: false, error: 'hand готовой руки — 14 тайлов' };
+      const countOf = (arr) => {
+        const m = new Map();
+        for (const t of arr) {
+          const c = canonicalTileId(t);
+          m.set(c, (m.get(c) ?? 0) + 1);
+        }
+        return m;
+      };
+      const tileCounts = countOf(tiles);
+      const handCounts = countOf(hand);
+      const ids = new Set([...tileCounts.keys(), ...handCounts.keys()]);
+      for (const id of ids) {
+        if ((tileCounts.get(id) ?? 0) !== (handCounts.get(id) ?? 0)) {
+          return { ok: false, error: 'hand готовой руки не совпадает с tiles' };
+        }
+      }
+    }
   } else {
     if (discarded == null) return { ok: false, error: 'нужен сброшенный тайл' };
     if (tiles.length + 3 * kCount !== 13) {
@@ -107,13 +133,17 @@ export function validateDaySubmission({
     ...(discarded != null ? [discarded] : []),
     ...(complete ? kans : kans.flatMap((k) => [k, k, k, k])),
   ];
-  const deadCounts = new Map();
+  const physicalCounts = new Map();
   for (const id of physical) {
     const c = canonicalTileId(id);
-    if (deadIds.has(c)) deadCounts.set(c, (deadCounts.get(c) ?? 0) + 1);
+    physicalCounts.set(c, (physicalCounts.get(c) ?? 0) + 1);
   }
-  for (const [, n] of deadCounts) {
-    if (n > 3) return { ok: false, error: 'слишком много копий тайла мёртвой стены' };
+  for (const [id, n] of physicalCounts) {
+    // В обороте любого тайла ровно 4 копии — больше физически невозможно
+    // (K2/M2: защита от «пять копий» в черновике/отправке).
+    if (n > 4) return { ok: false, error: 'слишком много копий одного тайла (максимум 4)' };
+    // Из тайлов мёртвой стены одна копия каждого отложена — в руке ≤ 3.
+    if (deadIds.has(id) && n > 3) return { ok: false, error: 'слишком много копий тайла мёртвой стены' };
   }
 
   // Мультиконтр-проверка против выданной руки (если она зафиксирована).

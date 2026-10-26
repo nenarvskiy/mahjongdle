@@ -11,12 +11,19 @@
  *    файл) → копия файла → commit в репо (PUT /repos/.../contents/...);
  *  - tick(): раз в минуту — если mtime БД изменился, pushNow();
  *  - pullBackupFile(): при старте, если локальной БД нет/она пустая —
- *    скачать последнюю копию из репо и открыть её.
- *  - защита F5: если pull не удался (сеть/5xx), ПУСТУЮ локальную БД в репо
- *    НЕ пушим (pushNow пропускает push, пока 0 строк), иначе свежий инстанс
- *    затёр бы хорошую удалённую копию. Пуш разблокируется после первой
- *    записи в БД (тогда локаль реально новее последней успешной копии) или
- *    после успешного push (remoteKnown = true).
+ *    скачать последнюю копию из репо и открыть её. Файлы >1 МБ GitHub
+ *    Contents API не возвращает в body (content: null) — тогда копию
+ *    добирают raw-скачиванием по download_url (0.6.26, аудит K1).
+ *  - защита F5/K1: пока удалённое состояние НЕИЗВЕСТНО (pull завершился
+ *    'error'), пуш ЗАПРЕЩЁН целиком — не по числу строк, а по факту:
+ *    свежий инстанс с любой локальной записью (да и событиями гостей)
+ *    не должен затирать хорошую удалённую копию (аудит K1: dbRowCount
+ *    считал events, и «пустая» БД с событиями пушилась). Пуш доступен,
+ *    когда remoteKnown = true: pull восстановил БД / в репо пусто
+ *    (no-copy) / локальная БД не была пустой при старте (постоянный диск —
+ *    локаль не старше последней копии) / был успешный push. После неудачного
+ *    pull разблокировка — только успешным pull-ом при следующем старте
+ *    (рестарт/деплой) или успешным push в будущем.
  *
  * Окружение (Render): BACKUP_GITHUB_REPO=owner/name,
  * BACKUP_GITHUB_TOKEN=токен (fine-grained, Contents: read/write на репо),
@@ -26,7 +33,6 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { dbRowCount } from './db.js';
 
 const DEFAULT_API_BASE = 'https://api.github.com';
 
@@ -59,8 +65,19 @@ export async function pullBackupFile(dbPath, {
     }
     if (!res.ok) throw new Error(`GitHub ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const data = await res.json();
-    if (!data?.content) throw new Error('пустой ответ GitHub');
-    const buf = Buffer.from(data.content, 'base64');
+    let buf;
+    if (data?.content) {
+      buf = Buffer.from(data.content, 'base64');
+    } else if (data?.download_url) {
+      // Файл крупнее ~1 МБ: Contents API отдаёт content: null (encoding: none)
+      // — копию скачивают сырьём по download_url (аудит K1).
+      const rawRes = await fetch(data.download_url);
+      if (!rawRes.ok) throw new Error(`raw-скачивание ${rawRes.status}`);
+      buf = Buffer.from(await rawRes.arrayBuffer());
+    } else {
+      throw new Error('пустой ответ GitHub');
+    }
+    if (!buf.length) throw new Error('пустая копия в репозитории');
     fs.mkdirSync(path.dirname(dbPath), { recursive: true });
     const tmp = `${dbPath}.download`;
     fs.writeFileSync(tmp, buf);
@@ -86,8 +103,9 @@ export async function pullBackupFile(dbPath, {
  * @param {object} [p.log]
  * @param {boolean} [p.remoteKnown] — удалённое состояние известно и НЕ новее
  * локальной БД (pull завершился 'restored'/'no-copy' либо локальная БД не
- * пустая). Если false, ПУСТУЮ локальную БД пушить запрещено — иначе свежий
- * инстанс после упавшего pull затрёт хорошую копию в репо (аудит F5).
+ * пустая при старте). Если false, push ЗАПРЕЩЁН целиком (не только для
+ * пустой БД) — иначе свежий инстанс после упавшего pull затрёт хорошую
+ * копию в репо (аудит F5/K1).
  */
 export function createBackup({
   db, dbPath, repo, token,
@@ -100,6 +118,7 @@ export function createBackup({
     lastPushMtime: 0,
     pushing: false,
     remoteKnown: Boolean(remoteKnown),
+    lastUnknownWarnAt: 0,
   };
 
   const contentUrl = () => `/repos/${repo}/contents/${encodeURIComponent(file)}`;
@@ -126,9 +145,10 @@ export function createBackup({
   }
 
   /** Загрузка актуальной БД в репо (commit с timestamp).
-   *  F5: при неизвестном удалённом состоянии (pull упал) ПУСТУЮ локальную
-   *  БД не пушим — это затёрло бы хорошую копию в репо. Небольшая локальная
-   *  БД, накопившая записи, пушится (локаль новее последней успешной копии). */
+   *  F5/K1: при неизвестном удалённом состоянии (pull упал) push запрещён
+   *  ЦЕЛИКОМ — независимо от числа строк: и «пустая» БД, и БД, накопившая
+   *  записи (да и гостевые события в events), затёрли бы хорошую удалённую
+   *  копию (аудит K1: старый guard считал строки по всем таблицам). */
   async function pushNow(reason = '') {
     if (state.pushing) return;
     state.pushing = true;
@@ -137,12 +157,16 @@ export function createBackup({
     try {
       if (!fs.existsSync(dbPath)) throw new Error(`нет файла БД: ${dbPath}`);
       if (!state.remoteKnown) {
-        const rows = db ? dbRowCount(db) : 0;
-        if (rows === 0) {
-          log.warn?.('[backup] pull не удался, а локальная БД пуста — push отменён ' +
-            '(иначе была бы затёрта удалённая копия); повторим после восстановления данных)');
-          return;
+        // Предупреждение не чаще раза в 15 минут (watcher будит pushNow
+        // при каждом изменении БД — без дросселя это было бы раз в минуту).
+        const now = Date.now();
+        if (!state.lastUnknownWarnAt || now - state.lastUnknownWarnAt > 15 * 60 * 1000) {
+          state.lastUnknownWarnAt = now;
+          log.warn?.('[backup] удалённое состояние неизвестно (pull не удался) — push ' +
+            'отменён: иначе была бы затёрта копия в репо (аудит K1). Разблокирует ' +
+            'успешный pull при следующем старте (рестарт/деплой) или успешный push.');
         }
+        return;
       }
       if (db) {
         // Сливаем WAL в главный файл, чтобы копия была консистентной

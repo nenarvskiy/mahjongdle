@@ -18,10 +18,11 @@ import {
   insertEvent, listEvents, updateEventPayload, addEventReport,
   upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
   markDayHandRecalculated, setScoreValue, reissueDayHand, listDayKans,
+  setDayHandKans,
 } from './db.js';
 import { createDailyContext } from '../src/daily-context.js';
-import { drawHand } from '../src/tiles.js';
-import { recalcScore, computeDayScore, validateDaySubmission } from './recalc.js';
+import { drawHand, canonicalTileId } from '../src/tiles.js';
+import { recalcScore, computeDayScore, validateDaySubmission, isValidTileId } from './recalc.js';
 import { DEFAULT_ROLES_FILE, readRolesFile, roleFor, setRole } from './roles.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -395,6 +396,14 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       draft: dayRow?.hand ?? null,
     });
     if (!check.ok) return httpError(res, 400, check.error);
+    // K2: результат сдаётся ТОЛЬКО против зафиксированного черновика —
+    // выданной игроку руки. Без него происхождение руки не проверить:
+    // клиент мог прислать готовую winning-hand произвольную и забрать
+    // её очки (аудит: complete:true без черновика → 5 400 625 очков).
+    // Проверяем ПОСЛЕ валидации тела: ошибка формата видна как есть.
+    if (!Array.isArray(dayRow?.hand) || dayRow.hand.length !== 14) {
+      return httpError(res, 400, 'рука дня не зафиксирована — сначала сгенерируйте руку в игре');
+    }
 
     // Счёт пересчитывается НА СЕРВЕРЕ из tiles/hand/kans + контекста дня
     // (аудит F2a): клиентское значение не доверяется, при расхождении —
@@ -512,9 +521,22 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
   });
 
   /**
-   * POST /api/me/hand {date, hand, dayCtx} — зафиксировать исходную руку дня
+   * POST /api/me/hand {date, hand} — зафиксировать исходную руку дня
    * сразу при генерации (до сброса). Рука больше не пропадает вместе с
    * localStorage: при загрузке страницы клиент восстанавливает её с сервера.
+   *
+   * H4: черновик — ОДИН на день. Повторная POST не перезаписывает руку
+   * (раньше так можно было крутить «перевыпуск» до нужного расклада —
+   * черновик — якорь валидации результата). Замена черновика — только
+   * админским ре-ишю (POST /api/admin/hand/reissue): 409 на повтор.
+   */
+  /**
+   * GET /api/me/hands → история рук дня игрока.
+   * H3: строка СЕГОДНЕШНЕГО дня несёт day_ctx, где спрятаны ЕЩЁ НЕ ОТКРЫВШИЕСЯ
+   * ура-доры и кан-доры (открываются в полночный пересчёт). Их клиенту
+   * отдавать нельзя — вырезаем из day_ctx за сегодня; прошедшие дни открыты
+   * (после полуночи доры публичны) — оставляем полностью (клиент берёт из
+   * сохранённого ctx базовую дору старых схем и ветра).
    */
   app.get('/api/me/hands', (req, res) => {
     const user = authProfile(req, db, sessionSecret);
@@ -522,7 +544,21 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     let limit = parseInt(req.query.limit ?? '30', 10);
     if (!Number.isFinite(limit) || limit < 1) limit = 30;
     limit = Math.min(limit, 100);
-    res.json({ rows: listMyDayHands(db, user.id, limit) });
+    const today = mskToday();
+    const rows = listMyDayHands(db, user.id, limit).map((row) => {
+      if (row.date !== today || !row.day_ctx) return row;
+      row.day_ctx = {
+        dayKey: row.day_ctx.dayKey ?? row.date,
+        doraIndicators: row.day_ctx.doraIndicators,
+        doraTiles: row.day_ctx.doraTiles,
+        roundWindId: row.day_ctx.roundWindId,
+        seatWindId: row.day_ctx.seatWindId,
+        roundWind: row.day_ctx.roundWind,
+        seatWind: row.day_ctx.seatWind,
+      };
+      return row;
+    });
+    res.json({ rows });
   });
 
   app.post('/api/me/hand', (req, res) => {
@@ -541,7 +577,8 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (!isTileArray(hand) || hand.length !== 14) {
       return httpError(res, 400, 'hand — массив из 14 id тайлов');
     }
-    // Формат id и мёртвая стена (F2a): черновик — будущая проверка результата.
+    // Формат id, мёртвая стена, ≤4 копий (F2a): черновик — будущая
+    // проверка результата.
     const check = validateDaySubmission({
       tiles: hand,
       hand: [],
@@ -552,6 +589,12 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       draft: null,
     });
     if (!check.ok) return httpError(res, 400, check.error);
+    // H4: один черновик на день — повтор не перезаписывает руку (иначе
+    // «перевыпуск» до нужного расклада: черновик — якорь валидации).
+    const existingRow = getDayHand(db, user.id, date);
+    if (existingRow && Array.isArray(existingRow.hand) && existingRow.hand.length) {
+      return httpError(res, 409, 'рука дня уже зафиксирована — замена только через ре-ишю');
+    }
     upsertDayHandDraft(db, {
       userId: user.id,
       date,
@@ -584,6 +627,68 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       complete: row.complete,
       score: row.score,
     });
+  });
+
+  /**
+   * PATCH /api/me/hand/:date {kans} — прогресс канов руки дня (аудит H2).
+   *
+   * Кан объявляется ДО сброса, до любого результата: раньше прогресс жил
+   * только в localStorage и при синхронизации/перезагрузке/другом
+   * устройстве «пропадал» (серверный пре-кан черновик перезаписывал
+   * пост-кан состояние). Теперь сервер хранит объявленные каны:
+   *  - на том же устройстве sync не откатывает локальный прогресс,
+   *    если он новее серверного (и дособыл кан сюда),
+   *  - на другом устройстве кан применяется с сервера (рука пере-
+   *    выносится с доборами).
+   * Только пока результат не зафиксирован: после сдачи каны хранятся
+   * в результате (scores/day_hands).
+   */
+  app.patch('/api/me/hand/:date', (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    const { date } = req.params;
+    if (!isValidDate(date)) {
+      return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    }
+    // Прогресс дня — только за сегодняшний день (сервер, МСК) — F2a.
+    if (date !== mskToday()) {
+      return httpError(res, 400, 'каны можно объявить только за сегодняшний день');
+    }
+    const kans = req.body?.kans;
+    if (!Array.isArray(kans) || kans.length > 4 || !kans.every((k) => typeof k === 'string' && k.length <= 4)) {
+      return httpError(res, 400, 'kans — массив id объявленных канов (до 4)');
+    }
+    for (const k of kans) {
+      if (!isValidTileId(k)) return httpError(res, 400, 'некорректный id тайла');
+    }
+    if (new Set(kans.map((k) => canonicalTileId(k))).size !== kans.length) {
+      return httpError(res, 400, 'один кан нельзя объявить дважды');
+    }
+    const row = getDayHand(db, user.id, date);
+    if (!row) return httpError(res, 404, 'рука дня не зафиксирована');
+    // Результат уже зафиксирован — каны живут в нём, прогресс закрыт.
+    // (Проверяем ДО формы руки: после сдачи row.hand — уже не черновик 14.)
+    if (row.score > 0 || row.complete) {
+      return httpError(res, 409, 'результат дня уже зафиксирован');
+    }
+    if (!Array.isArray(row.hand) || row.hand.length !== 14) {
+      return httpError(res, 404, 'рука дня не зафиксирована (нет черновика)');
+    }
+    // Кан — на 4 тайла выданной руки (черновика).
+    const draftCounts = new Map();
+    for (const t of row.hand) {
+      const c = canonicalTileId(t);
+      draftCounts.set(c, (draftCounts.get(c) ?? 0) + 1);
+    }
+    for (const k of kans) {
+      if ((draftCounts.get(canonicalTileId(k)) ?? 0) < 4) {
+        return httpError(res, 400, 'кан объявлен на тайлы, которых нет в руке');
+      }
+    }
+    if (!setDayHandKans(db, user.id, date, kans)) {
+      return httpError(res, 409, 'результат дня уже зафиксирован');
+    }
+    res.json({ date, kans });
   });
 
   /**

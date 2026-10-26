@@ -4,10 +4,10 @@ import { createStore } from './state.js';
 import { renderTiles, renderScore, renderGroupedHand, createTileElement } from './ui.js';
 import { evaluateCompleteHand, evaluateHand } from './scoring.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
-import { readStoredDailyHand, writeStoredDailyHand } from './daily-hand.js';
+import { readStoredDailyHand, writeStoredDailyHand, clearStoredDailyHand } from './daily-hand.js';
 import { findKans, withKanPons, MAX_KAN_DORA } from './kans.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
-import { initAuthButton, onAuthChange, getAuth, getRole, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand, fetchDayKans, reissueDailyHand } from './auth.js';
+import { initAuthButton, onAuthChange, getAuth, getRole, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand, fetchDayKans, reissueDailyHand, patchDayKans } from './auth.js';
 import { initTestMode, syncTestTabVisibility } from './test-mode.js';
 import { initRolesPanel } from './roles-panel.js';
 import { initBugViewer } from './bug-viewer.js';
@@ -250,6 +250,56 @@ function syncDailyHandFromServer() {
   return syncPromise;
 }
 
+/**
+ * H2: применить каны, объявленные на сервере, к 14-тайловому черновика:
+ * вынести 4 тайла каждого кана и добрать по тайлу за кан. Результат —
+ * пост-кан экранная форма (14 − 3×каны); добор случайный (сервер доборы
+ * не хранит — проверка результата позволяет по одному добору на кан).
+ */
+function applyServerKans(draft14, serverKans) {
+  let hand = [...draft14];
+  for (const kind of serverKans.map(canonicalTileId)) {
+    for (let i = 0; i < 4; i += 1) {
+      const idx = hand.findIndex((t) => canonicalTileId(t) === kind);
+      if (idx >= 0) hand.splice(idx, 1);
+    }
+  }
+  for (let i = 0; i < serverKans.length; i += 1) {
+    hand.push(...drawHand(1, { deadTiles: dailyContext.deadTiles }));
+  }
+  return sortHand(hand);
+}
+
+/**
+ * H2: локальная пост-кан рука выведена из серверного черновика?
+ * По каждому виду: экран(k) + 4×[k — кан] ≥ черновик(k) (не меньше выданного),
+ * кан объявлен на 4 тайлах черновика, и суммарно добрано ровно по тайлу
+ * на каждый кан (число доборов = каны).
+ */
+function kanProgressMatchesDraft(draft14, screen, kanList) {
+  if (!Array.isArray(draft14) || draft14.length !== 14 || !Array.isArray(screen)) return false;
+  const countOf = (arr) => {
+    const m = new Map();
+    for (const t of arr) {
+      const c = canonicalTileId(t);
+      m.set(c, (m.get(c) ?? 0) + 1);
+    }
+    return m;
+  };
+  const d = countOf(draft14);
+  const s = countOf(screen);
+  const kinds = new Set([...d.keys(), ...s.keys()]);
+  let draws = 0;
+  for (const k of kinds) {
+    const isKan = kanList.some((kan) => canonicalTileId(kan.tile) === k);
+    if (isKan && (d.get(k) ?? 0) < 4) return false; // кан — на 4 тайла выданной руки
+    const balance = (s.get(k) ?? 0) + (isKan ? 4 : 0) - (d.get(k) ?? 0);
+    if (balance < 0) return false; // в руке меньше выданного тайла
+    draws += balance;
+  }
+  return draws === kanList.length;
+}
+
 async function syncDailyHandFromServerInner() {
   const local = readStoredDailyHand();
   const localOk = local?.dayKey === dailyContext.dayKey;
@@ -263,8 +313,30 @@ async function syncDailyHandFromServerInner() {
   if (!data?.hand?.length) return; // на сервере нет руки — локальная остаётся
   if (dealing || reissuing) return; // во время синхронизации начали генерацию
   const cur = store.getState();
+  const serverKans = Array.isArray(data.kans) ? data.kans : [];
   const curKey = cur.daily ? handKey(cur.hand, declaredKans) : null;
-  const newKey = handKey(data.hand, data.kans ?? []);
+  const newKey = handKey(data.hand, serverKans);
+  // H2: локальный сброс ещё не на сервере (POST результата в полёте/падает)
+  // — пре-сброс черновик сервера НЕ должен откатывать посчитанную руку.
+  if (cur.discarded && !data.discarded && !data.complete) return;
+  // H2: локальный прогресс канов новее серверного (PATCH не дошёл) —
+  // черновик сервера не затирает пост-кан состояние; кан дособылаем.
+  if (
+    declaredKans.length > serverKans.length && !data.discarded && !data.complete
+    && kanProgressMatchesDraft(data.hand, cur.phase === 'choose' ? cur.hand : cur.remaining, declaredKans)
+  ) {
+    if (getAuth()) {
+      void patchDayKans(dailyContext.dayKey, declaredKans.map((kan) => kan.tile)).catch(() => {});
+    }
+    return;
+  }
+  // H2: каны те же на сервере и локально, день не завершён — локальное
+  // пост-кан состояние держит РЕАЛЬНЫЙ добор: не перекладываем кан заново
+  // (случайный добор из черновика дал бы другую руку и другой счёт).
+  const curKanSet = new Set(declaredKans.map((kan) => canonicalTileId(kan.tile)));
+  const srvKanSet = new Set(serverKans.map(canonicalTileId));
+  const sameKans = curKanSet.size === srvKanSet.size && [...curKanSet].every((k) => srvKanSet.has(k));
+  if (declaredKans.length > 0 && sameKans && !data.discarded && !data.complete) return;
   // Пока запрос шёл, пользователь сам сгенерировал руку (на чистом
   // устройстве) — её рука новее нашего ответа, не затираем.
   if (localKey === null && curKey !== null && curKey !== newKey) return;
@@ -277,12 +349,19 @@ async function syncDailyHandFromServerInner() {
   // повторный setState лишний раз перерисует.
   if (curKey === newKey && curProgress === newProgress) return;
   // Иначе сервер — источник правды: новая рука (ре-ишю с другого
-  // устройства) и/или сделанный где-то сброс. Заменяем состояние и
+  // устройства) и/или сделанный где-то сброс/кан. Заменяем состояние и
   // обновляем кэш; пропущенные каны сохраняем, только если рука та же.
   const sameHand = curKey === newKey;
   skippedKans = sameHand && localOk ? (local.skipped ?? []) : [];
-  writeStoredDailyHand(dailyContext.dayKey, data.hand, data.kans ?? [], skippedKans, data.discarded ?? null);
-  store.setState(stateFromHandData({ hand: data.hand, kans: data.kans ?? [], discarded: data.discarded ?? null, tiles: data.tiles }));
+  // H2: серверное состояние с каном в стадии черновика (сброса нет) —
+  // применяем кан к 14-тайловому черновику (вынос 4 + доборы); иначе
+  // stateFromHandData показал бы тайлы кана в руке и предложил кан заново.
+  // Готовая/после сброса рука уже лежит в итоговой форме — применяем как есть.
+  const handToApply = (!data.discarded && !data.complete && serverKans.length && data.hand.length === 14)
+    ? applyServerKans(data.hand, serverKans)
+    : data.hand;
+  writeStoredDailyHand(dailyContext.dayKey, handToApply, serverKans, skippedKans, data.discarded ?? null);
+  store.setState(stateFromHandData({ hand: handToApply, kans: serverKans, discarded: data.discarded ?? null, tiles: data.tiles }));
 }
 
 void (async () => {
@@ -342,6 +421,13 @@ async function maybeSubmitScore(state) {
   }
   const hasScore = state.phase === 'result' || state.phase === 'complete';
   if (!hasScore || state.score?.total == null) return;
+  // H5/K2: готовая рука ждёт фиксации черновика на сервере — иначе сервер
+  // отклонит результат «рука дня не зафиксирована» (аудит K2).
+  if (draftPromise) {
+    const done = draftPromise;
+    draftPromise = null;
+    try { await done; } catch { /* предупреждение уже показано */ }
+  }
   const key = `${dailyContext.dayKey}|${state.hand.join(',')}|${state.discarded ?? ''}`;
   if (key === lastSubmitKey) return;
   lastSubmitKey = key;
@@ -355,12 +441,15 @@ async function maybeSubmitScore(state) {
       (kan.tiles ?? []).some((t) => t[0] === '0') ? `0${kan.tile[1]}` : kan.tile);
     const r = await submitScore(dailyContext.dayKey, state.score.total, {
       discarded: state.discarded ?? undefined,
-      tiles: state.phase === 'complete' ? state.hand : state.remaining,
+      // H1: готовая рука ПОСЛЕ кана в state.hand лежит 11-тайловой (пон
+      // кана вынесен отдельно) — сервер ждёт 14 в пон-форме: добавлим пон.
+      // Восстановленная с сервера рука уже в 14-тайловой форме — пон не
+      // добавляем повторно (иначе 17 тайлов и сервер отдаст 400).
+      tiles: state.phase === 'complete'
+        ? (state.hand.length === 14 ? state.hand : withKanPons(state.hand, declaredKans))
+        : state.remaining,
       // Для ночного пересчёта: исходная рука, объявленные каны, готовность,
       // контекст дня (ветра и индикатор доры — без ура-дор).
-      // Готовая рука после кана идёт полным 14-тайловым списком (пон кана);
-      // восстановленная с сервера уже лежит в итоговой 14-тайловой форме —
-      // пон не добавляем повторно (иначе 17 тайлов и сервер отдаст 400).
       hand: state.phase === 'complete'
         ? (state.hand.length === 14 ? state.hand : withKanPons(state.hand, declaredKans))
         : state.hand,
@@ -431,8 +520,10 @@ function renderAuthUser() {
     els.btnBugs.hidden = a.user.role !== 'admin';
     els.btnReissue.hidden = a.user.role !== 'admin';
     syncTestTabVisibility(); // F13: поздний логин admin/test — вкладка «Тест»
-    // Вход после того, как результат дня уже есть — отправляем его.
-    maybeSubmitScore(store.getState());
+    // H5: результат отправляем только ПОСЛЕ синхронизации с сервером:
+    // сервер подтверждает, чья это рука (локальная рука из чужой сессии/
+    // гостя на этом же браузере не уходит на новый аккаунт).
+    void Promise.resolve(syncDailyHandFromServer()).then(() => maybeSubmitScore(store.getState()));
   } else {
     els.authUser.hidden = true;
     els.authSlot.hidden = false;
@@ -452,6 +543,10 @@ function renderAuthUser() {
  * обычная фаза choose/complete и кнопка блокируется до следующего дня.
  */
 let dealing = false;
+// Обещание фиксации черновика на сервере (generateHand): сдача готовой руки
+// ждёт его — сервер проверяет результат против черновика (аудит K2), а
+// черновик пишется «по бегу».
+let draftPromise = null;
 // --- Каны ---
 /**
  * Предложить кан, если он есть и фаза выбора.
@@ -501,6 +596,13 @@ function declareKan() {
     skippedKans,
     state.discarded, // кан объявляется только в фазе выбора — сброса ещё нет
   );
+  // H2: прогресс кана — на сервере (источник правды): переживёт перезагрузку,
+  // другое устройство и не будет «откатан» синхронизацией пре-кан черновиком.
+  // 409 (результат уже зафиксирован) — не ошибка: сдача уже записала каны.
+  if (getAuth()) {
+    void patchDayKans(dailyContext.dayKey, declaredKans.map((kan) => kan.tile))
+      .catch(() => {});
+  }
   if (completed) {
     void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed }) }).then((res) => {
       if (res?.id) dailyBlockId = res.id;
@@ -570,15 +672,20 @@ async function generateHand() {
     if (getAuth()) {
       // Фиксация руки на сервере: она восстанавливается при следующем входе
       // (другое устройство, чистый кеш). Ошибка видна игроку.
-      saveDailyHand(dailyContext.dayKey, hand, {
+      // H4: 409 — черновик уже зафиксирован (повторная POST после успешной:
+      // двойной клик, ретрай) — это НЕ ошибка: рука та же, что на сервере.
+      draftPromise = saveDailyHand(dailyContext.dayKey, hand, {
         dayKey: dailyContext.dayKey,
         doraIndicators: dailyContext.doraIndicators,
         uraIndicators: [],
         roundWindId: dailyContext.roundWindId,
         seatWindId: dailyContext.seatWindId,
-      }).catch(() => {
-        handFixWarning = 'рука не зафиксирована на сервере — при очистке кеша или на другом устройстве она может не восстановиться';
-        store.setState((s) => ({ ...s }));
+      }).catch((e) => {
+        if (!/уже зафиксирована/.test(e?.message ?? '')) {
+          handFixWarning = 'рука не зафиксирована на сервере — при очистке кеша или на другом устройстве она может не восстановиться';
+          store.setState((s) => ({ ...s }));
+        }
+        return null;
       });
     }
     const completed = evaluateCompleteHand(hand, scoreContextFor());
@@ -635,6 +742,7 @@ async function reissueHand() {
     els.kanPrompt.hidden = true;
     dailyBlockId = null;
     handFixWarning = null;
+    draftPromise = null; // черновик выдан сервером вместе с рукой
     resetScoreStatus();
     lastSubmitKey = null;
     refreshLeaderboard(); // счёт удалён — таблица дня обновится
@@ -884,7 +992,27 @@ renderAuthUser();
 // F22: синхронизируем ДАЖЕ если рука уже показана (гостевая): сервер —
 // источник правды, и гостевая рука не должна заслонять серверную. Внутренняя
 // логика консервативна: совпало — не трогаем, сервер пуст — не трогаем.
+// H5: рука дня в localStorage НЕ привязана к пользователю — при ЛЮБОЙ
+// смене аккаунта (гость→вход, вход→выход, юзерA→юзерB) локальную руку
+// стираем ДО синхронизации: чужая/гостевая рука не видна новому юзеру
+// и не может быть отправлена на его аккаунт.
+let lastAuthUserId = getAuth()?.user?.id ?? null;
 onAuthChange((auth) => {
+  const uid = auth?.user?.id ?? null;
+  if (uid !== lastAuthUserId) {
+    if (readStoredDailyHand()) {
+      clearStoredDailyHand();
+      try { localStorage.removeItem('mh_yesterday_seen_v1'); } catch { /* ignore */ }
+    }
+    store.setState({ phase: 'waiting', hand: [], discarded: null, remaining: [], score: null, daily: false });
+    declaredKans = [];
+    pendingKan = null;
+    pendingKans = [];
+    skippedKans = [];
+    draftPromise = null;
+    resetScoreStatus();
+    lastAuthUserId = uid;
+  }
   if (!auth) return;
   void syncDailyHandFromServer();
 });

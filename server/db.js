@@ -351,6 +351,21 @@ export function upsertDayHandDraft(db, { userId, date, hand = [], dayCtx = {} })
   );
 }
 
+/**
+ * Прогресс канов руки дня (аудит H2): кан объявляется ДО сброса, и
+ * прогресс должен пережить синхронизацию/другое устройство — сервер
+ * источник правды. Только пока результат не зафиксирован (score=0 и
+ * complete=0): после сдачи каны записаны в результате.
+ * @returns {boolean} true — строка обновлена.
+ */
+export function setDayHandKans(db, userId, date, kans) {
+  const info = db.prepare(`
+    UPDATE day_hands SET kans = ?
+    WHERE user_id = ? AND date = ? AND score = 0 AND complete = 0
+  `).run(JSON.stringify(kans ?? []), userId, date);
+  return Number(info.changes) > 0;
+}
+
 function decodeDayHand(row) {
   return {
     ...row,
