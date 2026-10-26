@@ -1155,17 +1155,20 @@ test('F2: семантика руки — кривые id, мёртвая сте
   assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
   await p.close(); p.cleanup();
 
-  // 7. Готовая рука с каном: 14 содержит пон (3 тайла), 4-й тайл отложен
+  // 7. Готовая рука с каном: 14 содержит пон (3 тайла), 4-й тайл отложен.
+  // M4: готовая рука обязана быть ВЫИГРЫШНОЙ — случайные тайлы не подойдут:
+  // кан 1m + 234m 567m 789p + пара 1s (все тайлы живые в день DAY).
   p = await makePolicyApp({ admin: [], test: [] });
   h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
-  const K3 = liveIds(DAY, 1)[0];
-  const rest3 = liveIds(DAY, 11, [K3]);
+  const K3 = '1m';
+  const draft3 = ['1m', '1m', '1m', '1m', '2m', '3m', '4m', '5m', '6m', '7m', '7p', '8p', '9p', '1s'];
   assert.equal((await fetch(`${p.base}/api/me/hand`, {
     method: 'POST', headers: h,
-    body: JSON.stringify({ date: DAY, hand: [K3, K3, K3, K3, ...rest3.slice(0, 10)] }),
+    body: JSON.stringify({ date: DAY, hand: draft3 }),
   })).status, 200);
-  const R3 = rest3[10];
-  const full14 = [K3, K3, K3, ...rest3.slice(0, 10), R3];
+  const full14 = ['1m', '1m', '1m', '2m', '3m', '4m', '5m', '6m', '7m', '7p', '8p', '9p', '1s', '1s'];
+  const S3 = computeDayScore({ tiles: full14, hand: full14, kans: [K3], complete: true, dayKey: DAY });
+  assert.ok(S3 > 0, 'выигрышная рука даёт очки > 0 (M4-проверка опирается на это)');
   r = await fetch(`${p.base}/api/scores`, {
     method: 'POST', headers: h,
     body: JSON.stringify({
@@ -1173,7 +1176,9 @@ test('F2: семантика руки — кривые id, мёртвая сте
       hand: full14, kans: [K3], complete: true,
     }),
   });
-  assert.equal(r.status, 200, `готовая рука с каном принимается: ${await r.text()}`);
+  const r7Body = await r.json();
+  assert.equal(r.status, 200, `готовая рука с каном принимается: ${JSON.stringify(r7Body)}`);
+  assert.equal(r7Body.score, S3);
   assert.deepEqual((await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json()).kans, [K3]);
   await p.close(); p.cleanup();
 
@@ -1488,5 +1493,67 @@ test('H3: /api/me/hands — за сегодня скрытые доры в day_c
   // Вчера: день прошёл — полный ctx (базовая дора старых схем + ветра).
   assert.deepEqual(yday.day_ctx.uraIndicators, ctxY.uraIndicators);
   assert.ok(yday.day_ctx.deadWall, 'прошедший день — полный ctx');
+  await p.close(); p.cleanup();
+});
+
+test('M4: невыигрышная готовая рука → 400 без строки; повтор на нулевую строку → 200', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  // HAND_SHARED — гарантированно НЕ выигрышная (нет пары: 4 сета + пара).
+  assert.equal((await fetch(`${p.base}/api/me/hand`, {
+    method: 'POST', headers: h, body: JSON.stringify({ date: DAY, hand: HAND_SHARED }),
+  })).status, 200);
+  // готовая рука = черновик (не выигрышная) → 400, строка в БД НЕ создаётся
+  let r = await p.post(p.playerTok, {
+    date: DAY, score: 0, discarded: null, tiles: HAND_SHARED, hand: HAND_SHARED, complete: true,
+  });
+  assert.equal(r.status, 400, 'невыигрышная готовая рука отклоняется');
+  assert.match((await r.json()).error, /не выигрышная|14 тайлов/);
+  assert.equal(
+    p.db.prepare('SELECT score FROM scores WHERE user_id = ? AND date = ?').get('sub-2', DAY),
+    undefined, 'нулевая строка не создаётся',
+  );
+  // legacy-нулевая строка (старая версия клиента): повтор НЕ падал 500 на
+  // UNIQUE constraint — возвращается зафиксированный (нулевой) результат
+  p.db.prepare('INSERT INTO scores (user_id, date, score, discarded, tiles, created_at) VALUES (?,?,?,?,?,?)')
+    .run('sub-2', DAY, 0, null, '[]', new Date().toISOString());
+  r = await p.post(p.playerTok, {
+    date: DAY, score: 0, discarded: null, tiles: HAND_SHARED, hand: HAND_SHARED, complete: true,
+  });
+  assert.equal(r.status, 200, 'повтор на нулевую строку — 200, а не 500');
+  assert.equal((await r.json()).score, 0);
+  await p.close(); p.cleanup();
+});
+
+test('L1: тело запроса больше лимита → 413, а не 500', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const r = await fetch(`${p.base}/api/scores`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` },
+    body: JSON.stringify({ date: DAY, score: 1, tiles: [], hand: [], pad: 'x'.repeat(200 * 1024) }),
+  });
+  assert.equal(r.status, 413, 'ограничение размера тела — 413');
+  assert.match((await r.json()).error, /слишком большое/);
+  await p.close(); p.cleanup();
+});
+
+test('L2: окно «Вчера» не показывает черновик (рука сгенерирована, но не сдана)', async () => {
+  const p = await makePolicyApp({ admin: [], test: [] });
+  const h = { 'content-type': 'application/json', authorization: `Bearer ${p.playerTok}` };
+  // Черновик за вчера: ни сброса, ни готовности, ни очков (score 0, complete 0).
+  p.db.prepare(`
+    INSERT INTO day_hands (user_id, date, hand, tiles, kans, discarded, score, complete, day_ctx, recalculated, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)
+  `).run('sub-2', YDAY, JSON.stringify(HAND_SHARED), null, '[]', null, 0, 0,
+    JSON.stringify(createDailyContext(new Date(`${YDAY}T12:00:00Z`))), 0, new Date().toISOString());
+  const r = await fetch(`${p.base}/api/me/yesterday?date=${DAY}`, { headers: h });
+  assert.equal(r.status, 200);
+  const y = await r.json();
+  assert.equal(y.hand, null, 'черновик — не сыгранная рука: окно «Вчера» не показывается');
+  assert.equal(y.dayKanCount, 0);
+  // черновик не помечен пересчитанным (и очков у него нет)
+  const row = p.db.prepare('SELECT score, recalculated FROM day_hands WHERE user_id = ? AND date = ?').get('sub-2', YDAY);
+  assert.equal(row.score, 0);
+  assert.equal(row.recalculated, 0);
   await p.close(); p.cleanup();
 });

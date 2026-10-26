@@ -13,7 +13,7 @@
  */
 import { getAuth, fetchMyHands, fetchDayKans } from './auth.js';
 import { renderTiles, createTileElement } from './ui.js';
-import { tileDisplayName } from './tiles.js';
+import { canonicalTileId, tileDisplayName } from './tiles.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { openKanDoraCount, withKanPons } from './kans.js';
 import { evaluateHand, evaluateCompleteHand } from './scoring.js';
@@ -281,9 +281,29 @@ export async function showHandView({
         return marked;
       })()
     : [];
-  if (Array.isArray(hand) && hand.length) renderTiles(handEl, hand, { disabled: true, doraTiles });
-  else handEl.replaceChildren();
+  if (Array.isArray(hand) && hand.length) {
+    let shown = hand;
+    if (!complete) {
+      // M3: не готовая — каны уже ВНЕ руки: черновик (14) включает 4 тайла
+      // каждого кана, на экране же они — в закрытом кано (блок ниже).
+      // Показываем 14 − 4×каны (для красного кана — 0m + 3 обычные
+      // изымаются вместе: кан берёт все 4 копии вида).
+      const kanKinds = new Set(kans.map(canonicalTileId));
+      shown = hand.filter((t) => !kanKinds.has(canonicalTileId(t)));
+    }
+    renderTiles(handEl, shown, { disabled: true, doraTiles });
+  } else {
+    handEl.replaceChildren();
+  }
 
+  // M3: кан показывается ТАЙЛАМИ, а не одной иконкой:
+  //  - рука не готовая: пон кана (3 тайла) + 4-й тайл — рубашкой
+  //    (закрытый кан: 4 тайла в руке игрока; добор после кана сервер не
+  //    хранит — он в отображение не входит);
+  //  - рука готовая: пон уже виден в 14-тайловой руке — показываем только
+  //    4-й тайл (руба́шка), чтобы не дублировать пон.
+  // До 0.7.0 показывался ОДИН тайл вида: физическая рука (13 + добор +
+  // сброшенный) не сходилась со счётом.
   const kansEl = $('hands-view-kans');
   kansEl.replaceChildren();
   if (Array.isArray(kans) && kans.length) {
@@ -291,7 +311,23 @@ export async function showHandView({
     label.className = 'hands-kans-label';
     label.textContent = 'Каны:';
     kansEl.append(label);
-    for (const tile of kans) kansEl.append(createTileElement(tile, { disabled: true }));
+    for (const tile of kans) {
+      const group = document.createElement('span');
+      group.className = 'hands-kan-group';
+      group.title = complete
+        ? `Кан: ${tileDisplayName(tile)} (пон в руке; 4-й тайл — закрытый)`
+        : `Кан: ${tileDisplayName(tile)} (пон + 4-й тайл, закрытый)`;
+      if (!complete) {
+        for (let i = 0; i < 3; i += 1) {
+          group.append(createTileElement(tile, { disabled: true }));
+        }
+      }
+      const back = document.createElement('span');
+      back.className = 'tile-back';
+      back.title = '4-й тайл кана (закрытый)';
+      group.append(back);
+      kansEl.append(group);
+    }
   }
 
   const info = { isToday, dayKanCount };

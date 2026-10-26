@@ -264,8 +264,10 @@ function applyServerKans(draft14, serverKans) {
       if (idx >= 0) hand.splice(idx, 1);
     }
   }
+  // M2: доборы — из стены за вычетом всего черновика (все 14 тайлов
+  // «уже у игрока»): пятая копия вида невозможна.
   for (let i = 0; i < serverKans.length; i += 1) {
-    hand.push(...drawHand(1, { deadTiles: dailyContext.deadTiles }));
+    hand.push(...drawHand(1, { deadTiles: dailyContext.deadTiles, exclude: draft14 }));
   }
   return sortHand(hand);
 }
@@ -575,7 +577,12 @@ function declareKan() {
   if (!pendingKan || state.phase !== 'choose') return;
   const skip = new Set(pendingKan.indices);
   const rest = state.hand.filter((_, i) => !skip.has(i));
-  const drawn = drawHand(1, { deadTiles: dailyContext.deadTiles });
+  // M2: добор идёт из стены за вычетом ВСЕХ тайлов игрока (текущая рука +
+  // тайлы уже объявленных канов) — иначе возможна 5-я копия вида.
+  const drawn = drawHand(1, {
+    deadTiles: dailyContext.deadTiles,
+    exclude: [...state.hand, ...declaredKans.flatMap((kan) => kan.tiles)],
+  });
   declaredKans = [...declaredKans, { tile: pendingKan.tile, tiles: pendingKan.tiles }];
   pendingKan = null;
   pendingKans = [];
@@ -604,7 +611,8 @@ function declareKan() {
       .catch(() => {});
   }
   if (completed) {
-    void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed }) }).then((res) => {
+    // M3: каны в лог — рука с каном восстанавливается из админ-лога целиком.
+    void logHand({ mode: 'daily', payload: scorePayload(dailyContext, { hand: full, score: completed, kans: declaredKans.map((kan) => kan.tile) }) }).then((res) => {
       if (res?.id) dailyBlockId = res.id;
     });
   }
@@ -828,7 +836,8 @@ function discardAt(index) {
     discarded,
   );
   // лог: одна рука = один блок; первый счёт создаёт блок, повторный — обновляет
-  const payload = scorePayload(dailyContext, { hand, discarded, remaining, score });
+  // M3: каны руки — в payload (рука с каном восстанавливается из админ-лога).
+  const payload = scorePayload(dailyContext, { hand, discarded, remaining, score, kans: declaredKans.map((kan) => kan.tile) });
   if (dailyBlockId) {
     void updateHandBlock(dailyBlockId, payload);
   } else {

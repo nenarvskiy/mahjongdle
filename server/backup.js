@@ -111,6 +111,9 @@ export function createBackup({
   db, dbPath, repo, token,
   file = 'leaderboard.db', branch = 'main',
   apiBase = DEFAULT_API_BASE, log = console, remoteKnown = false,
+  // M1: задержка повторного push, если БД менялась во время upload (тесты
+  // ставят малое значение).
+  retryDelayMs = 1500,
 }) {
   const state = {
     lastPushAt: null,
@@ -154,6 +157,8 @@ export function createBackup({
     state.pushing = true;
     state.lastPushError = null;
     const tmp = db ? `${dbPath}.bak` : dbPath;
+    // M1: mtime ДО копирования (см. блок после успешного upload).
+    let mtimeBefore = 0;
     try {
       if (!fs.existsSync(dbPath)) throw new Error(`нет файла БД: ${dbPath}`);
       if (!state.remoteKnown) {
@@ -172,6 +177,9 @@ export function createBackup({
         // Сливаем WAL в главный файл, чтобы копия была консистентной
         // (БД маленькая, блокировка микросекундная).
         try { db.exec('PRAGMA wal_checkpoint(TRUNCATE);'); } catch { /* best effort */ }
+        // M1: «момент изменения» фиксируем ДО копирования: запись,
+        // произведённая во время upload, в загружаемую копию не попадёт.
+        mtimeBefore = dbMtime();
         fs.copyFileSync(dbPath, tmp);
       }
       const content = fs.readFileSync(tmp).toString('base64');
@@ -191,9 +199,23 @@ export function createBackup({
         throw new Error(`GitHub PUT ${res.status}: ${(await res.text()).slice(0, 300)}`);
       }
       state.lastPushAt = new Date().toISOString();
-      state.lastPushMtime = dbMtime();
       // Удалённое состояние теперь = наша копия: дальнейшие push безопасны.
       state.remoteKnown = true;
+      if (db) {
+        // M1: если БД менялась ВО ВРЕМЯ upload, в загруженной копии этих
+        // записей НЕТ, но их mtime уже «учтён» — следующий tick бы пуш
+        // пропустил. Оставляем старый маркер (ещё до записи) и повторяем
+        // push: копия в репо должна догонять локальную.
+        const mtimeAfter = dbMtime();
+        if (mtimeAfter > mtimeBefore) {
+          state.lastPushMtime = Math.min(state.lastPushMtime, mtimeBefore);
+          log.log?.('[backup] БД менялась во время upload — повтори́м push ' +
+            '(записи за это время не попали в загруженную копию)');
+          setTimeout(() => { void pushNow('M1: записи во время upload'); }, retryDelayMs);
+        } else {
+          state.lastPushMtime = mtimeBefore;
+        }
+      }
       log.log?.(`[backup] БД загружена в ${repo}/${file}${reason ? ` (${reason})` : ''}`);
     } catch (err) {
       state.lastPushError = String(err?.message ?? err);

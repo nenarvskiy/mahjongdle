@@ -415,6 +415,13 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       complete: Boolean(complete),
       dayKey: date,
     });
+    // M4: готовая рука обязана быть ВЫИГРЫШНОЙ. В системе v4 база готовой
+    // руки ≥ 5 400 000, поэтому 0 очков = не 4 сета + пара: такую строку
+    // не записываем (раньше она рождалась через пустой/чужой hand, а повтор
+    // отправки падал на UNIQUE constraint с 500).
+    if (Boolean(complete) && finalScore === 0) {
+      return httpError(res, 400, 'готовая рука не выигрышная');
+    }
     if (finalScore !== score) {
       console.warn(`счёт ${user.id} за ${date}: клиент ${score}, сервер ${finalScore} — записан серверный`);
     }
@@ -461,7 +468,11 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     const yesterday = dayBefore(mskToday());
 
     const mine = getDayHand(db, user.id, yesterday);
-    if (!mine) return res.json({ date: yesterday, hand: null, dayKanCount: 0 });
+    // L2: черновик (рука сгенерирована, но не сдана: нет ни сброса, ни
+    // готовности, ни очков) — НЕ сыгранная рука: окно «Вчера» его не
+    // показывает (раньше игрок видел полноэкранный «Вчера» со счётом 0).
+    const played = mine && (mine.score > 0 || mine.complete || mine.discarded != null);
+    if (!mine || !played) return res.json({ date: yesterday, hand: null, dayKanCount: 0 });
 
     // Суммарные каны вчерашнего дня (все игроки): именно они определяют,
     // сколько дор открылось в полночь.
@@ -477,6 +488,9 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       try {
         for (const row of listDayHands(db, yesterday)) {
           if (row.recalculated) continue;
+          // L2: черновик (не сдана) не пересчитывается — у него нет счёта
+          // и «вчера» для него не откроется.
+          if (row.score === 0 && !row.complete && !row.discarded) continue;
           try {
             const r = recalcScore({
               hand: row.hand,
@@ -578,10 +592,11 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
       return httpError(res, 400, 'hand — массив из 14 id тайлов');
     }
     // Формат id, мёртвая стена, ≤4 копий (F2a): черновик — будущая
-    // проверка результата.
+    // проверка результата. M4: complete-ветка требует hand = tiles —
+    // проверяем руку против самой себя (мультимножество тривиально).
     const check = validateDaySubmission({
       tiles: hand,
-      hand: [],
+      hand,
       kans: [],
       discarded: null,
       complete: true,
@@ -778,6 +793,11 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     // баг сервера: 500 + лог, а не маскировка ошибкой клиента.
     if (err?.type === 'entity.parse.failed') {
       return httpError(res, 400, 'некорректный JSON');
+    }
+    // L1: тело больше лимита express.json (64kb) — 413, а не 500:
+    // клиент понимает, что дело в размере запроса, а не в сервере.
+    if (err?.type === 'entity.too.large') {
+      return httpError(res, 413, 'тело запроса слишком большое');
     }
     console.error(err);
     httpError(res, 500, 'внутренняя ошибка');

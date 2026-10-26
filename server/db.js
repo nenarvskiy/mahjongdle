@@ -97,8 +97,10 @@ export function getUser(db, id) {
 }
 
 /**
- * Зафиксированный результат дня игрока (строка в scores с score > 0;
- * страховка — day_hands с очками). null — результат ещё не записан.
+ * Зафиксированный результат дня игрока (ЛЮБАЯ строка в scores — M4:
+ * нулевая строка тоже результат, иначе повторная отправка падала на
+ * UNIQUE constraint с 500; страховка — day_hands с очками).
+ * null — результат ещё не записан.
  * Политика «1 результат в день»: повторная отправка обычного игрока
  * не пишется, возвращается эта запись (см. POST /api/scores).
  */
@@ -106,7 +108,7 @@ export function getFixedResult(db, userId, date) {
   const s = db
     .prepare('SELECT score, created_at FROM scores WHERE user_id = ? AND date = ?')
     .get(userId, date);
-  if (s && s.score > 0) return { score: s.score, createdAt: s.created_at };
+  if (s) return { score: s.score, createdAt: s.created_at };
   const dh = db
     .prepare('SELECT score FROM day_hands WHERE user_id = ? AND date = ?')
     .get(userId, date);
@@ -151,19 +153,18 @@ export function submitDayResult(db, {
     : (typeof tiles === 'string' && tiles.length ? tiles : null);
   db.exec('BEGIN');
   try {
-    if (existing) {
-      // force-перезапись: created_at — время последней записи (ранг при
-      // равенстве очков решается ей, а не устаревшей первой записью).
-      db.prepare(`
-        UPDATE scores SET score = ?, discarded = ?, tiles = ?, created_at = ?
-        WHERE user_id = ? AND date = ?
-      `).run(score, discarded, tilesJson, now, userId, date);
-    } else {
-      db.prepare(`
-        INSERT INTO scores (user_id, date, score, discarded, tiles, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(userId, date, score, discarded, tilesJson, now);
-    }
+    // M4: всегда upsert — даже если строка появилась между проверкой
+    // getFixedResult и записью (гонка двух вкладок), UNIQUE constraint
+    // не роняет запрос 500-ошибкой, а обновляет существующую запись.
+    db.prepare(`
+      INSERT INTO scores (user_id, date, score, discarded, tiles, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, date) DO UPDATE SET
+        score = excluded.score,
+        discarded = excluded.discarded,
+        tiles = excluded.tiles,
+        created_at = excluded.created_at
+    `).run(userId, date, score, discarded, tilesJson, now);
     // Каны дня накапливаются: повторная запись не стирает объявленные каны
     // (от них зависит ночной пересчёт всего дня); при force — пишем
     // присланные как есть (явная перезапись).

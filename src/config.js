@@ -46,10 +46,12 @@ export const CONFIG = {
 
   /**
    * Путь к картинке тайла.
-   * Получает id вида "1m", "5p", "3s", "ew", "rd".
-   * Имена файлов совпадают с id: assets/tiles/ew.svg, assets/tiles/rd.svg, ...
+   * Получает id вида "1m", "5p", "3s", "ew", "rd", "0m" (красная пятёрка).
+   * Имена файлов совпадают с id: assets/tiles/ew.svg, assets/tiles/rd.svg,
+   * красные пятёрки — свои картинки assets/tiles/0m.svg, 0p.svg, 0s.svg
+   * (0.7.0: раньше красная показывала обычную пятёрку 5x.svg).
    */
-  tileImagePath: (tileId) => `./assets/tiles/${tileId[0] === '0' ? `5${tileId[1]}` : tileId}.svg`,
+  tileImagePath: (tileId) => `./assets/tiles/${tileId}.svg`,
 
   /** Сортировать ли руку после раздачи */
   autoSortHand: true,

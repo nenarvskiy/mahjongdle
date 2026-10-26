@@ -31,13 +31,16 @@ export function ctxPayload(ctx) {
 /**
  * Снапшот счёта для лога: итог + полная разбивка (что за что) + рука.
  * Чистая функция — проверяется в test/event-log.test.js.
+ * M3: каны руки входят в payload — по админ-логу рука с каном
+ * восстанавливается целиком (раньше каны в лог не попадали).
  */
-export function scorePayload(ctx, { hand, discarded = null, remaining = null, score = null }) {
+export function scorePayload(ctx, { hand, discarded = null, remaining = null, score = null, kans = [] }) {
   return {
     ctx: ctxPayload(ctx),
     hand: hand ?? [],
     discarded,
     remaining: remaining ?? hand ?? [],
+    kans: Array.isArray(kans) ? kans : [],
     total: score?.total ?? null,
     shanten: score?.shanten ?? null,
     complete: Boolean(score?.complete),

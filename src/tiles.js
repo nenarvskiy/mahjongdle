@@ -49,11 +49,19 @@ export function shuffle(arr) {
  *  добор не попадают, поэтому рука физически корректна (в стене 134 тайла).
  *  Если «мёртвый» тайл — пятёрка, изымается обычная копия, красная остаётся
  *  в стене (та же модель ака, что в статистике: красная пятёрка равновероятна
- *  среди копий вида). */
-export function drawHand(size = CONFIG.handSize, { deadTiles = [] } = {}) {
+ *  среди копий вида).
+ *  exclude (M2) — тайлы, уже у игрока (рука + тайлы канов): из стены
+ *  изымаются по копии на каждый — добор не может выдать ПЯТУЮ копию вида
+ *  (физически в обороте только 4; раньше добор после кана мог дать пятую). */
+export function drawHand(size = CONFIG.handSize, { deadTiles = [], exclude = [] } = {}) {
   const wall = buildWall();
   for (const tile of deadTiles) {
     const index = wall.indexOf(canonicalTileId(tile));
+    if (index >= 0) wall.splice(index, 1);
+  }
+  for (const tile of exclude) {
+    if (typeof tile !== 'string' || !tile) continue;
+    const index = wall.indexOf(tile);
     if (index >= 0) wall.splice(index, 1);
   }
   return shuffle(wall).slice(0, size);

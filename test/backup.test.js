@@ -349,6 +349,44 @@ test('tick: commit только при изменении БД; без изме�
   db.close();
 });
 
+test('M1: запись в БД во время upload → повторный push (копия догоняет)', async () => {
+  // Сценарий аудита: mtime фиксировался ПОСЛЕ upload — запись, сделанная
+  // во время PUT, «учитывалась» маркером, но не попадала в копия;
+  // следующий tick не пушил (mtime «не изменился») — запись терялась.
+  const dbPath = path.join(tmpDir, 'm1.db');
+  makeDbWithRows(dbPath, 1);
+  const db = new DatabaseSync(dbPath);
+  remote = null;
+  putCount = 0;
+  // mtime в прошлом — запись ниже гарантированно «свежее» mtimeBefore.
+  const past = new Date(Date.now() - 5000);
+  fs.utimesSync(dbPath, past, past);
+  const bak = createBackup({
+    db, dbPath, repo: REPO, token: 't', file: FILE, branch: 'main',
+    apiBase, log: silentLog, remoteKnown: true, retryDelayMs: 30,
+  });
+  const first = bak.pushNow('initial');
+  // Копирование файла синхронное: запись происходит уже ПОСЛЕ копирования
+  // (в загружаемой копии её нет), но ДО завершения upload.
+  db.prepare('INSERT OR REPLACE INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)')
+    .run('u-m1', 'u-m1@x.com', 'U-M1', new Date().toISOString());
+  await first;
+  assert.equal(putCount, 1, 'первый push ушёл (копия без записи u-m1)');
+  // M1: БД менялась во время upload → запланирован повторный push.
+  const deadline = Date.now() + 5000;
+  while (putCount < 2 && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  assert.equal(putCount, 2, 'повторный push доставил запись, сделанную во время upload');
+  const checkPath = path.join(tmpDir, 'm1-check.db');
+  fs.writeFileSync(checkPath, Buffer.from(remote.content, 'base64'));
+  const checkDb = new DatabaseSync(checkPath);
+  const found = checkDb.prepare('SELECT COUNT(*) AS n FROM users WHERE id = ?').get('u-m1');
+  checkDb.close();
+  assert.equal(found.n, 1, 'удалённая копия содержит запись из момента upload');
+  db.close();
+});
+
 test('status: показывает repo/file/branch, размер и отсутствие ошибок', async () => {
   const dbPath = path.join(tmpDir, 'status.db');
   makeDbWithRows(dbPath, 1);

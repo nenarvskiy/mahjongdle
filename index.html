@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Mahjongdle <span class="app-version" id="app-version">v0.6.26</span></h1>
+      <h1>Mahjongdle <span class="app-version" id="app-version">v0.7.0</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -40,6 +40,7 @@
       <div class="yesterday-block">
         <h3>Ваша рука</h3>
         <div id="yesterday-hand" class="hand"></div>
+        <div id="yesterday-kans" class="yesterday-kans" hidden></div>
         <div id="yesterday-discarded" class="hand yesterday-discarded" hidden></div>
       </div>
 

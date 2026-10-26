@@ -19,7 +19,7 @@
  * локально; количество — dayKanCount из ответа сервера.
  */
 import { getAuth, fetchYesterday } from './auth.js';
-import { renderTiles } from './ui.js';
+import { renderTiles, createTileElement } from './ui.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { openKanDoraCount } from './kans.js';
 
@@ -33,6 +33,7 @@ export function initYesterday({ dayKey }) {
 
   const dateEl = document.getElementById('yesterday-date');
   const handEl = document.getElementById('yesterday-hand');
+  const kansEl = document.getElementById('yesterday-kans');
   const discardEl = document.getElementById('yesterday-discarded');
   const uraBlockEl = document.getElementById('yesterday-ura-block');
   const uraEl = document.getElementById('yesterday-ura');
@@ -127,8 +128,11 @@ export function initYesterday({ dayKey }) {
       hideGate();
       return;
     }
-    // Вчера руки не было → сразу на основную страницу.
-    if (!data || data.hand == null) {
+    // Вчера руки не было → сразу на основную страницу. L2: черновик
+    // (сгенерирована, но не сдана — нет ни сброса, ни очков) — тоже
+    // «руки не было»: окно не показываем.
+    const played = data.hand != null && (Boolean(data.discarded) || Boolean(data.complete) || Number(data.newScore) > 0);
+    if (!data || !played) {
       hideGate();
       return;
     }
@@ -137,6 +141,30 @@ export function initYesterday({ dayKey }) {
     const tiles = data.tiles?.length ? data.tiles : data.hand;
     handEl.innerHTML = '';
     renderTiles(handEl, tiles, { disabled: true });
+    // M3: тайлы кана в окне «Вчера» (до 0.7.0 каны не показывались —
+    // рука «теряла» 4 тайла на каждый кан):
+    //  - не готовая: пон (3 тайла) + 4-й — рубашкой;
+    //  - готовая: пон уже в tiles (14) — только 4-й тайл.
+    const yKans = Array.isArray(data.kans) ? data.kans : [];
+    kansEl.innerHTML = '';
+    kansEl.hidden = !yKans.length;
+    for (const tile of yKans) {
+      const group = document.createElement('span');
+      group.className = 'yesterday-kan-group';
+      group.title = data.complete
+        ? `Кан: ${tile} (пон в руке; 4-й тайл — закрытый)`
+        : `Кан: ${tile} (пон + 4-й тайл, закрытый)`;
+      if (!data.complete) {
+        for (let i = 0; i < 3; i += 1) {
+          group.append(createTileElement(tile, { disabled: true }));
+        }
+      }
+      const back = document.createElement('span');
+      back.className = 'tile-back';
+      back.title = '4-й тайл кана (закрытый)';
+      group.append(back);
+      kansEl.append(group);
+    }
     if (data.discarded) {
       discardEl.hidden = false;
       discardEl.innerHTML = '';

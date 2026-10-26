@@ -43,13 +43,15 @@ test('scorePayload: итог, разбивка «что за что», рука 
     ],
     potentialSummary: 'Потенциал: …',
   };
-  const p = scorePayload(CTX, { hand, discarded: '9s', remaining: hand.filter((t) => t !== '9s'), score });
+  const p = scorePayload(CTX, { hand, discarded: '9s', remaining: hand.filter((t) => t !== '9s'), score, kans: ['1m'] });
   assert.equal(p.total, 1532);
   assert.equal(p.shanten, 1);
   assert.equal(p.tier, 'Normal');
   assert.equal(p.complete, false);
   assert.equal(p.discarded, '9s');
   assert.equal(p.remaining.length, 12);
+  // M3: каны руки — в payload (админ-лог восстанавливает руку с каном).
+  assert.deepEqual(p.kans, ['1m']);
   assert.deepEqual(p.ctx, ctxPayload(CTX));
   assert.deepEqual(p.breakdown, [
     { label: '1-шантен / Normal', points: 720, yaku: false, potential: false },
@@ -64,6 +66,8 @@ test('scorePayload: без счёта — безопасные null (рука н
   assert.equal(p.total, null);
   assert.equal(p.breakdown.length, 0);
   assert.deepEqual(p.remaining, ['1m', '2m']);
+  // M3: без канов — пустой массив, а не undefined
+  assert.deepEqual(p.kans, []);
 });
 
 test('logHand: без посчитанного total или с чужим mode — не пишет (null)', async () => {

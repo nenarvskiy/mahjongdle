@@ -13,14 +13,15 @@
  *                       тогда игра и API на одном origin, один порт);
  *                       'off' — только API (фронтенд раздаётся отдельно).
  */
-import { existsSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { createBackup, pullBackupFile } from './backup.js';
 import { openDb, dbRowCount } from './db.js';
 import { createGoogleVerifier } from './google.js';
-import { DEFAULT_ROLES_FILE } from './roles.js';
+import { DEFAULT_ROLES_FILE, readRolesFile } from './roles.js';
 
 const env = process.env;
 
@@ -99,9 +100,33 @@ const backup = BACKUP_ON
     })
   : null;
 
-// ROLES_FILE — путь к файлу ролей (F18: можно вынести файл с реальными
-// admin-email из публичного репозитория, например, на постоянный диск).
-const ROLES_FILE = env.ROLES_FILE || DEFAULT_ROLES_FILE;
+// Роли: приоритет ROLES_FILE > ROLES_JSON > файл по умолчанию.
+// L3: ROLES_JSON — роли прямо в переменных окружения (JSON
+//   {"admin":["a@b.c","d@e.f"],"test":[]}) — для инстансов без постоянного
+//   диска (Render free): реальный файл с admin-email не лежит в публичном
+//   репозитории, а в env. Приоритет ROLES_FILE выше: постоянный диск
+//   выигрывает. Изменения через панель ролей пишутся в файл ROLES_FILE/tmp
+//   и живут до следующего деплоя (источник правды — env).
+let ROLES_FILE = env.ROLES_FILE || '';
+if (!ROLES_FILE && env.ROLES_JSON) {
+  let parsed = null;
+  try {
+    parsed = JSON.parse(env.ROLES_JSON);
+  } catch (e) {
+    console.error(`ROLES_JSON: битый JSON, игнорирую: ${e.message}`);
+  }
+  if (parsed && typeof parsed === 'object') {
+    ROLES_FILE = path.join(os.tmpdir(), 'mahjongdle-roles.json');
+    writeFileSync(ROLES_FILE, JSON.stringify({ admin: parsed.admin ?? [], test: parsed.test ?? [] }));
+    console.log(`роли: из ROLES_JSON → ${ROLES_FILE} (изменения панели живут до деплоя; L3)`);
+  }
+}
+if (!ROLES_FILE) ROLES_FILE = DEFAULT_ROLES_FILE;
+const rolesAtStart = await readRolesFile(ROLES_FILE);
+if (rolesAtStart.admin.length === 0) {
+  console.warn('⚠ роли: в списке НЕТ админа — панель ролей и ре-ишю рук недоступны. ' +
+    'Настройте ROLES_JSON/ROLES_FILE (server/README.md, аудит L3).');
+}
 
 const app = createApp({
   db,

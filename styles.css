@@ -8,7 +8,7 @@
   --accent: #80d6a3;
   --gold: #f2c96d;
   --red: #ef626c;
-  --tile-size: 62px;
+  --tile-size: 68px;
   --tile-gap: 7px;
 }
 
@@ -237,18 +237,18 @@ main {
 .kan-prompt[hidden] { display: none; }
 .kan-prompt-text { margin: 0; color: #ffcf70; font-size: 13px; font-weight: 650; }
 .kan-prompt-tiles { justify-content: center; gap: 4px; }
-.kan-prompt-tiles .tile { --tile-size: 34px; }
+.kan-prompt-tiles .tile { --tile-size: 40px; }
 .kan-prompt-actions { display: flex; gap: 10px; }
 #btn-kan { border-color: rgba(255, 200, 96, .45); background: rgba(255, 200, 96, .14); color: #ffcf70; }
 .kan-list { display: flex; flex-direction: column; gap: 6px; }
 .kan-closed { display: flex; gap: 2px; }
-.kan-closed .tile { --tile-size: 44px; }
-.kan-closed .tile-back { --context-tile-size: 44px; }
+.kan-closed .tile { --tile-size: 50px; }
+.kan-closed .tile-back { --context-tile-size: 50px; }
 /* Кан-доры — продолжение строки доры: закрытые рубашки в том же ряду. */
 .kan-dora-wall { display: flex; flex-wrap: wrap; gap: 5px; }
 .kan-dora-slot { display: flex; }
-.kan-dora-slot .tile { --tile-size: 40px; }
-.kan-dora-slot .tile-back { --context-tile-size: 40px; }
+.kan-dora-slot .tile { --tile-size: 46px; }
+.kan-dora-slot .tile-back { --context-tile-size: 46px; }
 .kan-dora-back { cursor: help; }
 /* Кан-дора «откроется в конце дня» (за кан, объявленный сегодня кем-то):
    жёлтая обводка + пульс; наведение — чей это кан. */
@@ -413,7 +413,7 @@ footer button:disabled { opacity: .45; cursor: default; }
   color: var(--muted);
   font-size: 12px;
 }
-.daily-panel { --context-tile-size: 46px; }
+.daily-panel { --context-tile-size: 54px; }
 .context-tile { flex: none; }
 .context-tile .tile { --tile-size: var(--context-tile-size); cursor: default; box-shadow: 0 4px 0 #a9a695, 0 8px 14px rgba(0,0,0,.24); }
 .context-tile .tile:hover { transform: none; }
@@ -841,7 +841,7 @@ footer button:disabled { opacity: .45; cursor: default; }
 }
 
 @media (max-width: 700px) {
-  :root { --tile-size: 48px; --tile-gap: 5px; }
+  :root { --tile-size: 52px; --tile-gap: 5px; }
   .topbar { padding: 25px 16px 8px; flex-wrap: wrap; }
   .topbar-auth { width: 100%; justify-content: flex-start; }
   main { padding: 12px 16px; }
@@ -850,9 +850,12 @@ footer button:disabled { opacity: .45; cursor: default; }
   .daily-grid { grid-template-columns: 1fr; }
   .dora-item { grid-column: auto; align-items: flex-start; flex-direction: column; }
   .dora-wall { max-width: 100%; gap: 3px; }
-  .kan-dora-slot .tile, .kan-dora-slot .tile-back { --tile-size: 32px; --context-tile-size: 32px; }
+  .kan-dora-slot .tile, .kan-dora-slot .tile-back { --tile-size: 38px; --context-tile-size: 38px; }
   .yesterday-view { padding: 18px 14px 30px; }
-  .daily-panel { --context-tile-size: 40px; }
+  .daily-panel { --context-tile-size: 46px; }
+  .hands-ctx-tiles .tile { --tile-size: 34px; }
+  .hands-kan-group .tile, .yesterday-kan-group .tile { --tile-size: 36px; }
+  .hands-kan-group .tile-back, .yesterday-kan-group .tile-back { --context-tile-size: 36px; }
   .daily-item { min-height: 55px; }
   .hand-group { padding: 7px; }
   .hand-group .tile { --tile-size: 34px; }
@@ -909,7 +912,12 @@ footer button:disabled { opacity: .45; cursor: default; }
 }
 .yesterday-doras { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
 .yesterday-kandora { position: relative; display: inline-flex; align-items: flex-start; }
-.yesterday-kandora .tile { --tile-size: 34px; }
+.yesterday-kandora .tile { --tile-size: 42px; }
+/* M3: каны в окне «Вчера» — пон + 4-й тайл (руба́шка) каждого кана. */
+.yesterday-kans { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 10px; }
+.yesterday-kan-group { display: inline-flex; align-items: center; gap: 4px; }
+.yesterday-kan-group .tile { --tile-size: 42px; }
+.yesterday-kan-group .tile-back { --context-tile-size: 42px; }
 .yesterday-discarded {
   margin-top: 10px;
   padding-top: 10px;
@@ -1033,7 +1041,7 @@ footer button:disabled { opacity: .45; cursor: default; }
 .lb-row.lb-me.lb-clickable:hover { border-color: var(--accent); background: rgba(128, 214, 163, .14); }
 
 /* Диалог «Мои руки» */
-.hands-dialog { max-width: 560px; }
+.hands-dialog { max-width: 800px; }
 .hands-list {
   display: flex;
   flex-direction: column;
@@ -1071,6 +1079,10 @@ footer button:disabled { opacity: .45; cursor: default; }
   margin-top: 10px;
 }
 .hands-kans-label { color: var(--muted); font-size: 13px; margin-right: 2px; }
+/* M3: кан в истории — группа из 4 тайлов (пон + 4-й, руба́шка). */
+.hands-kan-group { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
+.hands-kan-group .tile { --tile-size: 44px; }
+.hands-kan-group .tile-back { --context-tile-size: 44px; }
 .hands-meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
 .hands-actions { margin-top: 14px; }
 
@@ -1090,14 +1102,15 @@ footer button:disabled { opacity: .45; cursor: default; }
   letter-spacing: .1em;
   text-transform: uppercase;
 }
-.hands-ctx { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; }
+.hands-ctx { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; }
 .hands-ctx-part b { color: var(--muted); font-weight: 600; }
-/* Доры в строке условий — компактные картинки индикаторов. */
-.hands-ctx-tiles { display: inline-flex; align-items: center; gap: 4px; }
+/* Доры/ветра в строке условий — картинки индикаторов (0.7.0: укрупнены —
+   раньше 20px были почти нечитаемыми, особенно ветра и дора). */
+.hands-ctx-tiles { display: inline-flex; align-items: center; gap: 5px; }
 .hands-ctx-tiles .tile {
-  --tile-size: 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 0 #a9a695, 0 3px 6px rgba(0, 0, 0, .22);
+  --tile-size: 44px;
+  border-radius: 6px;
+  box-shadow: 0 3px 0 #a9a695, 0 5px 10px rgba(0, 0, 0, .26);
   cursor: default;
 }
 .hands-breakdown { margin-top: 12px; }

@@ -92,11 +92,15 @@ export function validateDaySubmission({
   if (complete) {
     if (tiles.length !== 14) return { ok: false, error: 'готовая рука — 14 тайлов' };
     if (discarded != null) return { ok: false, error: 'у готовой руки нет сброшенного тайла' };
-    // K2: готовая рука — те же 14 тайлов, что в tiles (счёт считается от
-    // tiles, закреплённых черновиком). Клиент мог прислать «свою» готовую
-    // руку — отклоняем: hand обязан совпадать с tiles мультимножеством.
-    if (Array.isArray(hand) && hand.length) {
-      if (hand.length !== 14) return { ok: false, error: 'hand готовой руки — 14 тайлов' };
+    // K2/M4: готовая рука — ОБЯЗАТЕЛЬНО те же 14 тайлов, что в tiles
+    // (счёт считается от tiles, закреплённых черновиком). Клиент мог
+    // прислать «свою» готовую руку или пустой hand — отклоняем: hand обязан
+    // совпадать с tiles мультимножеством (пустой hand раньше проходил и
+    // создавал нулевую строку — аудит M4).
+    if (!Array.isArray(hand) || hand.length !== 14) {
+      return { ok: false, error: 'hand готовой руки — 14 тайлов' };
+    }
+    {
       const countOf = (arr) => {
         const m = new Map();
         for (const t of arr) {
