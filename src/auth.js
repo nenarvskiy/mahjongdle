@@ -148,18 +148,51 @@ export function logout() {
 }
 
 /**
+ * Задержки повторных попыток при «холодном старте» Render (free tier):
+ * во время сна/рестарта/деплоя прокси отдаёт 405 на не-GET, 5xx или
+ * HTML-страницу «spinning up» вместо JSON.
+ * @internal тестовый хук: переопределение задержек (миллисекунды).
+ */
+let retryDelaysMs = [3000, 7000, 12000, 15000];
+export function setApiRetryDelays(ms) {
+  retryDelaysMs = Array.isArray(ms) ? ms : retryDelaysMs;
+}
+
+/**
  * Обёртка над fetch: baseUrl из конфига, JSON, Bearer-токен при наличии.
  * Кидает Error с человекочитаемым сообщением (data.error) при статусе >= 400.
+ * 0.7.3: при 405/5xx, сетевой ошибке или HTML-ответе (страница «spinning
+ * up» вместо JSON) — ждём и повторяем запрос: холодный старт инстанса
+ * (10–30 с) больше не выглядит для игрока как потерянный результат.
  */
-async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(`${AUTH_CONFIG.apiBaseUrl}${path}`, {
-    method,
-    headers: {
-      'content-type': 'application/json',
-      ...(auth?.token ? { authorization: `Bearer ${auth.token}` } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+async function api(path, { method = 'GET', body } = {}, attempt = 0) {
+  let res;
+  try {
+    res = await fetch(`${AUTH_CONFIG.apiBaseUrl}${path}`, {
+      method,
+      headers: {
+        'content-type': 'application/json',
+        ...(auth?.token ? { authorization: `Bearer ${auth.token}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    if (attempt < retryDelaysMs.length) {
+      await new Promise((r) => setTimeout(r, retryDelaysMs[attempt]));
+      return api(path, { method, body }, attempt + 1);
+    }
+    throw new Error('нет соединения с сервером');
+  }
+  const retryable = !res.ok
+    ? res.status === 405 || res.status >= 500
+    : (res.headers.get('content-type') || '').includes('text/html');
+  if (retryable) {
+    if (attempt < retryDelaysMs.length) {
+      await new Promise((r) => setTimeout(r, retryDelaysMs[attempt]));
+      return api(path, { method, body }, attempt + 1);
+    }
+    throw new Error('сервер просыпается — повторите через несколько секунд');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
