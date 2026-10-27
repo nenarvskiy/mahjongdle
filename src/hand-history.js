@@ -258,8 +258,11 @@ export async function showHandView({
   if (!isToday && dateKey) {
     try {
       const data = await fetchDayKans(dateKey);
+      // Аудит №4 (0.7.1): точная сумма (total) — список ограничен 10 строками.
       dayKanCount = Array.isArray(data?.kans)
-        ? data.kans.reduce((sum, k) => sum + (k.kanCount || 0), 0)
+        ? (Number.isFinite(data?.total)
+          ? data.total
+          : data.kans.reduce((sum, k) => sum + (k.kanCount || 0), 0))
         : 0;
     } catch {
       dayKanCount = kans.length; // сервер недоступен — оцениваем по своим канам

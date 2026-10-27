@@ -19,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import { createBackup, pullBackupFile } from './backup.js';
-import { openDb, dbRowCount } from './db.js';
+import { openDb, dbRowCount, pruneEvents } from './db.js';
 import { createGoogleVerifier } from './google.js';
 import { DEFAULT_ROLES_FILE, readRolesFile } from './roles.js';
 
@@ -126,6 +126,16 @@ const rolesAtStart = await readRolesFile(ROLES_FILE);
 if (rolesAtStart.admin.length === 0) {
   console.warn('⚠ роли: в списке НЕТ админа — панель ролей и ре-ишю рук недоступны. ' +
     'Настройте ROLES_JSON/ROLES_FILE (server/README.md, аудит L3).');
+}
+
+// Аудит №8 (0.7.1): retention событий — события старше 30 дней удаляются
+// при старте (и в ночном пересчёте, раз в день): таблица events не должна
+// расти бесконечно — бэкап БД в GitHub упирается в лимит файла ~100 МБ.
+try {
+  const pruned = pruneEvents(db);
+  if (pruned > 0) console.log(`events: retention — удалено ${pruned} старых (> 30 дней)`);
+} catch (e) {
+  console.warn(`events: retention не удался (${e.message}) — повторится в ночном пересчёте`);
 }
 
 const app = createApp({

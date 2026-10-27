@@ -418,3 +418,27 @@ test('complete hand with kan: в отображении кан показыва�
   assert.ok(kanGroup, 'в правилном отображении есть группа «Кан»');
   assert.deepEqual(kanGroup.tiles, ['1m', '1m', '1m', '1m']);
 });
+
+test('complete hand with kan: рука, выигрышная только через «ломку» пон кана — не выигрыш (аудит №3)', () => {
+  const ctx = { roundWind: 27, seatWind: 28, doraIndicators: [], uraIndicators: [] };
+  // Кан 2m. 11m 222m 333m 44m 555m 6m «выигрышна» без лока только через
+  // разложение, ломающее пон 2m (123+123+234+456+пара 55); из оставшихся
+  // 11 тайлов (11m 333m 44m 555m 6m) 3 сета + пару собрать нельзя.
+  const tiles14 = ['1m', '1m', '2m', '2m', '2m', '3m', '3m', '3m', '4m', '4m', '5m', '5m', '5m', '6m'];
+  assert.ok(evaluateCompleteHand(tiles14, ctx, []), 'без кана рука выигрышна');
+  assert.equal(evaluateCompleteHand(tiles14, ctx, ['2m']), null,
+    'с каном пон зафиксирован — 11 тайлов не дают 3 сета + пары');
+});
+
+test('complete hand with kan: оценка — только по разложениям с целым поном кана (аудит №3)', () => {
+  const ctx = { roundWind: 27, seatWind: 28, doraIndicators: [], uraIndicators: [] };
+  // Кан 2m: оба разложения выигрышные. С локом: 111+222+333+789+99
+  // (сананко + чиницу + риичи = 9). Без лока ещё: 123×3+789+99
+  // (иипейко + джунчан + чиницу + риичи = 11) — оно ломает пон кана
+  // и в оценку не входит.
+  const tiles14 = ['1m', '1m', '1m', '2m', '2m', '2m', '3m', '3m', '3m', '7m', '8m', '9m', '9m', '9m'];
+  const withKan = evaluateCompleteHand(tiles14, ctx, ['2m']);
+  assert.ok(withKan, 'лок-разложение существует — рука выигрышна');
+  assert.equal(withKan.potential.han, 9,
+    'лучшее — среди запертых разложений, а не 11-хановое (ломает кан)');
+});

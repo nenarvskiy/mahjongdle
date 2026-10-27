@@ -6,6 +6,7 @@ import { evaluateCompleteHand, evaluateHand } from './scoring.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { readStoredDailyHand, writeStoredDailyHand, clearStoredDailyHand } from './daily-hand.js';
 import { findKans, withKanPons, MAX_KAN_DORA } from './kans.js';
+import { applyServerKansToDraft } from './hand-sync.js';
 import { renderClosedKan, renderKanPrompt, renderKanDoras } from './kans-ui.js';
 import { initAuthButton, onAuthChange, getAuth, getRole, logout, submitScore, canTestMode, refreshMe, fetchDailyHand, saveDailyHand, fetchDayKans, reissueDailyHand, patchDayKans } from './auth.js';
 import { initTestMode, syncTestTabVisibility } from './test-mode.js';
@@ -42,10 +43,14 @@ function scoreContextFor(_kans = []) {
  * сбрасывал, его собственные каны сервер ещё не знает — учтём и их.
  */
 let dayKans = [];
+let dayKansTotal = null; // ауд. №4: точная сумма канов дня (без LIMIT 10)
 function refreshDayKans() {
   fetchDayKans(dailyContext.dayKey)
     .then((data) => {
       dayKans = Array.isArray(data?.kans) ? data.kans : [];
+      // Аудит №4 (0.7.1): точная сумма канов дня (сервер отдаёт total без
+      // LIMIT 10) — число открывающихся кан-дор не обрезается при 10+ игроках.
+      dayKansTotal = Number.isFinite(data?.total) ? data.total : null;
       render(store.getState());
     })
     .catch(() => { /* сервер недоступен — кан-доры без жёлтой обводки */ });
@@ -58,9 +63,12 @@ function refreshDayKans() {
  * Индексы 0-based по 4-слотовой стене (kanDora.slice(0, MAX_KAN_DORA)).
  */
 function kanDoraPending() {
+  // Аудит №4 (0.7.1): приоритет у точной суммы (total) — список dayKans
+  // ограничен 10 строками и при 10+ игроках с каном занижал общее число.
+  const serverSum = dayKansTotal ?? dayKans.reduce((sum, k) => sum + (k.kanCount || 0), 0);
   const total = Math.min(
     MAX_KAN_DORA,
-    Math.max(declaredKans.length, dayKans.reduce((sum, k) => sum + (k.kanCount || 0), 0)),
+    Math.max(declaredKans.length, serverSum),
   );
   // F17: имя повторяется на КАЖДЫЙ кан игрока (kanCount), а не один раз на
   // запись — при 2 канах одного игрока атрибуция слотов не сдвигалась.
@@ -251,25 +259,13 @@ function syncDailyHandFromServer() {
 }
 
 /**
- * H2: применить каны, объявленные на сервере, к 14-тайловому черновика:
- * вынести 4 тайла каждого кана и добрать по тайлу за кан. Результат —
- * пост-кан экранная форма (14 − 3×каны); добор случайный (сервер доборы
- * не хранит — проверка результата позволяет по одному добору на кан).
+ * H2/аудит №2: применить каны, объявленные на сервере, к 14-тайловому
+ * черновику. Логика — в чистом модуле src/hand-sync.js (покрывается
+ * тестами): вынести 4 тайла каждого кана, добрать по тайлу за кан
+ * (одним вызовом drawHand — доборы различны; сервер доборы не хранит).
  */
 function applyServerKans(draft14, serverKans) {
-  let hand = [...draft14];
-  for (const kind of serverKans.map(canonicalTileId)) {
-    for (let i = 0; i < 4; i += 1) {
-      const idx = hand.findIndex((t) => canonicalTileId(t) === kind);
-      if (idx >= 0) hand.splice(idx, 1);
-    }
-  }
-  // M2: доборы — из стены за вычетом всего черновика (все 14 тайлов
-  // «уже у игрока»): пятая копия вида невозможна.
-  for (let i = 0; i < serverKans.length; i += 1) {
-    hand.push(...drawHand(1, { deadTiles: dailyContext.deadTiles, exclude: draft14 }));
-  }
-  return sortHand(hand);
+  return applyServerKansToDraft(draft14, serverKans, dailyContext.deadTiles);
 }
 
 /**

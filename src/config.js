@@ -9,8 +9,20 @@ import authConfig from '../config/auth.json' with { type: 'json' };
 /** Система очков v4 из общего конфига. */
 export const SCORING_CONFIG = scoringConfig.systems.v4;
 
-/** Конфиг авторизации/таблицы дня: googleClientId (пусто = функция выкл), apiBaseUrl. */
-export const AUTH_CONFIG = authConfig;
+/**
+ * Конфиг авторизации/таблицы дня: googleClientId (пусто = функция выкл),
+ * apiBaseUrl. Аудит №7 (0.7.1): ПУСТОЙ apiBaseUrl = тот же origin
+ * (window.location.origin) — прод (один origin) работает без правок, а
+ * локальный dev-сервер подхватывается сам (не нужно редактировать
+ * git-трекаемый config/auth.json). Node/тесты (нет window) — локальный
+ * dev-сервер по умолчанию.
+ */
+export const AUTH_CONFIG = {
+  ...authConfig,
+  apiBaseUrl: authConfig.apiBaseUrl
+    || (typeof window !== 'undefined' && window.location && window.location.origin)
+    || 'http://127.0.0.1:3901',
+};
 
 /** Правила системы (фу, цумо, манган, риичи, дора, ака). */
 export const RULES = SCORING_CONFIG.rules;

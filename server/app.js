@@ -18,7 +18,7 @@ import {
   insertEvent, listEvents, updateEventPayload, addEventReport,
   upsertDayHandDraft, getDayHand, listDayHands, listMyDayHands,
   markDayHandRecalculated, setScoreValue, reissueDayHand, listDayKans,
-  setDayHandKans,
+  sumDayKanCount, setDayHandKans, pruneEvents,
 } from './db.js';
 import { createDailyContext } from '../src/daily-context.js';
 import { drawHand, canonicalTileId } from '../src/tiles.js';
@@ -67,7 +67,40 @@ function eventRateLimited(key) {
   eventHits.set(key, hits);
   return hits.length > EVENT_LIMIT_MAX;
 }
-// F15: ключи (особенно анонимные IP) не должны копиться вечно.
+/** IP клиента: Render ставит X-Forwarded-For, локально — req.ip. */
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  return typeof xff === 'string' && xff.trim() ? xff.split(',')[0].trim() : req.ip;
+}
+
+/** Ключ лимитера: сессия — id пользователя, аноним — IP (XFF → req.ip). */
+function eventRateKey(req, user) {
+  if (user?.id) return `u:${user.id}`;
+  return `ip:${clientIp(req)}`;
+}
+
+// Аудит №8 (0.7.1): rate-limit на login. Каждая проверка — сетевой вызов
+// в Google (JWKS): без лимита логин-эндпоинт — бесконечный прокси на
+// Google API. Ключ — IP (сессии ещё нет). Лимит настраивается опцией
+// createApp (loginRateLimit); 0 — выключен (тесты).
+const LOGIN_LIMIT_MS = 60_000;
+const LOGIN_LIMIT_MAX = 60;
+// Per-app карты лимитеров — каждый инстанс считает свои ключи (в проде
+// инстанс один; тесты не пересекаются через общий модульный счётчик).
+const loginMaps = new Set();
+function makeLoginGate(limit) {
+  const map = new Map();
+  loginMaps.add(map);
+  return (key) => {
+    if (!limit) return false;
+    const now = Date.now();
+    const hits = (map.get(key) ?? []).filter((t) => now - t < LOGIN_LIMIT_MS);
+    hits.push(now);
+    map.set(key, hits);
+    return hits.length > limit;
+  };
+}
+// Очистка лимитеров (особенно анонимные IP не должны копиться вечно) — раз в 5 минут.
 setInterval(() => {
   const now = Date.now();
   for (const [key, hits] of eventHits) {
@@ -75,14 +108,14 @@ setInterval(() => {
     if (fresh.length) eventHits.set(key, fresh);
     else eventHits.delete(key);
   }
+  for (const map of loginMaps) {
+    for (const [key, hits] of map) {
+      const fresh = hits.filter((t) => now - t < LOGIN_LIMIT_MS);
+      if (fresh.length) map.set(key, fresh);
+      else map.delete(key);
+    }
+  }
 }, 5 * 60_000).unref();
-/** Ключ лимитера: сессия — id пользователя, аноним — IP (XFF → req.ip). */
-function eventRateKey(req, user) {
-  if (user?.id) return `u:${user.id}`;
-  const xff = req.headers['x-forwarded-for'];
-  const ip = typeof xff === 'string' && xff.trim() ? xff.split(',')[0].trim() : req.ip;
-  return `ip:${ip}`;
-}
 
 /** YYYY-MM-DD — и форма, и реальная дата (не 2026-13-99). */
 function isValidDate(s) {
@@ -173,11 +206,16 @@ function authProfile(req, db, secret) {
   return getUser(db, payload.sub);
 }
 
-export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, corsOrigins = [], rolesFile = DEFAULT_ROLES_FILE, staticRoot = DEFAULT_STATIC_ROOT, backup = null }) {
+export function createApp({
+  db, verifyIdToken, sessionSecret, googleClientId, corsOrigins = [],
+  rolesFile = DEFAULT_ROLES_FILE, staticRoot = DEFAULT_STATIC_ROOT,
+  backup = null, loginRateLimit = LOGIN_LIMIT_MAX,
+}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(makeCors(corsOrigins));
   app.use(express.json({ limit: '64kb' }));
+  const loginGate = makeLoginGate(loginRateLimit);
 
   app.get('/health', (req, res) => {
     res.json({ ok: true, name: 'mahjongdle-server' });
@@ -185,6 +223,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
 
   /** POST /api/auth/login {idToken} → {token, user} */
   app.post('/api/auth/login', async (req, res, next) => {
+    // Аудит №8 (0.7.1): лимит попыток на IP (проверка токена — вызов в Google).
+    if (loginGate(`ip:${clientIp(req)}`)) {
+      return httpError(res, 429, 'слишком много попыток входа, замедлитесь');
+    }
     try {
       const { idToken } = req.body ?? {};
       if (typeof idToken !== 'string' || idToken.length < 20) {
@@ -475,9 +517,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (!mine || !played) return res.json({ date: yesterday, hand: null, dayKanCount: 0 });
 
     // Суммарные каны вчерашнего дня (все игроки): именно они определяют,
-    // сколько дор открылось в полночь.
-    const dayKanCount = listDayKans(db, yesterday)
-      .reduce((sum, k) => sum + (k.kanCount || 0), 0);
+    // сколько дор открылось в полночь. Аудит №4 (0.7.1): сумма без LIMIT
+    // (listDayKans ограничен 10 строками — при 10+ игроках с каном
+    // открывалось меньше дор, чем положено).
+    const dayKanCount = sumDayKanCount(db, yesterday);
 
     // Ленивый ночной пересчёт: один раз на дату (и на игрока).
     // Пачка — в транзакции; одна битая строка (битый JSON руки/тайлов,
@@ -486,6 +529,8 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (!mine.recalculated) {
       db.exec('BEGIN');
       try {
+        // Аудит №8 (0.7.1): retention — события старше 30 дней (раз в день).
+        pruneEvents(db);
         for (const row of listDayHands(db, yesterday)) {
           if (row.recalculated) continue;
           // L2: черновик (не сдана) не пересчитывается — у него нет счёта
@@ -683,7 +728,10 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (!row) return httpError(res, 404, 'рука дня не зафиксирована');
     // Результат уже зафиксирован — каны живут в нём, прогресс закрыт.
     // (Проверяем ДО формы руки: после сдачи row.hand — уже не черновик 14.)
-    if (row.score > 0 || row.complete) {
+    // Аудит №6 (0.7.1): фиксация — наличие СТРОКИ в scores (любой, включая
+    // legacy 0-очковую), а не свойство «score > 0»: смена правил (например,
+    // блок «кан» → 0) не должна была открывать PATCH после сдачи.
+    if (row.complete || getFixedResult(db, user.id, date)) {
       return httpError(res, 409, 'результат дня уже зафиксирован');
     }
     if (!Array.isArray(row.hand) || row.hand.length !== 14) {
@@ -714,7 +762,9 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
   app.get('/api/daily/kans', (req, res) => {
     const { date } = req.query;
     if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
-    res.json({ date, kans: listDayKans(db, date) });
+    // Аудит №4 (0.7.1): total — точная сумма канов дня (без LIMIT 10 из
+    // списка): клиент использует её для числа открывающихся кан-дор.
+    res.json({ date, kans: listDayKans(db, date), total: sumDayKanCount(db, date) });
   });
 
   /**
@@ -728,6 +778,12 @@ export function createApp({ db, verifyIdToken, sessionSecret, googleClientId, co
     if (await roleFor(user.email, rolesFile) !== 'admin') return httpError(res, 403, 'только admin');
     const date = req.body?.date ?? mskToday();
     if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    // Аудит №9 (0.7.1): ре-ишю — только за СЕГОДНЯшний день (рука дня
+    // «одна на день» привязана к текущему дню; вчерашнюю/будущую дату
+    // перезадавать бессмысленно и рискованно).
+    if (date !== mskToday()) {
+      return httpError(res, 400, 'ре-ишю только за сегодняшний день');
+    }
     const ctx = createDailyContext(new Date(`${date}T12:00:00Z`));
     const hand = drawHand(14, { deadTiles: ctx.deadTiles });
     // day_ctx — серверный (из dayKey), клиентский не доверяется (F2b).

@@ -7,9 +7,11 @@
  *  - объявленный кан = фиксированный пон: в оценке шантена его нельзя
  *    разобрать. Реализация: к скрытой руке добавляются 3 тайла кана
  *    (withKanPons) — разбор «мелд» всегда выгоднее «пара+сингл», поэтому
- *    решатель шантена его не ломает;
- *  - кан, оставшийся в руке после сброса, тоже считается объявленным
- *    (countKans учитывает четвёрки в остатке).
+ *    решатель шантена его не ломает (аудит №3, 0.7.1: то же правило
+ *    действует и в пути готовой руки — src/shanten.js isWinningHandWithKans
+ *    + кан-лок разложений в src/evaluate.js);
+ *  - каны ПОСЛЕ сброса не учитываются: сдача фиксирует объявленные каны
+ *    (server хранит их в результате), поздние четвёрки в остатке — не каны.
  */
 import { canonicalTileId } from './tiles.js';
 
@@ -46,16 +48,6 @@ export function findKans(tiles) {
   return kans;
 }
 
-/** Есть ли кан. */
-export function hasKan(tiles) {
-  return findKans(tiles).length > 0;
-}
-
-/** Объявленные + оставшиеся в руке четвёрки. */
-export function countKans(declaredKans, remainingTiles) {
-  return declaredKans.length + findKans(remainingTiles).length;
-}
-
 /** Тайлы для оценки: скрытая рука + 3 тайла за каждый объявленный кан. */
 export function withKanPons(tiles, declaredKans = []) {
   const extra = [];
@@ -72,14 +64,6 @@ export function withKanPons(tiles, declaredKans = []) {
  */
 export function openKanDoraCount(kanCount, baseOpen = 0) {
   return Math.min(MAX_KAN_DORA, baseOpen + Math.max(0, kanCount));
-}
-
-/**
- * Сколько ура-дор открыто в конце дня: 1 базовая (ура-индикатор дня, 2-й
- * тайл стены) + по одной кан-уре за каждый кан (максимум 1 + 4 = 5).
- */
-export function openUraCount(kanCount) {
-  return 1 + Math.min(KAN_DORA_SLOTS, Math.max(0, kanCount));
 }
 
 /** Слоты кандор: [{index, tile, open}] — первые openCount открыты. */

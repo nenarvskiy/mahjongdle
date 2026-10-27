@@ -234,7 +234,13 @@ export function initTestMode() {
     if (!pendingKan || phase !== 'choose') return;
     const skip = new Set(pendingKan.indices ?? []);
     const rest = hand.filter((_, i) => !skip.has(i));
-    const drawn = drawHand(1, { deadTiles: deadForDraw() });
+    // Аудит №5 (0.7.1): exclude — текущая рука + тайлы уже объявленных
+    // канов: добор не выдаёт 5-ю копию вида (палитра тестового режима
+    // даёт по 4 копии, как в игре).
+    const drawn = drawHand(1, {
+      deadTiles: deadForDraw(),
+      exclude: [...hand, ...declaredKans.flatMap((k) => k.tiles)],
+    });
     declaredKans = [...declaredKans, { tile: pendingKan.tile, tiles: pendingKan.tiles }];
     pendingKan = null;
     pendingKans = [];

@@ -1,5 +1,5 @@
 import { handToCounts, indexToTile } from './tile-index.js';
-import { calcShanten, isWinningHand, kanLock } from './shanten.js';
+import { calcShanten, isWinningHand, isWinningHandWithKans, kanLock } from './shanten.js';
 import { bestPartition, winningPartition } from './partition.js';
 import { patternLabel } from './patterns.js';
 import { detectV4Yaku } from './yaku-v4.js';
@@ -113,7 +113,17 @@ function potentialDescription(potential) {
  *  со своим тиром. Риичи считается по общему дефолту (как в potential.js). */
 export function evaluateCompleteHand(tiles, ctx = {}, declaredKans = []) {
   const counts = handToCounts(tiles);
-  if (tiles.length !== 14 || !isWinningHand(counts)) return null;
+  if (tiles.length !== 14) return null;
+  // Аудит №3 (0.7.1): кан = фиксированный пон — готовая рука с каном
+  // выигрышна, только если из оставшихся тайлов (после пона кана)
+  // собираются (4 − каны) сета + пара; «ломать» пон кана в пару/чи нельзя
+  // (чиитоицу/кокуши с каном физически невозможны). Без канов — прежняя
+  // isWinningHand. Клиент и сервер используют один и тот же модуль —
+  // согласованность сдача ↔ ночной пересчёт сохраняется.
+  const winning = (declaredKans?.length
+    ? isWinningHandWithKans(counts, declaredKans)
+    : isWinningHand(counts));
+  if (!winning) return null;
   // Объявленный кан в структуре — блок «Кан» (5500), а не «Пон» (125).
   const kanKinds = kanKindsOf(declaredKans);
   const partition = partitionDisplay(counts, kanKinds);

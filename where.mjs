@@ -1,4 +1,4 @@
-import { existsSync, statSync, readFileSync } from 'node:fs';
+import { existsSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 
 const paths = [
   'C:/Users/pyv20/OneDrive/Desktop/Работа/mahjongdle',

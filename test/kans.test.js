@@ -4,8 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  findKans, hasKan, withKanPons, countKans,
-  kanDoraSlots, openKanDoraCount, openUraCount, KAN_DORA_SLOTS, MAX_KAN_DORA,
+  findKans, withKanPons,
+  kanDoraSlots, openKanDoraCount, KAN_DORA_SLOTS, MAX_KAN_DORA,
 } from '../src/kans.js';
 import { evaluateHand } from '../src/scoring.js';
 
@@ -23,7 +23,7 @@ test('findKans: четыре одинаковых; красная пятёрка
   const redPlain = findKans(['5m', '5m', '5m', '5m', '2p']);
   assert.equal(redPlain[0].tile, '5m', 'без красной — вид тайла');
   assert.equal(findKans(['1m', '1m', '1m', '2p']).length, 0);
-  assert.equal(hasKan(['1m', '1m', '1m', '1m']), true);
+  assert.equal(findKans(['1m', '1m', '1m', '1m']).length, 1);
 });
 
 test('findKans: несколько канов в руке', () => {
@@ -48,11 +48,6 @@ test('кан = фиксированный пон: тенпай и те же оч
   assert.equal(evaluateHand([...concealed, '5s', '5s', '5s'], ctx).total, score.total);
 });
 
-test('countKans: объявленные + оставшиеся четвёрки', () => {
-  assert.equal(countKans([], ['1m', '2m', '3s']), 0);
-  assert.equal(countKans(['5m'], ['2p', '2p', '2p', '2p', '3s']), 2);
-});
-
 test('кандоры: БЕЗ базовой, по одной за кан, максимум 4', () => {
   assert.equal(KAN_DORA_SLOTS, 4); // 0.6.25: в стене 4 тайла-кандора (3, 5, 7, 9 позиции)
   assert.equal(MAX_KAN_DORA, 4);
@@ -60,13 +55,6 @@ test('кандоры: БЕЗ базовой, по одной за кан, мак
   assert.equal(openKanDoraCount(1), 1);
   assert.equal(openKanDoraCount(4), 4);
   assert.equal(openKanDoraCount(99), 4); // потолок — 4 (макс. канов в руке)
-});
-
-test('ура-доры: 1 базовая + по одной за кан, максимум 5', () => {
-  assert.equal(openUraCount(0), 1); // только базовая
-  assert.equal(openUraCount(1), 2);
-  assert.equal(openUraCount(4), 5);
-  assert.equal(openUraCount(99), 5); // потолок — 5 тайлов-ура в стене
 });
 
 test('kanDoraSlots: первые openCount открыты, остальные закрыты', () => {

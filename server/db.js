@@ -251,6 +251,19 @@ export function insertEvent(db, { userId = null, userEmail = null, userName = nu
 }
 
 /**
+ * Retention событий (аудит №8, 0.7.1): удаляет строки старше maxAgeDays.
+ * Таблица `events` раньше росла без лимита — бэкап БД в GitHub упирается
+ * в ~100 МБ. Вызывается при старте и в полночный пересчёт (раз в день).
+ * ts — ISO-строка UTC, сравнение лексикографически корректно.
+ * @returns {number} сколько строк удалено.
+ */
+export function pruneEvents(db, maxAgeDays = 30) {
+  const cutoff = new Date(Date.now() - maxAgeDays * 86_400_000).toISOString();
+  const info = db.prepare('DELETE FROM events WHERE ts < ?').run(cutoff);
+  return Number(info.changes);
+}
+
+/**
  * События для админ-просмотра: новые сначала.
  * kind — точное совпадение ('hand') или null (все);
  * reportsOnly — только блоки, к которым приложена жалоба.
@@ -360,9 +373,14 @@ export function upsertDayHandDraft(db, { userId, date, hand = [], dayCtx = {} })
  * @returns {boolean} true — строка обновлена.
  */
 export function setDayHandKans(db, userId, date, kans) {
+  // Аудит №6 (0.7.1): явная фиксация — строка в scores (любой, включая
+  // 0-очковую) закрывает прогресс канов; опирается не только на «score = 0».
   const info = db.prepare(`
     UPDATE day_hands SET kans = ?
     WHERE user_id = ? AND date = ? AND score = 0 AND complete = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM scores s WHERE s.user_id = day_hands.user_id AND s.date = day_hands.date
+      )
   `).run(JSON.stringify(kans ?? []), userId, date);
   return Number(info.changes) > 0;
 }
@@ -444,6 +462,19 @@ export function listDayKans(db, date) {
     name: row.name ?? 'аноним',
     kanCount: parseJson(row.kans, []).length,
   }));
+}
+
+/**
+ * СУММАРНО канов за дату (все игроки, БЕЗ LIMIT) — аудит №4 (0.7.1):
+ * listDayKans ограничен 10 строками (публичный список имён), а сумма
+ * канов определяет число кан-дор, открывшихся в полночь, — она должна
+ * быть точной при любом числе игроков.
+ */
+export function sumDayKanCount(db, date) {
+  const rows = db
+    .prepare(`SELECT kans FROM day_hands WHERE date = ? AND kans != '[]'`)
+    .all(date);
+  return rows.reduce((sum, row) => sum + parseJson(row.kans, []).length, 0);
 }
 
 /** Отметить руку пересчитанной и сохранить новый счёт. */

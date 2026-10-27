@@ -6,6 +6,7 @@ import {
   allDecompositions, isChiitoitsuComplete, isKokushiComplete,
 } from './decompose.js';
 import { countDora } from './daily-context.js';
+import { kanLock } from './shanten.js';
 import { tierOfHan } from './tiers.js';
 import { RULES } from './config.js';
 import { canonicalTileId } from './tiles.js';
@@ -116,10 +117,18 @@ function evaluateChiitoitsu(counts, ctx, declaredKans = []) {
 }
 
 /** Лучшее по хану стандартное разложение руки.
- *  Если выполнено несколько яку-манов — действует один: ровно 13 хан. */
+ *  Если выполнено несколько яку-манов — действует один: ровно 13 хан.
+ *  Аудит №3 (0.7.1): с объявленным каном рассматриваются только разложения,
+ *  где пон кана цёл (кан = фиксированный пон, как в шантене/ожиданиях):
+ *  без лока лучшая оценка могла «ломать» пон кана и завышать хан. */
 function evaluateStandard(counts, ctx, declaredKans = []) {
   let best = { han: -1, yaku: [], label: null };
+  const lock = kanLock(declaredKans);
+  const lockedKinds = [];
+  for (let i = 0; i < lock.length; i += 1) if (lock[i]) lockedKinds.push(i);
   for (const decomposition of allDecompositions(counts)) {
+    if (lockedKinds.length && !lockedKinds.every((idx) =>
+      decomposition.melds.some((m) => m.type === 'pon' && m.tiles[0] === idx))) continue;
     for (const inferredWait of waitTypesFor(decomposition, ctx.winningTile)) {
       const actualCtx = { ...ctx, waitType: inferredWait ?? ctx.waitType };
       let detected = detectYaku(decomposition, counts, actualCtx);
