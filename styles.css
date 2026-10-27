@@ -856,6 +856,7 @@ footer button:disabled { opacity: .45; cursor: default; }
   .hands-ctx-tiles .tile { --tile-size: 34px; }
   .hands-kan-group .tile, .yesterday-kan-group .tile { --tile-size: 36px; }
   .hands-kan-group .tile-back, .yesterday-kan-group .tile-back { --context-tile-size: 36px; }
+  .hands-discarded .tile { --tile-size: 36px; }
   .daily-item { min-height: 55px; }
   .hand-group { padding: 7px; }
   .hand-group .tile { --tile-size: 34px; }
@@ -1113,20 +1114,24 @@ footer button:disabled { opacity: .45; cursor: default; }
   box-shadow: 0 3px 0 #a9a695, 0 5px 10px rgba(0, 0, 0, .26);
   cursor: default;
 }
-.hands-breakdown { margin-top: 12px; }
-.hands-breakdown-list {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* 0.7.2: сброс в просмотре руки — отдельной картинкой ниже (раньше тайл
+   рисовался равнозначно среди 14, а под рукой была строка «Сброс: 2s»). */
+.hands-discarded {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
 }
-.hands-breakdown-list li {
-  padding: 7px 10px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .03);
-  color: var(--muted);
-  font-size: 13px;
-}
-.hands-breakdown-list li.score-yaku { color: var(--gold); }
-.hands-breakdown-list li.score-potential { color: #8ed7ff; }
+.hands-discarded-label { color: var(--muted); font-size: 13px; }
+.hands-discarded .tile { --tile-size: 44px; }
+
+/* 0.7.2: полный разбор «за что очки» — форматом основной страницы
+   (рука по структурам тайлами + список + «Итого» + потенциал):
+   renderGroupedHand/renderScore из src/ui.js, пересчёт без сохранения. */
+.hands-scorebox { margin-top: 12px; }
+#hands-view-groups { margin-bottom: 10px; }
+#hands-view-score li { font-size: 14px; }
+#hands-view-score .score-yaku { color: var(--gold); }
+#hands-view-score .score-potential { color: #8ed7ff; }

@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Mahjongdle <span class="app-version" id="app-version">v0.7.1</span></h1>
+      <h1>Mahjongdle <span class="app-version" id="app-version">v0.7.2</span></h1>
       <script type="module">
         import { APP_VERSION } from './src/version.js';
         const el = document.getElementById('app-version');
@@ -284,9 +284,17 @@
 
     <div id="hands-view" hidden>
       <div id="hands-view-hand" class="hand"></div>
+      <div id="hands-view-discarded" class="hands-discarded" hidden></div>
       <div id="hands-view-kans" class="hands-kans"></div>
       <div id="hands-view-context" class="hands-context" hidden></div>
-      <div id="hands-view-breakdown" class="hands-breakdown" hidden></div>
+      <div id="hands-view-scorebox" class="hands-scorebox" hidden>
+        <div id="hands-view-groups"></div>
+        <div id="hands-view-score"></div>
+        <div id="hands-view-potential" class="potential-preview" hidden>
+          <h3 id="hands-view-potential-title">Потенциальная рука</h3>
+          <div id="hands-view-potential-hand"></div>
+        </div>
+      </div>
       <p id="hands-view-meta" class="hands-meta"></p>
       <div class="hands-actions">
         <button id="btn-hands-back" type="button">← к списку</button>

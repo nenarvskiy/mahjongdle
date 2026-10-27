@@ -2,8 +2,11 @@
  * История ежедневных рук в диалоге:
  *  * «Мои руки» — прошлые руки игрока (профиль, GET /api/me/hands);
  *  * клик по строке таблицы дня — рука этого игрока (данные уже в строке).
- * Два вида: список (дата + состояние) → просмотр руки: тайлы, каны,
- * условия дня и полная разбивка «за что очки».
+ * Два вида: список (дата + состояние) → просмотр руки: 13 тайлов после
+ * сброса + сброшенный тайл отдельной картинкой ниже (0.7.2), каны,
+ * условия дня и полный разбор «за что очки» форматом основной страницы
+ * (рука по структурам тайлами + список + «Итого» + потенциал; пересчёт,
+ * ничего не сохраняется).
  *
  * ВАЖНО (видимость дор): ура-доры и кан-доры никто не должен знать до
  * полуночи. Поэтому для руки СЕГОДНЯ показываем только ветра и дору, а
@@ -12,7 +15,7 @@
  * а разбивка пересчитывается по канам дня (все игроки, /api/daily/kans).
  */
 import { getAuth, fetchMyHands, fetchDayKans } from './auth.js';
-import { renderTiles, createTileElement } from './ui.js';
+import { renderTiles, createTileElement, renderGroupedHand, renderScore } from './ui.js';
 import { canonicalTileId, tileDisplayName } from './tiles.js';
 import { createDailyContext, doraFromIndicator } from './daily-context.js';
 import { openKanDoraCount, withKanPons } from './kans.js';
@@ -214,23 +217,11 @@ function renderContextRow(el, dateKey, dayCtx, { isToday = false, dayKanCount = 
   el.hidden = false;
 }
 
-/** Разбивка счёта «за что очки». */
-function renderBreakdown(el, scoreResult) {
-  el.innerHTML = '';
-  el.hidden = true;
-  if (!scoreResult) return;
-  const rows = scoreResult.breakdown ?? [];
-  if (!rows.length) return;
-  const ul = document.createElement('ul');
-  ul.className = 'hands-breakdown-list';
-  for (const r of rows) {
-    const li = document.createElement('li');
-    li.className = r.yaku ? 'score-yaku' : r.potential ? 'score-potential' : '';
-    li.textContent = `${r.label}: +${fmt(r.points)}`;
-    ul.append(li);
-  }
-  el.append(ul);
-  el.hidden = false;
+/** Убрать ровно ОДНО вхождение тайла (копий вида в руке может быть несколько). */
+function removeOne(arr, tile) {
+  const kind = canonicalTileId(tile);
+  const idx = arr.findIndex((t) => canonicalTileId(t) === kind);
+  return idx === -1 ? arr.slice() : arr.filter((_, i) => i !== idx);
 }
 
 /**
@@ -284,19 +275,35 @@ export async function showHandView({
         return marked;
       })()
     : [];
-  if (Array.isArray(hand) && hand.length) {
-    let shown = hand;
-    if (!complete) {
-      // M3: не готовая — каны уже ВНЕ руки: черновик (14) включает 4 тайла
-      // каждого кана, на экране же они — в закрытом кано (блок ниже).
-      // Показываем 14 − 4×каны (для красного кана — 0m + 3 обычные
-      // изымаются вместе: кан берёт все 4 копии вида).
-      const kanKinds = new Set(kans.map(canonicalTileId));
-      shown = hand.filter((t) => !kanKinds.has(canonicalTileId(t)));
-    }
-    renderTiles(handEl, shown, { disabled: true, doraTiles });
+  const kanKinds = new Set(kans.map(canonicalTileId));
+  let shown = null;
+  if (!complete && Array.isArray(tiles) && tiles.length) {
+    // 0.7.2: основная строка — тайлы, за которые даны очки: 13 после сброса
+    // (с каноми — 13 − 3×каны: поны канов живут в блоке «Каны»). Сброшенный
+    // тайл больше не рисуется равнозначно среди остальных — он отдельной
+    // картинкой ниже (как панель «Сброшено» на основной странице).
+    shown = tiles;
+  } else if (Array.isArray(hand) && hand.length) {
+    // M3 / legacy (tiles не сохранены): черновик 14 (или 11 после кана) —
+    // убираем 4 тайла каждого кана (они в закрытом кано, блок ниже), а для
+    // не готовой руки ещё и сброс (уходит в отдельную панель).
+    shown = hand.filter((t) => !kanKinds.has(canonicalTileId(t)));
+    if (!complete && discarded) shown = removeOne(shown, discarded);
+  }
+  if (shown) renderTiles(handEl, shown, { disabled: true, doraTiles });
+
+  // 0.7.2: сброшенный тайл — отдельной картинкой ниже руки.
+  const discEl = $('hands-view-discarded');
+  discEl.replaceChildren();
+  if (!complete && discarded) {
+    const label = document.createElement('span');
+    label.className = 'hands-discarded-label';
+    label.textContent = 'Сброс:';
+    discEl.append(label);
+    discEl.append(createTileElement(discarded, { disabled: true, doraTiles }));
+    discEl.hidden = false;
   } else {
-    handEl.replaceChildren();
+    discEl.hidden = true;
   }
 
   // M3: кан показывается ТАЙЛАМИ, а не одной иконкой:
@@ -335,11 +342,33 @@ export async function showHandView({
 
   const info = { isToday, dayKanCount };
   renderContextRow($('hands-view-context'), dateKey, dayCtx, info);
+  // 0.7.2: полный разбор «за что очки» — тем же форматом, что на основной
+  // странице: рука, сгруппированная по структурам (тайлами), список
+  // база/структуры/яку/доры, «Итого» и потенциал лучшей достройки. Всё
+  // пересчётом по руке и условиям дня (recompute) — никуда не сохраняется.
   const recomputed = recompute({ dateKey, dayCtx, tiles, hand, kans, complete, ...info });
-  renderBreakdown($('hands-view-breakdown'), recomputed);
+  const scorebox = $('hands-view-scorebox');
+  const groupsEl = $('hands-view-groups');
+  const scoreListEl = $('hands-view-score');
+  const potentialEl = $('hands-view-potential');
+  groupsEl.replaceChildren();
+  scoreListEl.replaceChildren();
+  $('hands-view-potential-hand').replaceChildren();
+  potentialEl.hidden = true;
+  if (recomputed) {
+    renderGroupedHand(groupsEl, recomputed.display, { doraTiles });
+    renderScore(scoreListEl, recomputed);
+    if (recomputed.potentialDisplay) {
+      potentialEl.hidden = false;
+      $('hands-view-potential-title').textContent = recomputed.potentialSummary || 'Потенциальная рука';
+      renderGroupedHand($('hands-view-potential-hand'), recomputed.potentialDisplay, { doraTiles });
+    }
+    scorebox.hidden = false;
+  } else {
+    scorebox.hidden = true;
+  }
 
   const meta = [];
-  if (discarded) meta.push(`Сброс: ${discarded}`);
   if (complete) meta.push('Готовая рука');
   else if (score > 0) meta.push(`Очки: ${fmt(score)}`);
   else meta.push('ещё не посчитана');
