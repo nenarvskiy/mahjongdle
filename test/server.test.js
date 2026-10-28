@@ -1696,3 +1696,70 @@ test('аудит №9: ре-ишю — только за сегодняшний 
   assert.equal((await ok.json()).date, DAY);
   await p.close(); p.cleanup();
 });
+
+test('0.7.4 backfill: admin восстанавливает пропущенный результат прошедшего дня', async () => {
+  const p = await makePolicyApp({ admin: ['sub-1@example.com'], test: [] });
+  const post = (tok, body) => fetch(`${p.base}/api/admin/score/backfill`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(tok ? { authorization: `Bearer ${tok}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  const h = { 'content-type': 'application/json', authorization: `Bearer ${p.adminTok}` };
+  // Рука дня: 14 ЖИВЫХ тайлов (без тайлов мёртвой стены), сброс — последний.
+  const live = liveIds(YDAY, 15);
+  const hand = live.slice(0, 14);
+  const discarded = hand[13];
+  const tiles = hand.slice(0, 13);
+  const foreign = live[14]; // живого тайла, которого НЕТ в hand
+
+  // роли: без сессии 401, не admin 403
+  assert.equal((await post(null, { date: YDAY, hand, discarded })).status, 401);
+  assert.equal((await post(p.playerTok, { date: YDAY, hand, discarded })).status, 403);
+  // даты: будущее нельзя; кривые тела — 400
+  assert.equal((await post(p.adminTok, { date: TOMORROW, hand, discarded })).status, 400);
+  assert.equal((await post(p.adminTok, { date: '2026-13-99', hand, discarded })).status, 400);
+  assert.equal((await post(p.adminTok, { date: YDAY, hand: hand.slice(0, 13), discarded })).status, 400);
+  assert.equal((await post(p.adminTok, { date: YDAY, hand, discarded: '9w' })).status, 400, 'кривой id сброса');
+  assert.equal((await post(p.adminTok, { date: YDAY, hand, discarded: foreign })).status, 400, 'сброса нет в руке');
+  assert.equal((await post(p.adminTok, { date: YDAY, hand, discarded, kans: [foreign] })).status, 400, 'кан вне руки');
+
+  // валидный backfill: счёт = серверная «полночная» формула, оба слоя записаны
+  const ok = await post(p.adminTok, { date: YDAY, hand, discarded, kans: [] });
+  assert.equal(ok.status, 200);
+  const res = await ok.json();
+  assert.equal(res.date, YDAY);
+  assert.equal(res.discarded, discarded);
+  const dayCtx = createDailyContext(new Date(`${YDAY}T12:00:00Z`));
+  const expected = recalcScore({
+    hand: [], tiles, kans: [], oldScore: 0, complete: false, ctx: dayCtx, dayKey: YDAY, dayKanCount: 0,
+  }).newScore;
+  assert.equal(res.score, expected, 'счёт по «полночной» формуле');
+  const lb = await (await fetch(`${p.base}/api/scores/${YDAY}`, { headers: h })).json();
+  assert.equal(lb.rows.length, 1);
+  assert.equal(lb.rows[0].score, res.score);
+  const mine = await (await fetch(`${p.base}/api/me/hand/${YDAY}`, { headers: h })).json();
+  assert.equal(mine.discarded, discarded);
+  assert.deepEqual(mine.tiles, tiles);
+  assert.deepEqual(mine.hand, hand);
+  const list = await (await fetch(`${p.base}/api/me/hands`, { headers: h })).json();
+  const row = list.rows.find((r) => r.date === YDAY);
+  assert.equal(row.score, res.score);
+  assert.equal(row.recalculated, true, 'отмечена пересчитанной — ночной пересчёт не тронет');
+
+  // СЕГОДНЯ — тоже можно (случай инцидента: черновик не дошёл до сервера):
+  // «дневной» счёт БЕЗ ура, recalculated=0 — ленивый полночный пересчёт
+  // добавит ура/кан-доры, как у обычной сдачи.
+  const okToday = await post(p.adminTok, { date: DAY, hand, discarded, kans: [] });
+  assert.equal(okToday.status, 200, 'сегодня — можно');
+  const resToday = await okToday.json();
+  assert.equal(resToday.today, true);
+  assert.equal(
+    resToday.score,
+    computeDayScore({ tiles, hand: [], kans: [], complete: false, dayKey: DAY }),
+    'сегодня — «дневной» счёт без ура',
+  );
+  const listToday = await (await fetch(`${p.base}/api/me/hands`, { headers: h })).json();
+  const rowToday = listToday.rows.find((r) => r.date === DAY);
+  assert.equal(rowToday.recalculated, false, 'сегодня — пересчёт ещё впереди');
+  await p.close(); p.cleanup();
+});

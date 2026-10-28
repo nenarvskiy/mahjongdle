@@ -792,6 +792,97 @@ export function createApp({
   });
 
   /**
+   * POST /api/admin/score/backfill {date, hand, discarded, kans?} →
+   * {date, score, discarded} (только admin/test).
+   * 0.7.4: восстановление ПРОПУЩЕННОГО результата — рука была сыграна, но
+   * отправка до сервера не дошла (например, страница со старым деплоем,
+   * где адрес API был сломан, — см. инцидент 2026-10-28). Принимаются
+   * прошедшие и СЕГОДНЯШНЯ даты (будущее нельзя); обычный POST /api/scores
+   * в этом случае не работает — он требует зафиксированный черновик (K2),
+   * а черновик как раз и не дошёл.
+   * hand — 14 выданных тайлов (черновик на сервере НЕ требуется),
+   * discarded — сброшенный тайл. Счёт — СЕРВЕРНЫЙ:
+   *  - прошедший день: «полночная» формула (ура + кан-доры, открывшиеся
+   *    по канам дня) — пересчёт за этот день уже проходил; строка
+   *    записывается как recalculated=1 и не будет пересчитана повторно;
+   *  - сегодняшний день: «дневная» формула БЕЗ ура (computeDayScore) и
+   *    recalculated=0 — полночный пересчёт добавит ура/кан-доры, как у
+   *    всех остальных игроков дня.
+   */
+  app.post('/api/admin/score/backfill', async (req, res) => {
+    const user = authProfile(req, db, sessionSecret);
+    if (!user) return httpError(res, 401, 'нет сессии');
+    const role = await roleFor(user.email, rolesFile);
+    if (role !== 'admin' && role !== 'test') {
+      return httpError(res, 403, 'только admin/test');
+    }
+    const { date, hand, discarded } = req.body ?? {};
+    const kans = req.body?.kans ?? [];
+    if (!isValidDate(date)) return httpError(res, 400, 'date должен быть в формате YYYY-MM-DD');
+    // Будущее нельзя; прошедшее и сегодня — можно (сегодня — случай,
+    // когда черновик не дошёл и обычный POST /api/scores закрыт по K2).
+    if (date > mskToday()) {
+      return httpError(res, 400, 'backfill — будущие даты нельзя');
+    }
+    const isToday = date === mskToday();
+    if (!Array.isArray(hand) || hand.length !== 14 || !hand.every((t) => isValidTileId(t))) {
+      return httpError(res, 400, 'hand — 14 выданных тайлов');
+    }
+    if (typeof discarded !== 'string' || !isValidTileId(discarded)) {
+      return httpError(res, 400, 'discarded — сброшенный тайл');
+    }
+    if (!Array.isArray(kans) || kans.length > 4 || !kans.every((t) => isValidTileId(t))) {
+      return httpError(res, 400, 'kans — до 4 объявленных канов');
+    }
+    // tiles = hand минус сброшенный тайл (первая копия id).
+    const tiles = [...hand];
+    const at = tiles.indexOf(discarded);
+    if (at === -1) return httpError(res, 400, 'сброшенного тайла нет в руке');
+    tiles.splice(at, 1);
+    // Каны — только на тайлах этой руки: черновика на сервере нет,
+    // поэтому мультиконтр-проверку validateDaySubmission не провести —
+    // проверяем явно (по виду: красная пятёрка = обычная).
+    const handKinds = new Set(hand.map(canonicalTileId));
+    for (const k of kans) {
+      if (!handKinds.has(canonicalTileId(k))) {
+        return httpError(res, 400, 'кан объявлен на тайле, которого нет в руке');
+      }
+    }
+    // Семантическая валидация (F2a): id, мёртвая стена (≤3 копии),
+    // численность 13 − 3×каны, каны без повторов. draft не требуем —
+    // именно не зафиксированный черновик и есть случай backfill.
+    const check = validateDaySubmission({
+      tiles, hand: [], kans, discarded, complete: false, dayKey: date, draft: null,
+    });
+    if (!check.ok) return httpError(res, 400, check.error);
+    const dayCtx = createDailyContext(new Date(`${date}T12:00:00Z`));
+    let newScore;
+    if (isToday) {
+      // Сегодня: «дневной» счёт БЕЗ ура — точно как обычная сдача.
+      // Ура/кан-доры добавит ленивый полночный пересчёт при первом
+      // обращении нового дня (строка сыграна, recalculated=0).
+      newScore = computeDayScore({ tiles, hand: [], kans, complete: false, dayKey: date });
+    } else {
+      // Прошедший день: ленивый пересчёт его уже пройдёт — пишем сразу
+      // финальный «полночный» счёт (базовая ура + кан-уры/кан-доры по
+      // канам дня) и отмечаем recalculated=1. Каны дня учитывают каны
+      // ЭТОЙ руки, если её строки ещё нет в БД (сейчас запишем).
+      const ownRow = getDayHand(db, user.id, date);
+      const dayKanCount = sumDayKanCount(db, date) + (ownRow ? 0 : kans.length);
+      newScore = recalcScore({
+        hand: [], tiles, kans, oldScore: 0, complete: false,
+        ctx: dayCtx, dayKey: date, dayKanCount,
+      }).newScore;
+    }
+    submitDayResult(db, {
+      userId: user.id, date, score: newScore, discarded, tiles,
+      hand, kans, complete: false, dayCtx, force: true,
+    });
+    if (!isToday) markDayHandRecalculated(db, user.id, date, newScore);
+    res.json({ date, score: newScore, discarded, today: isToday });
+  });
+
+  /**
    * GET /api/admin/backup → статус бэкапа БД в GitHub.
    * Админ-диагностика: последний commit, ошибки, размер файла.
    */
