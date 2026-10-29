@@ -79,7 +79,8 @@ function kanDoraPending(state) {
     .slice(0, total)
     .map((k) => ({
       name: k.name, hand: k.hand ?? null, tiles: k.tiles ?? null,
-      discarded: k.discarded ?? null, score: k.score ?? 0, mine: false,
+      discarded: k.discarded ?? null, score: k.score ?? 0,
+      kans: Array.isArray(k.kans) ? k.kans : [], mine: false,
     }));
   const me = getAuth()?.user?.name;
   // Свой кан, который сервер ещё не подтвердил (PATCH в полёте/не дошёл):
@@ -90,6 +91,7 @@ function kanDoraPending(state) {
     tiles: state?.discarded ? (state.remaining ?? null) : null,
     discarded: state?.discarded ?? null,
     score: state?.discarded ? (state.score?.total ?? 0) : 0,
+    kans: declaredKans.map((kan) => kan.tile),
     mine: true,
   } || null;
   const pending = [];

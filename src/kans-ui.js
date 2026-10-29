@@ -63,6 +63,13 @@ function fillTip(tip, player) {
   name.className = 'kan-dora-tip-name';
   name.textContent = player.mine ? `Кан: ${player.name} (вы)` : `Кан: ${player.name}`;
   tip.append(name);
+  // 0.7.6: сам кан — закрытым, как в игре (крайние тайлы рубашкой).
+  if (Array.isArray(player.kans) && player.kans.length) {
+    const kansRow = document.createElement('div');
+    kansRow.className = 'kan-dora-tip-kans';
+    for (const k of player.kans) renderClosedKan(kansRow, { tile: k });
+    tip.append(kansRow);
+  }
   // Рука: после сброса — 13 тайлов + сброшенный, до сброса — все 14.
   const hand = document.createElement('div');
   hand.className = 'kan-dora-tip-hand';

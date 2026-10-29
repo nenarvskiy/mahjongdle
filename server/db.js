@@ -464,6 +464,7 @@ export function listDayKans(db, date) {
   `).all(date).map((row) => ({
     name: row.name ?? 'аноним',
     kanCount: parseJson(row.kans, []).length,
+    kans: parseJson(row.kans, []), // 0.7.6: виды канов — для закрытого кана в карточке
     hand: parseJson(row.hand, []),
     tiles: row.tiles ? parseJson(row.tiles, []) : null,
     discarded: row.discarded ?? null,

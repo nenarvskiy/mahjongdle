@@ -883,9 +883,11 @@ test('kans: повторная отправка счёта с пустыми kan
   assert.deepEqual(row.kans, [K]);
   assert.equal(row.score, S);
   const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
-  // 0.7.5: к имени — рука/сброс/счёт объявившего (карточка кан-дора)
+  // 0.7.5: к имени — рука/сброс/счёт объявившего (карточка кан-дора);
+  // 0.7.6: + виды канов (закрытый кан в карточке)
   assert.deepEqual(k.kans, [{
-    name: 'Игрок sub-2', kanCount: 1, hand: hand11, tiles: tiles10, discarded, score: S,
+    name: 'Игрок sub-2', kanCount: 1, kans: [K],
+    hand: hand11, tiles: tiles10, discarded, score: S,
   }]);
 
   await p.close();
@@ -1181,7 +1183,8 @@ test('F2: семантика руки — кривые id, мёртвая сте
   assert.deepEqual(row.kans, [K2]);
   const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
   assert.deepEqual(k.kans, [{
-    name: 'Игрок sub-2', kanCount: 1, hand: hand11, tiles: tiles10, discarded: discarded2, score: S2,
+    name: 'Игрок sub-2', kanCount: 1, kans: [K2],
+    hand: hand11, tiles: tiles10, discarded: discarded2, score: S2,
   }]);
   await p.close(); p.cleanup();
 

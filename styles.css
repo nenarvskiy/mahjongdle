@@ -282,6 +282,10 @@ main {
 }
 .kan-dora-tip.show { display: flex; }
 .kan-dora-tip-name { font-size: 13px; font-weight: 700; color: var(--gold); }
+/* 0.7.6: каны объявившего — закрытые (крайние рубашкой), в размере руки карточки. */
+.kan-dora-tip-kans { display: flex; flex-wrap: wrap; gap: 6px; }
+.kan-dora-tip .kan-closed .tile { --tile-size: 26px; }
+.kan-dora-tip .kan-closed .tile-back { --context-tile-size: 26px; }
 .kan-dora-tip-hand { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .kan-dora-tip-hand .tile { --tile-size: 26px; }
 .kan-dora-tip-sep { color: var(--gold); font-weight: 700; font-size: 14px; }

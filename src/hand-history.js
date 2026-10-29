@@ -306,10 +306,10 @@ export async function showHandView({
     discEl.hidden = true;
   }
 
-  // M3: кан показывается ТАЙЛАМИ, а не одной иконкой:
-  //  - рука не готовая: пон кана (3 тайла) + 4-й тайл — рубашкой
-  //    (закрытый кан: 4 тайла в руке игрока; добор после кана сервер не
-  //    хранит — он в отображение не входит);
+  // M3: кан показывается ТАЙЛАМИ, а не одной иконкой. 0.7.6: вид — как у
+  // ЗАКРЫТОГО кана в игре (renderClosedKan): крайние (1-й и 4-й) тайлы
+  // рубашкой, центральные два открыты. До 0.7.6 в истории было
+  // «пон + 4-й рубашкой» (открыт-открыт-открыт-закрыт) — выглядело криво.
   //  - рука готовая: пон уже виден в 14-тайловой руке — показываем только
   //    4-й тайл (руба́шка), чтобы не дублировать пон.
   // До 0.7.0 показывался ОДИН тайл вида: физическая рука (13 + добор +
@@ -326,9 +326,13 @@ export async function showHandView({
       group.className = 'hands-kan-group';
       group.title = complete
         ? `Кан: ${tileDisplayName(tile)} (пон в руке; 4-й тайл — закрытый)`
-        : `Кан: ${tileDisplayName(tile)} (пон + 4-й тайл, закрытый)`;
+        : `Кан: ${tileDisplayName(tile)} (закрытый: 1-й и 4-й тайлы — рубашкой)`;
       if (!complete) {
-        for (let i = 0; i < 3; i += 1) {
+        const backFirst = document.createElement('span');
+        backFirst.className = 'tile-back';
+        backFirst.title = '1-й тайл кана (закрытый)';
+        group.append(backFirst);
+        for (let i = 1; i <= 2; i += 1) {
           group.append(createTileElement(tile, { disabled: true }));
         }
       }
