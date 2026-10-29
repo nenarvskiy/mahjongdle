@@ -261,6 +261,33 @@ main {
   0%, 100% { box-shadow: 0 0 0 2px rgba(255, 215, 106, .95), 0 0 10px rgba(255, 215, 106, .35), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24); }
   50% { box-shadow: 0 0 0 2px rgba(255, 215, 106, 1), 0 0 22px rgba(255, 215, 106, .65), 0 4px 0 #e4e0d4, 0 5px 0 #111713, 0 9px 12px rgba(0, 0, 0, .24); }
 }
+/* 0.7.5: карточка кан-дора на наведении/тапе жёлтой рубашки: кто объявил
+   кан, его рука (13 + сброшенный или 14 до сброса), счёт, когда откроется.
+   В BODY (position:fixed) — панель «Условия дня» кропит overflow:hidden. */
+.kan-dora-tip {
+  position: fixed;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: max-content;
+  max-width: min(460px, calc(100vw - 16px));
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 215, 106, .5);
+  border-radius: 14px;
+  background: linear-gradient(rgba(42, 58, 48, .55), rgba(42, 58, 48, .55)), var(--panel);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+.kan-dora-tip.show { display: flex; }
+.kan-dora-tip-name { font-size: 13px; font-weight: 700; color: var(--gold); }
+.kan-dora-tip-hand { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.kan-dora-tip-hand .tile { --tile-size: 26px; }
+.kan-dora-tip-sep { color: var(--gold); font-weight: 700; font-size: 14px; }
+.kan-dora-tip-discarded { outline: 2px solid var(--gold); outline-offset: 1px; border-radius: 4px; }
+.kan-dora-tip-meta { font-size: 13px; }
+.kan-dora-tip-note { font-size: 11.5px; line-height: 1.5; color: var(--muted); max-width: 400px; }
 .night-note {
   margin-top: 10px;
   padding: 10px 12px;

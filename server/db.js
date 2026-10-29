@@ -448,11 +448,14 @@ export function reissueDayHand(db, { userId, date, hand = [], dayCtx = {} }) {
 
 /**
  * Каны дня (публично): кто из игроков за дату объявил каны — для
- * «кан-дора откроется в конце дня» на главной странице.
+ * «кан-дора откроется в конце дня» на главной странице. 0.7.5: вместе с
+ * именем — рука/сброс/счёт объявившего (карточка на наведении жёлтого
+ * кан-дора): рука — текущее состояние строки дня (14 до сброса,
+ * tiles+discarded после), score — 0 до сброса.
  */
 export function listDayKans(db, date) {
   return db.prepare(`
-    SELECT u.name, dh.kans
+    SELECT u.name, dh.kans, dh.hand, dh.tiles, dh.discarded, dh.score
     FROM day_hands dh
     LEFT JOIN users u ON u.id = dh.user_id
     WHERE dh.date = ? AND dh.kans != '[]'
@@ -461,6 +464,10 @@ export function listDayKans(db, date) {
   `).all(date).map((row) => ({
     name: row.name ?? 'аноним',
     kanCount: parseJson(row.kans, []).length,
+    hand: parseJson(row.hand, []),
+    tiles: row.tiles ? parseJson(row.tiles, []) : null,
+    discarded: row.discarded ?? null,
+    score: row.score ?? 0,
   }));
 }
 

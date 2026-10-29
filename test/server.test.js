@@ -883,7 +883,10 @@ test('kans: повторная отправка счёта с пустыми kan
   assert.deepEqual(row.kans, [K]);
   assert.equal(row.score, S);
   const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
-  assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
+  // 0.7.5: к имени — рука/сброс/счёт объявившего (карточка кан-дора)
+  assert.deepEqual(k.kans, [{
+    name: 'Игрок sub-2', kanCount: 1, hand: hand11, tiles: tiles10, discarded, score: S,
+  }]);
 
   await p.close();
   p.cleanup();
@@ -1177,7 +1180,9 @@ test('F2: семантика руки — кривые id, мёртвая сте
   const row = await (await fetch(`${p.base}/api/me/hand/${DAY}`, { headers: h })).json();
   assert.deepEqual(row.kans, [K2]);
   const k = await (await fetch(`${p.base}/api/daily/kans?date=${DAY}`)).json();
-  assert.deepEqual(k.kans, [{ name: 'Игрок sub-2', kanCount: 1 }]);
+  assert.deepEqual(k.kans, [{
+    name: 'Игрок sub-2', kanCount: 1, hand: hand11, tiles: tiles10, discarded: discarded2, score: S2,
+  }]);
   await p.close(); p.cleanup();
 
   // 7. Готовая рука с каном: 14 содержит пон (3 тайла), 4-й тайл отложен.

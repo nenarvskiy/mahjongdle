@@ -62,7 +62,7 @@ function refreshDayKans() {
  * закрыты; за объявленные каны обводятся жёлтым с пояснением, ЧЕЙ кан.
  * Индексы 0-based по 4-слотовой стене (kanDora.slice(0, MAX_KAN_DORA)).
  */
-function kanDoraPending() {
+function kanDoraPending(state) {
   // Аудит №4 (0.7.1): приоритет у точной суммы (total) — список dayKans
   // ограничен 10 строками и при 10+ игроках с каном занижал общее число.
   const serverSum = dayKansTotal ?? dayKans.reduce((sum, k) => sum + (k.kanCount || 0), 0);
@@ -70,17 +70,36 @@ function kanDoraPending() {
     MAX_KAN_DORA,
     Math.max(declaredKans.length, serverSum),
   );
-  // F17: имя повторяется на КАЖДЫЙ кан игрока (kanCount), а не один раз на
-  // запись — при 2 канах одного игрока атрибуция слотов не сдвигалась.
-  const names = dayKans.flatMap((k) => Array(k.kanCount || 0).fill(k.name)).slice(0, total);
+  // F17: запись повторяется на КАЖДЫЙ кан игрока (kanCount), а не один раз
+  // на запись — при 2 канах одного игрока атрибуция слотов не сдвигалась.
+  // 0.7.5: в слот уходит и КАРТОЧКА объявившего (рука/сброс/счёт) — её
+  // покажет наведение на жёлтую рубашку.
+  const rowsPerKan = dayKans
+    .flatMap((k) => Array(k.kanCount || 0).fill(k))
+    .slice(0, total)
+    .map((k) => ({
+      name: k.name, hand: k.hand ?? null, tiles: k.tiles ?? null,
+      discarded: k.discarded ?? null, score: k.score ?? 0, mine: false,
+    }));
   const me = getAuth()?.user?.name;
+  // Свой кан, который сервер ещё не подтвердил (PATCH в полёте/не дошёл):
+  // карточка из локального состояния.
+  const meRow = me && {
+    name: me,
+    hand: state?.hand ?? null,
+    tiles: state?.discarded ? (state.remaining ?? null) : null,
+    discarded: state?.discarded ?? null,
+    score: state?.discarded ? (state.score?.total ?? 0) : 0,
+    mine: true,
+  } || null;
   const pending = [];
   for (let i = 0; i < total; i++) {
-    const who = names[i] ?? (i < declaredKans.length && me ? me : null);
+    const p = rowsPerKan[i] ?? (i < declaredKans.length ? meRow : null);
     pending.push({
       index: i,
-      tooltip: who
-        ? `Игрок «${who}» получил кан, поэтому в конце дня всем откроется кан-дора. Заходите завтра.`
+      player: p,
+      tooltip: p
+        ? `Кан: ${p.mine ? `${p.name} (вы)` : `«${p.name}»`} — рука и счёт в карточке. Кан-дора откроется в полночь (00:00 МСК).`
         : 'Сегодня объявили кан — в конце дня всем откроется кан-дора. Заходите завтра.',
     });
   }
@@ -936,7 +955,7 @@ function render(state) {
   // Кан-доры в строке доры: базовой НЕТ, все 4 слота закрыты до полуночи;
   // за каждый кан дня — жёлтая обводка («откроется в конце дня», чей кан —
   // в подсказке). Открытые тайлы кан-дор игрок увидит завтра, в окне «Вчера».
-  const pending = kanDoraPending();
+  const pending = kanDoraPending(state);
   renderKanDoras(els.kanDoraWall, dailyContext.deadWall.kanDora.slice(0, MAX_KAN_DORA), 0, pending);
 
   // Таймер «до полуночи» виден только после того, как рука дня потрачена:
