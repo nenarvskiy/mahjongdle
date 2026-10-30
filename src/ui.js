@@ -55,7 +55,11 @@ export function renderTiles(container, tiles, options = {}) {
   });
 }
 
-/** Отрисовать руку, сгруппированную по структурам. */
+/**
+ * Отрисовать руку, сгруппированную по структурам.
+ * 0.7.7: без подписей под группами («пон», «кан», «чи», «пенчан», «1122»…)
+ * — только сами тайлы структуры и её очки.
+ */
 export function renderGroupedHand(container, groups, options = {}) {
   container.innerHTML = '';
   const wrap = document.createElement('div');
@@ -74,11 +78,6 @@ export function renderGroupedHand(container, groups, options = {}) {
       row.appendChild(el);
     }
     block.appendChild(row);
-
-    const label = document.createElement('div');
-    label.className = 'group-label';
-    label.textContent = g.label;
-    block.appendChild(label);
 
     const pts = document.createElement('div');
     pts.className = 'group-points';
@@ -99,14 +98,13 @@ export function renderScore(container, score) {
   const list = document.createElement('ul');
   list.style.cssText = 'margin:0;padding:0 0 0 18px;line-height:1.6';
 
+  // 0.7.7: строка «Структура: +N» без детализации в скобках
+  // («пон +2, чи +1…») — только сумма по структурам.
   for (const row of score.breakdown) {
     const li = document.createElement('li');
-    let text = row.points === 0
+    const text = row.points === 0
       ? row.label
       : `${row.label}: ${row.points > 0 ? '+' : ''}${row.points}`;
-    if (row.blocks?.length) {
-      text += ` (${row.blocks.map((b) => `${b.label} +${b.points}`).join(', ')})`;
-    }
     li.textContent = text;
     li.className = row.yaku ? 'score-yaku' : row.potential ? 'score-potential' : '';
     list.appendChild(li);
